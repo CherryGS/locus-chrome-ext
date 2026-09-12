@@ -1,0 +1,25 @@
+{
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.21.0",
+      "onFail": "error"
+    }
+  },
+  "type": "module",
+  "private": true,
+  "name": "locus-chrome-ext",
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "dev": "pnpm --dir apps/extension dev",
+    "prepare:types": "pnpm --dir apps/extension exec wxt prepare",
+    "lint": "pnpm --dir apps/extension lint",
+    "typecheck": "pnpm --dir apps/extension compile",
+    "test": "pnpm --dir apps/extension test",
+    "build": "pnpm --dir apps/extension build",
+    "zip": "pnpm --dir apps/extension zip",
+    "check:deps": "pnpm install --frozen-lockfile --strict-peer-dependencies",
+    "deps:list": "pnpm list --recursive --depth 0",
+    "shadcn:info": "pnpm dlx shadcn@latest info --cwd apps/extension --json"
+  }
+}
