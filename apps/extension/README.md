@@ -68,12 +68,45 @@ do not acquire source content, and do not create or keep a Blob helper alive.
 
 ## Current bounds
 
+### Technical diagnostics by default
+
+Queue items and result failures display their technical report without a separate
+debug toggle. A partial capture includes the reason for each unavailable record
+or asset, even when the remaining portions are retained successfully. Copy
+diagnostic copies the visible report with its result/source/portion correlation.
+Long reports scroll inside the existing nonmodal panel.
+
+New failures include a code, execution stage, selected parameters, measured values,
+capability limits and available cause frames. HTTP reports distinguish declared
+and received byte limits, response status and truncated bodies. Bilibili video
+reports include selected and observed codecs/dimensions, color/aspect/rotation,
+expected and measured track durations, packet counts and output bounds. The report
+is stored in the existing unavailable reason and exported in JSON/JSONL; historical
+results show their original reason rather than invented retrospective evidence.
+Reports are bounded and remove credentials, signed URL queries and sensitive
+context keys. No remote logging or additional permission is needed.
+
 ### Bilibili current-part capture
 
 Choose **Enable Bilibili** in the library and grant its separate optional origins:
-`www.bilibili.com`, `api.bilibili.com`, `*.bilivideo.com`, and `*.hdslb.com` over
-HTTPS. On an ordinary `/video/BV…` page, **Capture P…** near Favorite/Share starts
-the current part immediately. It uses the same dark, nonmodal queue and explicit
+`www.bilibili.com`, `space.bilibili.com`, `api.bilibili.com`, `*.bilivideo.com`, and
+`*.hdslb.com` over HTTPS. After upgrading from detail-only capture, choose Enable
+Bilibili again to grant the added optional space origin. Ordinary video cards on
+the homepage and favorites page expose a 28-pixel capture icon at the cover's
+upper left on hover or keyboard focus. Known saved/pending/problem states remain
+visible. The card's link selects the part, defaulting to P1 when unspecified;
+programme/live cards and ambiguous links do not get controls. Favorites batch
+selection temporarily takes precedence in that corner. The native cover link and
+Watch later action retain their behavior.
+
+On an ordinary `/video/BV…` page, the native-styled capture action near
+Favorite/Share starts the current part immediately. It remains the fifth action
+in the native left group, with the same slot spacing, icon box and label font.
+Its visible localized label always means Import. A small corner marker indicates
+queued, saved, partial or attention states without changing the action's layout.
+The selected P and complete status remain in the hover hint and accessible
+name/description. Cover controls reuse the queue's smaller state icons.
+Both entry surfaces use the same dark, nonmodal queue and explicit
 Open result action. Changing parts affects only the next capture. Other parts,
 collections, comments, subtitles and programme/live products are not captured.
 
@@ -126,6 +159,14 @@ keeps a surviving owner's actual fetch, removes lost/revoked ownership, and boun
 unverified leases. Signed query strings remain private ephemeral operation inputs,
 not retained result metadata. Source cover HTTP is upgraded only for verified
 hdslb cover paths; no HTTP host grant is added.
+
+Track selection considers source-supplied `backupUrl` / `backup_url` mirrors when
+the primary uses an unsupported CDN origin or port. Every supplied location must
+bind the same CID and representation path; only an HTTPS `*.bilivideo.com` URL
+with the approved path and no custom port can be fetched. MCDN's `/v1/resource/`
+prefix is recognized solely for identity comparison. This does not widen host
+access, rewrite a signed address, substitute another quality, or retry failed
+network downloads through arbitrary mirrors.
 
 Withdrawing one site's permission interrupts its old work even after rapid regrant,
 without cancelling the other site or waiting behind its source inspection. Regrant
@@ -202,8 +243,9 @@ its Blob owner alive until actual terminal browser state is known.
 
 ## Ownership and verification
 
-`packages/capture-core` owns site-opaque state and serialization, exposed as
-`@locus/capture-core/model` and `/serialization`. `packages/twitter` owns source
+`packages/capture-core` owns site-opaque state, serialization and sanitized
+diagnostic formatting, exposed as `@locus/capture-core/model`, `/serialization`
+and `/diagnostics`. `packages/twitter` owns source
 meaning through explicit `@locus/twitter` subpaths: `/urls`, `/relay-parser`,
 `/source`, `/authenticated-projection`, `/authenticated-source`, and `/presentation`.
 These private TypeScript source packages use local imports internally and public

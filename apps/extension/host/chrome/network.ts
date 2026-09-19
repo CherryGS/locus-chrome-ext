@@ -2,18 +2,20 @@ import type { MediaCandidate } from '@locus/twitter/source';
 import { parseRelay } from '@locus/twitter/relay-parser';
 import { normalizeTwitter, PublicTwitterSourceUnavailableError, type TwitterCandidate } from '@locus/twitter/source';
 import { mediaUrl, postUrl } from '@locus/twitter/urls';
+import { diagnosticError } from '@locus/capture-core/diagnostics';
 
 export async function boundedBody(response: Response, limit: number): Promise<Blob> {
-  if (!response.ok || response.status !== 200 || response.headers.has('content-range')) throw new Error(`Incomplete or failed HTTP response (${response.status})`);
+  const context = { status: response.status, contentLength: response.headers.get('content-length'), contentType: response.headers.get('content-type'), contentRange: response.headers.get('content-range'), limitBytes: limit };
+  if (!response.ok || response.status !== 200 || response.headers.has('content-range')) throw diagnosticError('HTTP_INCOMPLETE_RESPONSE', 'http.headers', `Incomplete or failed HTTP response (${response.status})`, context);
   const announced = Number(response.headers.get('content-length'));
-  if (announced > limit) throw new Error(`Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`);
-  if (!response.body) throw new Error('Response body unavailable');
+  if (announced > limit) throw diagnosticError('HTTP_SIZE_LIMIT', 'http.headers', `Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`, { ...context, announcedBytes: announced });
+  if (!response.body) throw diagnosticError('HTTP_BODY_MISSING', 'http.body', 'Response body unavailable', context);
   const reader = response.body.getReader(); const chunks: Uint8Array<ArrayBuffer>[] = []; let size = 0;
   try {
-    while (true) { const next = await reader.read(); if (next.done) break; size += next.value.length; if (size > limit) throw new Error(`Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`); chunks.push(next.value); }
+    while (true) { const next = await reader.read(); if (next.done) break; size += next.value.length; if (size > limit) throw diagnosticError('HTTP_SIZE_LIMIT', 'http.body', `Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`, { ...context, receivedBytes: size }); chunks.push(next.value); }
   } catch (error) { await reader.cancel().catch(() => {}); throw error; }
-  if (!size) throw new Error('Empty resource response');
-  if (announced && !response.headers.get('content-encoding') && size !== announced) throw new Error('Truncated resource response');
+  if (!size) throw diagnosticError('HTTP_BODY_EMPTY', 'http.body', 'Empty resource response', context);
+  if (announced && !response.headers.get('content-encoding') && size !== announced) throw diagnosticError('HTTP_BODY_TRUNCATED', 'http.body', 'Truncated resource response', { ...context, receivedBytes: size, expectedBytes: announced });
   return new Blob(chunks, { type: response.headers.get('content-type')?.split(';')[0]?.toLowerCase() ?? '' });
 }
 export async function loadTwitter(url: string, signal: AbortSignal, authenticated?:()=>Promise<TwitterCandidate>) {

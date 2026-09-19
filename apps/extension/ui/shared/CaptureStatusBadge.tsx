@@ -10,12 +10,16 @@ const icons = {
   failed: XCircleIcon, unknown: CircleHelpIcon,
 };
 
-export function CaptureStatusBadge({ state }: { state: CaptureState }) {
-  const { label, description, tone } = captureStates[state];
+export function CaptureStatusIcon({ state }: { state: CaptureState }) {
   const Icon = icons[state];
   const pending = state === 'checking' || state === 'importing' || state === 'saving';
+  return <Icon aria-hidden="true" data-icon="inline-start" className={cn(pending && 'motion-safe:animate-spin')} />;
+}
+
+export function CaptureStatusBadge({ state }: { state: CaptureState }) {
+  const { label, description, tone } = captureStates[state];
   return <Badge variant={tone === 'neutral' ? 'outline' : tone} title={description} data-capture-state={state}>
-    <Icon data-icon="inline-start" className={cn(pending && 'motion-safe:animate-spin')} />
+    <CaptureStatusIcon state={state} />
     {label}
   </Badge>;
 }

@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright-core';
 import { BlobReader, ZipReader, TextWriter, Uint8ArrayWriter } from '@zip.js/zip.js';
+import { bilibiliListingFixture, verifyBilibiliControls } from './bilibili-controls-smoke.mjs';
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executablePath = process.env.LOCUS_CHROME_PATH; if (!executablePath) throw new Error('Set LOCUS_CHROME_PATH');
 const work = await mkdtemp(path.join(tmpdir(), 'locus-bilibili-capture-')), extension = path.join(work, 'extension'), downloads = path.join(work, 'downloads');
@@ -32,13 +33,18 @@ const bvid = 'BV145PxzCEoE', base = `https://www.bilibili.com/video/${bvid}/`;
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(read, predicate, label, ms = 40000) { const deadline = Date.now() + ms; let value; do { value = await read(); if (predicate(value)) return value; await pause(100); } while (Date.now() < deadline); throw new Error(`${label}: ${JSON.stringify(value)}`); }
 let context, worker, resultPage, extensionId, sessionLogin = true, navRequests = 0, hold;
-const checks = []; const routing = [];
+const checks = []; const routing = []; const renderErrors = [];
 function fixture(p) {
-  const cid = String(100000 + p), track = (id, codecs) => ({ id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: `https://synthetic.bilivideo.com/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s` });
+  const toolbar = ['like', 'coin', 'fav', 'share'].map((name, i) => `<div data-v-abc123="" class="toolbar-left-item-wrap"><div data-v-abc123="" class="video-${name} video-toolbar-left-item"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M12 4h12v28H12Z"/></svg><span data-v-abc123="" class="video-toolbar-item-text">${i + 12}</span></div></div>`).join('');
+  const cid = String(100000 + p), track = (id, codecs) => {
+    const pathname = `/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s`, approved = `https://synthetic.bilivideo.com${pathname}`;
+    return { id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: p === 2 ? `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}` : approved,
+      ...(p === 2 ? { backup_url: [`https://synthetic.edge.mountaintoys.cn:4483${pathname}`, approved] } : {}) };
+  };
   const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 9 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
-  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center;gap:12px}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main"><button class="video-fav video-toolbar-left-item">Favorite</button><div class="video-share-wrap video-toolbar-left-item"><button class="video-share">Share</button></div></div></div><div class="video-toolbar-right">Native toolbar</div></div><main>Independent page browsing</main>`;
+  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right">Native toolbar</div></div><main>Independent page browsing</main>`;
 }
 async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1', 1); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
 async function routeOwner() {
@@ -64,16 +70,36 @@ async function capture(p) {
 }
 try {
   context = await chromium.launchPersistentContext(path.join(work, 'profile'), { executablePath, headless: true, acceptDownloads: true, downloadsPath: downloads, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
+  context.on('page', page => page.on('pageerror', error => { if (/NotFoundError|removeChild/.test(String(error))) renderErrors.push(String(error)); }));
   worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
-  await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://space.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('favorites', base) }));
   await context.route('https://api.bilibili.com/x/web-interface/nav', route => { navRequests++; return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': 'https://www.bilibili.com', 'Access-Control-Allow-Credentials': 'true' }, body: JSON.stringify({ code: 0, data: { isLogin: sessionLogin, unrelatedAccount: 'not-selected' } }) }); });
   await until(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), values => values.some(value => value.id === 'locus-bilibili-main'), 'Bilibili source registration');
   resultPage = await context.newPage(); await resultPage.goto(`chrome-extension://${extensionId}/results.html`); await resultPage.getByText('No captures yet', { exact: true }).waitFor(); await routeOwner();
   const success = await capture(2); const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\nSecond line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
+  assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-64.m4s');
+  assert.equal(selected.records[0].payload.representation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-30280.m4s');
+  checks.push('Unsupported MCDN primary uses source-supplied same-track approved CDN backups without widening host permissions');
   assert.equal(await success.page.evaluate(() => !!document.querySelector('script')?.textContent?.includes('__INITIAL_STATE__')), false);
+  // Native toolbar presentation may arrive after hydration. Reuse its actual
+  // icon geometry and label font without duplicating a second status badge.
+  await success.page.locator('.video-fav').evaluate(native => { native.innerHTML='<svg width="36" height="36" viewBox="0 0 24 24"><path d="M12 3v18"/></svg><span class="video-toolbar-item-text" style="font:500 14px/28px sans-serif">Favorite</span>'; });
+  await until(()=>success.page.evaluate(()=>{const button=document.querySelector('[data-locus-bilibili-action="toolbar"]'),native=document.querySelector('.video-fav');return !!button&&button.querySelectorAll('svg').length===1&&getComputedStyle(button.querySelector('span')).font===getComputedStyle(native.querySelector('span')).font&&getComputedStyle(button.querySelector('svg')).width===getComputedStyle(native.querySelector('svg')).width;}),Boolean,'native toolbar typography and single matching icon');
+  const nativeSlots=await success.page.locator('.video-toolbar-left-main > div').evaluateAll(items=>items.map(item=>{const r=item.getBoundingClientRect();return {height:r.height,top:r.top,width:r.width};}));
+  assert.equal(nativeSlots.length,5);assert(nativeSlots.every(slot=>slot.height===36&&slot.top===nativeSlots[0].top&&slot.width===nativeSlots[0].width),JSON.stringify(nativeSlots));
+  assert.equal(await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).textContent(),'导入');
+  await success.page.locator('.video-toolbar-left-main').evaluate(row=>{const replacement=row.cloneNode(true);replacement.querySelectorAll('[data-locus-bilibili]').forEach(slot=>slot.remove());row.replaceWith(replacement);});
+  await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).waitFor();
+  assert.equal(await success.page.locator('[data-locus-bilibili-action="toolbar"]').count(),1);
   await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
   await success.page.evaluate(() => { history.pushState({}, '', '?p=1&vd_source=fixture'); document.body.append(document.createElement('span')); }); await success.page.getByRole('button', { name: 'Locus capture P1', exact: true }).waitFor(); assert.equal((await rows()).find(row => row.id === success.id).sourceUrl, `${base}?p=2`);
+  await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.tabs.sendMessage(tab.id,{target:'page',op:'revoke'}).catch(()=>{});},success.page.url());
+  await until(()=>success.page.locator('[data-locus-bilibili-action]').count(),count=>count===0,'toolbar teardown');
+  await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},files:['content-scripts/bilibili.js']});},success.page.url());
+  await success.page.getByRole('button',{name:'Locus capture P1',exact:true}).waitFor();
+  checks.push('Native five-slot geometry and typography; stable action label; toolbar replacement, teardown and remount preserve React-owned nodes');
   checks.push('Trusted immediate P2 capture; removed initial script; authenticated nav; exact CID; nonmodal browsing; SPA next selection preserves accepted P2');
   await success.page.close(); await worker.evaluate(() => chrome.offscreen.closeDocument());
   await resultPage.goto(`chrome-extension://${extensionId}/results.html#${success.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();
@@ -97,7 +123,24 @@ try {
     const after=packets(output),proof=[];for(const[kind,file]of[['video',process.env.LOCUS_BILI_REAL_VIDEO],['audio',process.env.LOCUS_BILI_REAL_AUDIO]]){const original=packets(file),stream=after.streams.find(stream=>stream.codec_type===kind),actual=after.packets.filter(packet=>packet.stream_index===stream.index);assert.equal(stream.extradata_hash,original.streams[0].extradata_hash);assert.deepEqual(actual.map(packet=>packet.data_hash),original.packets.map(packet=>packet.data_hash));proof.push({kind,packets:actual.length,configurationEqual:true,encodedPacketsEqual:true});}
     cmd('ffmpeg',['-v','error','-xerror','-i',output,'-f','null','-']);await writeFile(path.join(work,'real-media-evidence.json'),JSON.stringify({proof,playback,fullDecode:true},null,2));checks.push('Optional real AVC/AAC through production source fixture/byte path: complete packet+configuration preservation, source page closed, start/mid/end playback, full decode and native ZIP');
   }
-  for (const p of [3, 4, 5, 6]) { const attempt = await capture(p); const values = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `partial P${p}`); const row = values.find(row => row.id === attempt.id); assert(row.assets.some(asset => asset.acquisition.state === 'acquired')); if (p !== 6) assert.equal(row.assets.find(asset => asset.id === 'media-2').acquisition.state, 'unavailable'); else assert.equal(row.records[0].acquisition.state, 'unavailable'); await attempt.page.close(); }
+  for (const p of [3, 4, 5, 6]) {
+    const attempt = await capture(p); const values = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `partial P${p}`); const row = values.find(row => row.id === attempt.id);
+    assert(row.assets.some(asset => asset.acquisition.state === 'acquired')); if (p !== 6) assert.equal(row.assets.find(asset => asset.id === 'media-2').acquisition.state, 'unavailable'); else assert.equal(row.records[0].acquisition.state, 'unavailable');
+    await attempt.page.getByRole('button',{name:'Expand capture queue',exact:true}).click();
+    const diagnostic=attempt.page.locator(`[data-task-id="${attempt.id}"] [data-capture-diagnostic] pre`);
+    await diagnostic.waitFor();const report=await diagnostic.textContent();assert(report.includes('stage:'));assert(report.includes(attempt.id));
+    if(p===5){assert(report.includes('HTTP_SIZE_LIMIT'));assert(report.includes('68157440'));assert(report.includes('67108864'));
+      await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},world:'ISOLATED',func:()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{document.documentElement.dataset.copiedDiagnostic=text;}}});}});},attempt.page.url());
+      await attempt.page.locator(`[data-task-id="${attempt.id}"]`).getByRole('button',{name:'Copy diagnostic',exact:true}).click();
+      assert.equal(await attempt.page.evaluate(()=>document.documentElement.dataset.copiedDiagnostic),report);
+      await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);
+      await resultPage.getByRole('button',{name:'Export available content',exact:true}).waitFor();
+      await until(()=>resultPage.locator('[data-capture-diagnostic] pre').allTextContents(),values=>values.some(value=>value.includes('HTTP_SIZE_LIMIT')&&value.includes('68157440')),'retained result diagnostic');
+      await attempt.page.screenshot({path:path.join(work,'bilibili-debug-queue.png')});
+    }
+    await attempt.page.close();
+  }
+  checks.push('Default expanded technical errors in queue and retained result, original stage/byte values and result correlation preserved, copy action returns the displayed report');
   checks.push('Missing audio, truncated track and oversize response preserve metadata/cover; incomplete metadata preserves independently acquired files');
   let releaseClear; hold=url=>url.pathname.includes('/100009/')?new Promise(resolve=>{releaseClear=resolve;}):undefined;
   const clearing=await capture(9);await until(async()=>typeof releaseClear,value=>value==='function','held clear media');
@@ -113,9 +156,11 @@ try {
   hold=undefined;releaseRevoke();const interrupted=await until(rows,list=>list.find(row=>row.id===revoking.id)?.assets.find(asset=>asset.id==='media-2')?.acquisition.state==='unavailable','revoked video');assert.equal(interrupted.find(row=>row.id===revoking.id).assets[0].acquisition.state,'acquired');await revoking.page.close();
   checks.push('Worker recreation preserves a surviving CDN lease; clear during fetch prevents resurrection; simulated removal/rapid regrant interrupts accepted Bilibili bytes and preserves committed cover');
   sessionLogin = false; const denied = await context.newPage(); await denied.goto(`${base}?p=7`); const beforeDenied = (await rows()).length; await denied.getByRole('button', { name: 'Locus capture P7' }).click(); await denied.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await denied.getByText(/Sign in to Bilibili before capturing this part/).waitFor(); assert.equal((await rows()).length, beforeDenied); await denied.close(); sessionLogin = true;
+  checks.push(...await verifyBilibiliControls({ context, worker, work, rows, until, base }));
   await until(() => worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), rules => rules.length === 0, 'DNR cleanup');
   const sessions = await worker.evaluate(() => chrome.storage.session.get(null)); assert.equal(sessions['locus-bilibili-probes-v1']?.length ?? 0, 0); assert.equal(sessions['locus-bilibili-cdn-leases-v1']?.length ?? 0, 0);
   checks.push('Session denial creates no capture; all temporary source tabs and DNR leases cleaned');
+  assert.deepEqual(renderErrors,[], 'No React node-removal errors during ordinary source updates or UI teardown');
   await writeFile(path.join(work, 'evidence.json'), JSON.stringify({ status: 'PASS', checks, outputSha256: createHash('sha256').update(output).digest('hex'), files: await readdir(work) }, null, 2)); console.log(JSON.stringify({ status: 'PASS', work, checks }, null, 2));
-} catch (error) { await writeFile(path.join(work, 'failure.txt'), String(error)); console.error(`Bilibili smoke failed; evidence: ${work}\n${String(error)}`); process.exitCode = 1; }
+} catch (error) { await writeFile(path.join(work, 'failure.txt'), error.stack ?? String(error)); console.error(`Bilibili smoke failed; evidence: ${work}\n${error.stack ?? String(error)}`); process.exitCode = 1; }
 finally { for (const session of routing) await session.detach().catch(() => {}); await context?.close(); }

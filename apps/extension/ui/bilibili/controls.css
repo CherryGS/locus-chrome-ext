@@ -1,0 +1,42 @@
+/* A single scoped sheet for all cards; no per-card Tailwind/root copy. */
+[data-locus-bilibili-cover] { position: relative; }
+[data-locus-bilibili="cover"] {
+  position: absolute;
+  inset: 8px auto auto 8px;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+[data-locus-bilibili-cover]:hover > [data-locus-bilibili="cover"],
+[data-locus-bilibili="cover"]:focus-within,
+[data-locus-bilibili="cover"][data-persistent="true"] { opacity: 1; pointer-events: auto; }
+[data-locus-bilibili-action] {
+  appearance: none;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  color: var(--locus-native-color);
+  background: transparent;
+}
+/* Native items are block flex boxes. Inline-flex introduces a descender gap in
+   this wrapper and shifts the entire fifth icon above its neighboring actions. */
+[data-locus-bilibili-action="toolbar"] { display: flex; height: var(--locus-native-size, 36px); min-width: max-content; justify-content: flex-start; white-space: nowrap; border-radius: 6px; }
+[data-locus-bilibili-action="toolbar"] > span { font: var(--locus-native-font, inherit); }
+[data-locus-bilibili-action="cover"] { width: 28px; height: 28px; border-radius: var(--locus-native-radius, 6px); background: var(--locus-native-background); }
+[data-locus-bilibili-action] > svg { width: var(--locus-native-size, 20px); height: var(--locus-native-size, 20px); flex-shrink: 0; pointer-events: none; }
+[data-locus-bilibili-action="cover"][data-tone="info"], [data-tone="info"] [data-locus-status-marker] { color: var(--locus-info); }
+[data-locus-bilibili-action="cover"][data-tone="success"], [data-tone="success"] [data-locus-status-marker] { color: var(--locus-success); }
+[data-locus-bilibili-action="cover"][data-tone="warning"], [data-tone="warning"] [data-locus-status-marker] { color: var(--locus-warning); }
+[data-locus-bilibili-action="cover"][data-tone="destructive"], [data-tone="destructive"] [data-locus-status-marker] { color: var(--locus-destructive); }
+[data-locus-bilibili-action]:hover { color: var(--brand_blue, var(--locus-info)); }
+[data-locus-bilibili-action]:focus-visible { outline: 2px solid var(--locus-info); outline-offset: 3px; }
+@media (hover: none) { [data-locus-bilibili="cover"] { opacity: 1; pointer-events: auto; } }
+@media (prefers-reduced-motion: reduce) { [data-locus-bilibili="cover"] { transition: none; } }

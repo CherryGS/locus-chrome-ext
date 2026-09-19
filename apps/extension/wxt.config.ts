@@ -8,7 +8,7 @@ export default defineConfig({
     description: 'Capture supported Twitter posts and Bilibili video parts, retain results, and export files with JSON metadata.',
     minimum_chrome_version: '116',
     permissions: ['offscreen', 'scripting', 'downloads', 'unlimitedStorage', 'storage', 'alarms', 'declarativeNetRequestWithHostAccess'],
-    optional_host_permissions: ['https://x.com/*', 'https://twitter.com/*', 'https://pbs.twimg.com/*', 'https://video.twimg.com/*', 'https://www.bilibili.com/*', 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'],
+    optional_host_permissions: ['https://x.com/*', 'https://twitter.com/*', 'https://pbs.twimg.com/*', 'https://video.twimg.com/*', 'https://www.bilibili.com/*', 'https://space.bilibili.com/*', 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'],
     action: { default_title: 'Open Locus results' },
   },
   modules: ['@wxt-dev/module-react'],

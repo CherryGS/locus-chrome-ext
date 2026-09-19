@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./model": "./src/model.ts",
+    "./diagnostics": "./src/diagnostics.ts",
     "./serialization": "./src/serialization.ts"
   },
   "scripts": {

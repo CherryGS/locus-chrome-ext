@@ -20,6 +20,37 @@ describe('Bilibili initial current-part source', () => {
   it.each([true, 1, 'unknown'])('rejects an upower preview flag %s as video-only limitation', flag => { const f = fixture(); Object.assign(f.initial.videoData, { is_upower_preview: flag }); const c = f.candidate(); expect(c.payload).not.toBeNull(); expect(c.media[1]!.tracks).toBeUndefined(); });
   it('does not attribute stale precise duration or throw on invalid auxiliary publication dates', () => { const f = fixture(); f.play.data.timelength = 10000; f.initial.videoData.pubdate = Number.MAX_VALUE; const c = f.candidate(); expect(c.media[1]!.reason).toContain('duration'); expect(c.payload).toMatchObject({ part: { duration: 27, durationPrecision: 'coarse-seconds' }, publishedAt: null }); });
   it('rejects foreign CID tracks even when shape and quality appear valid', () => { const f = fixture(); f.play.data.dash.video[0]!.baseUrl = f.play.data.dash.video[0]!.baseUrl.replaceAll('36531930223', '36508468243'); expect(f.candidate().media[1]!.reason).toContain('CID'); });
+  it('uses a source-supplied approved mirror when the primary is an ungranted MCDN origin', () => {
+    const f = fixture();
+    for (const track of [...f.play.data.dash.video, ...f.play.data.dash.audio]) {
+      const approved = track.baseUrl, path = new URL(approved).pathname;
+      track.baseUrl = `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${path}`;
+      Object.assign(track, { [track.id === 64 ? 'backup_url' : 'backupUrl']: [`https://synthetic.edge.mountaintoys.cn:4483${path}`, approved] });
+    }
+    const candidate = f.candidate(), selected = candidate.media[1]!.tracks;
+    expect(selected?.video).toMatchObject({ quality: 64, width: 580, height: 1280 });
+    expect(selected?.audio.quality).toBe(30280);
+    expect(selected?.video.url).toContain('https://synthetic.bilivideo.com/');
+    expect(selected?.audio.url).toContain('https://synthetic.bilivideo.com/');
+    const saved = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
+    expect(saved).not.toContain('private='); expect(saved).not.toContain('mcdn');
+  });
+  it('rejects foreign CID or different-representation mirrors even if another URL is approved', () => {
+    for (const conflict of [ (url: string) => url.replaceAll('36531930223', '36508468243'), (url: string) => url.replace('-1-64.m4s', '-1-32.m4s') ]) {
+      const f = fixture(), track = f.play.data.dash.video[0]!;
+      Object.assign(track, { backupUrl: [conflict(track.baseUrl)] });
+      const reason = f.candidate().media[1]!.reason;
+      expect(reason).toMatch(/CID|representation path/);
+    }
+  });
+  it('does not treat unsupported, credentialed or oversized mirror sets as authorized resources', () => {
+    const f = fixture(), track = f.play.data.dash.video[0]!, approved = track.baseUrl, path = new URL(approved).pathname;
+    track.baseUrl = `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${path}`;
+    Object.assign(track, { backup_url: [approved.replace('https://', 'https://user:pass@'), approved.replace('.com/', '.com:8082/')] });
+    expect(f.candidate().media[1]!.reason).toContain('No approved HTTPS');
+    Object.assign(track, { backup_url: Array.from({ length: 17 }, () => approved) });
+    expect(f.candidate().media[1]!.reason).toContain('16-mirror limit');
+  });
   it('keeps only coarse bound duration when a nearby playinfo belongs to another CID',()=>{const f=fixture();f.play.data.timelength=26999;f.play.data.dash.video[0]!.baseUrl=f.play.data.dash.video[0]!.baseUrl.replaceAll('36531930223','36508468243');expect(f.candidate().payload).toMatchObject({part:{duration:27,durationPrecision:'coarse-seconds'}});});
   it('selects actual supported membership, not advertised-only quality or codec bitrate', () => { const f = fixture(); f.play.data.accept_quality.unshift(80); f.play.data.support_formats.unshift({ quality: 80 }); const c = f.candidate(); expect(c.media[1]!.tracks?.video.quality).toBe(64); });
   it('rejects conflicting quality ordering, contradictory dimensions and missing audio', () => { const f = fixture(); f.play.data.support_formats.reverse(); expect(f.candidate().media[1]!.reason).toContain('ordering'); f.play.data.support_formats.reverse(); f.play.data.dash.video[1]!.width = 1920; expect(f.candidate().media[1]!.reason).toContain('dimensions'); f.play.data.dash.audio = []; expect(f.candidate().media[1]!.reason).toContain('audio'); });

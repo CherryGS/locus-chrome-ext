@@ -1,4 +1,17 @@
-export const BILIBILI_ORIGINS = ['https://www.bilibili.com/*', 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'];
+export const BILIBILI_PAGE_ORIGINS = ['https://www.bilibili.com/*', 'https://space.bilibili.com/*'];
+export const BILIBILI_ORIGINS = [...BILIBILI_PAGE_ORIGINS, 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'];
+
+/** Page entry surfaces do not broaden the ordinary-video source selection. */
+export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | undefined {
+  try {
+    const url = new URL(input);
+    if (url.protocol !== 'https:' || url.port || url.username || url.password) return;
+    if (url.hostname === 'space.bilibili.com' && /^\/\d+\/favlist\/?$/.test(url.pathname)) return 'favorites';
+    if (url.hostname !== 'www.bilibili.com') return;
+    if (url.pathname === '/') return 'home';
+    partUrl(input); return 'video';
+  } catch { return; }
+}
 export function partUrl(input: string) {
   const url = new URL(input);
   const match = /^\/video\/(BV[0-9A-Za-z]{10})\/?$/.exec(url.pathname);
@@ -16,9 +29,33 @@ export function bilibiliResource(input: string, role: 'cover' | 'track', cid?: s
   if (url.protocol !== 'https:') throw new Error('Bilibili resources require HTTPS');
   if (role === 'cover' && !/^\/bfs\/archive\/[A-Za-z0-9._-]+$/.test(url.pathname)) throw new Error('Unverified Bilibili cover path');
   if (role === 'track') {
-    const path = /^\/upgcxcode\/\d+\/\d+\/(\d+)\/\1-1-\d+\.m4s$/.exec(url.pathname);
-    if (!path || (cid !== undefined && path[1] !== cid)) throw new Error('Track does not bind the selected Bilibili CID');
+    boundTrackPath(url.pathname, cid);
   }
   return url.href;
+}
+function boundTrackPath(pathname: string, cid?: string) {
+  const path = /^\/upgcxcode\/\d+\/\d+\/(\d+)\/\1-1-\d+\.m4s$/.exec(pathname);
+  if (!path || (cid !== undefined && path[1] !== cid)) throw new Error('Track does not bind the selected Bilibili CID');
+  return pathname;
+}
+/** Choose a source-supplied mirror without broadening the permitted CDN origins. */
+export function bilibiliTrackResource(track: Record<string, unknown>, cid: string) {
+  const primary = [track.baseUrl, track.base_url].filter(value => value !== null && value !== undefined);
+  const backupLists = [track.backupUrl, track.backup_url].filter(value => value !== null && value !== undefined);
+  if (!primary.length || backupLists.some(value => !Array.isArray(value) || value.length > 16)) throw new Error('Track locations are missing or exceed the 16-mirror limit');
+  const candidates = [...new Set([...primary, ...backupLists.flatMap(value => value as unknown[])])];
+  let boundPath: string | undefined, selected: string | undefined;
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string' || candidate.length > 4096) throw new Error('Track location is not a bounded URL');
+    const url = new URL(candidate);
+    // MCDN adds this prefix to the same representation. Its path contributes
+    // identity evidence only; bilibiliResource still denies its origin/port.
+    const path = boundTrackPath(url.pathname.replace(/^\/v1\/resource\//, '/'), cid);
+    if (boundPath !== undefined && path !== boundPath) throw new Error('Track mirrors disagree on the selected representation path');
+    boundPath = path;
+    try { const approved = bilibiliResource(candidate, 'track', cid); selected ??= approved; } catch { /* Try the next supplied mirror within the existing host grant. */ }
+  }
+  if (!selected) throw new Error('No approved HTTPS Bilibili CDN location for this representation');
+  return selected;
 }
 export function sourceResource(input: string) { const url = new URL(input); return url.origin + url.pathname; }

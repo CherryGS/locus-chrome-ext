@@ -13,10 +13,11 @@ import { availability, errorMessage, type Snapshot, type Delivery } from '@locus
 import { bilibiliPresentation } from '@locus/bilibili/presentation';
 import { twitterPresentation } from '@locus/twitter/presentation';
 import { CaptureStatusBadge } from '@/ui/shared/CaptureStatusBadge';
+import { TechnicalFailure } from '@/ui/shared/TechnicalFailure';
 import { getResultCaptureStatus } from '@/ui/shared/capture-status';
 import { acquisitionLabel, deliveryLabels, exactTime, fileSize, retentionLabel, safeSource, sourceName } from './presentation';
 
-export function Failure({ title, message }: { title: string; message: string }) { return <Alert variant="destructive"><AlertTitle>{title}</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>; }
+export function Failure({ title, message, context }: { title: string; message: string; context?: Record<string, unknown> }) { return <TechnicalFailure title={title} message={message} context={context} />; }
 function Pending({ title, message }: { title: string; message: string }) { return <Alert><LoaderCircleIcon /><AlertTitle>{title}</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>; }
 function AcquisitionBadge({ state }: { state: string }) {
   const Icon = state === 'acquired' ? CheckCircle2Icon : state === 'pending' ? LoaderCircleIcon : CircleAlertIcon;
@@ -43,13 +44,13 @@ function Preview({ snapshot }: { snapshot: Snapshot }) {
         {post && <><header className="flex items-center gap-3"><Avatar size="lg"><AvatarFallback>{(post.displayName ?? post.username ?? 'X').slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0"><p className="font-medium">{post.displayName ?? post.username ?? 'Author unknown'}</p><p className="text-sm text-muted-foreground">{post.username ? `@${post.username}` : 'Username unknown'}{post.publishedAt ? ` · ${exactTime(post.publishedAt)}` : ' · Publication time unknown'}</p></div></header><div className="whitespace-pre-wrap break-words text-base leading-7">{post.text || <span className="text-muted-foreground">Empty authored message</span>}</div></>}
         {part && <><header><h3 className="text-lg font-medium">{part.title}</h3><p className="text-sm text-muted-foreground">Uploader: {part.uploader ?? "Unknown"} · {part.part}</p><p className="text-sm text-muted-foreground">{part.quality}</p></header><p className="whitespace-pre-wrap break-words">{part.description || "Empty authored description"}</p></>}{!post && !part && record.acquisition.state === 'acquired' && <Alert><AlertTitle>Record available</AlertTitle><AlertDescription>This record has no supported text preview. Its full payload is available in Metadata.</AlertDescription></Alert>}
         {record.acquisition.state === 'pending' && <Pending title="Content is still being acquired" message={record.acquisition.reason ?? 'The producer has not supplied the message yet.'} />}
-        {record.acquisition.state === 'unavailable' && <Failure title="Content unavailable" message={record.acquisition.reason ?? 'The producer could not supply the message.'} />}
+        {record.acquisition.state === 'unavailable' && <Failure title="Content unavailable" message={record.acquisition.reason ?? 'The producer could not supply the message.'} context={{resultId:result.id,sourceUrl:result.sourceUrl,revision:result.revision,recordId:record.id}} />}
       </article>;
     })}
     <section aria-label="Selected files" className="flex flex-col gap-4"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-medium">Selected files</h3><span className="text-xs text-muted-foreground">{result.assets.length ? `${acquiredFiles} of ${result.assets.length} acquired` : 'Text-only capture'}</span></div>
       {!result.assets.length && <p className="text-sm text-muted-foreground">Only the message and metadata were selected. No media files are missing.</p>}
       <ItemGroup>{previewAssets.map((asset, index) => <Item key={asset.id} variant="outline" className="flex-col items-stretch"><div className="flex items-center gap-3"><ItemMedia variant="icon">{asset.mime?.startsWith('image/') ? <ImageIcon /> : asset.mime?.startsWith('video/') ? <VideoIcon /> : <FileIcon />}</ItemMedia><ItemContent><ItemTitle>{result.site==='bilibili'&&asset.id==='media-1'?'Parent cover':asset.mime?.startsWith('image/') ? 'Image' : asset.mime?.startsWith('video/') ? 'Video' : 'File'} {index + 1}</ItemTitle><ItemDescription>{asset.mime ? `${asset.mime} · ${fileSize(asset.size)}` : asset.id}</ItemDescription></ItemContent><AcquisitionBadge state={asset.acquisition.state} /></div>
-        {asset.acquisition.reason && <Failure title="Selected file unavailable" message={asset.acquisition.reason} />}
+        {asset.acquisition.reason && <Failure title="Selected file unavailable" message={asset.acquisition.reason} context={{resultId:result.id,sourceUrl:result.sourceUrl,revision:result.revision,assetId:asset.id,recordId:asset.recordId}} />}
         {readErrors[asset.id] && <Failure title="File read failed" message={`${readErrors[asset.id]}. Retry reads to try again; acquisition has not changed.`} />}
         {blobs[asset.id] && <FilePreview blob={blobs[asset.id]!} label={`Selected file ${index + 1} (${asset.id})`} />}
       </Item>)}</ItemGroup>

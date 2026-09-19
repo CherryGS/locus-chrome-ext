@@ -2,11 +2,11 @@ import { useSyncExternalStore } from 'react';
 import { ChevronDownIcon, ExternalLinkIcon, ListOrderedIcon, LoaderCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Item, ItemGroup, ItemContent, ItemTitle, ItemDescription, ItemActions } from '@/components/ui/item';
 import { FieldSet, FieldLegend, FieldDescription, FieldGroup, Field, FieldLabel } from '@/components/ui/field';
 import { CaptureStatusBadge } from '@/ui/shared/CaptureStatusBadge';
+import { TechnicalFailure } from '@/ui/shared/TechnicalFailure';
 import { getCaptureStatus } from '@/ui/shared/capture-status';
 import { TrustedCheckbox } from './TrustedCheckbox';
 import { CaptureStore, type CaptureDraft, type CaptureTask } from './capture-store';
@@ -14,7 +14,7 @@ import { CaptureStore, type CaptureDraft, type CaptureTask } from './capture-sto
 function Selection({ draft, store }: { draft: CaptureDraft; store: CaptureStore }) {
   const inspection = draft.inspection;
   return <div className="flex flex-col gap-4">
-    {draft.error && <Alert variant="destructive"><AlertTitle>Could not add capture</AlertTitle><AlertDescription>{draft.error}</AlertDescription></Alert>}
+    {draft.error && <TechnicalFailure title="Could not add capture" message={draft.error} context={{sourceId:draft.sourceId,sourceUrl:draft.url,phase:draft.enqueueFailed?'prepare/enqueue':'inspect'}} />}
     {draft.busy === 'inspect' && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircleIcon className="size-4 motion-safe:animate-spin" />Inspecting this post…</p>}
     {inspection && <>
       <div className="flex flex-col gap-2"><p className="break-words text-sm font-medium">{inspection.label}</p><CaptureStatusBadge state={store.sourceStatus(draft.sourceId).state} /><details className="text-sm"><summary className="cursor-pointer text-muted-foreground">Message preview</summary><p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{inspection.textPreview ?? inspection.textFailure}</p></details></div>
@@ -30,8 +30,16 @@ function QueueTasks({ tasks, preparations, store }: { tasks: CaptureTask[]; prep
   if (!tasks.length && !preparations.length) return <Empty className="py-6"><EmptyHeader><EmptyTitle>Your queue is empty</EmptyTitle><EmptyDescription>Use the source page capture action to import the selected content and files. Twitter also supports Shift-click media selection.</EmptyDescription></EmptyHeader></Empty>;
   const rank = (task: CaptureTask) => task.summary.queuePosition !== undefined ? 1 : !task.error && ['importing','saving'].includes(getCaptureStatus(task.summary)) ? 0 : 2;
   const ordered = [...tasks].sort((a,b) => rank(a) - rank(b) || (rank(a) === 1 ? a.summary.queuePosition! - b.summary.queuePosition! : rank(a) === 0 ? a.summary.createdAt.localeCompare(b.summary.createdAt) : b.summary.createdAt.localeCompare(a.summary.createdAt)));
-  return <ItemGroup>{preparations.map(draft => <Item key={draft.sourceId} role="listitem" variant="outline" size="sm" data-preparation-source={draft.sourceId}><ItemContent className="min-w-0"><ItemTitle>{draft.inspection?.label ?? `Capture ${draft.sourceId}`}</ItemTitle><div><CaptureStatusBadge state={draft.error ? 'failed' : draft.busy === 'enqueue' ? 'importing' : 'checking'} /></div><ItemDescription className="line-clamp-none break-words">{draft.error || 'Preparing the selected content and its files.'}</ItemDescription></ItemContent>{draft.error && <ItemActions><Button size="sm" variant="outline" onClick={event => { if (event.nativeEvent.isTrusted) void store.quickCapture(draft.url); }}>Retry capture</Button></ItemActions>}</Item>)}{ordered.map(task => <Item key={task.summary.id} role="listitem" variant="outline" size="sm" data-task-id={task.summary.id}>
-    <ItemContent className="min-w-0"><ItemTitle>{task.summary.label}</ItemTitle><div className="flex flex-wrap items-center gap-2"><CaptureStatusBadge state={task.error ? 'unknown' : getCaptureStatus(task.summary)} />{task.summary.queuePosition !== undefined && <span className="text-xs text-muted-foreground">Position {task.summary.queuePosition}</span>}</div>{task.error && <ItemDescription className="line-clamp-none break-words">{task.error}</ItemDescription>}{task.summary.retention.state === 'failed' && <ItemDescription className="line-clamp-none break-words">{task.summary.retention.reason ?? 'Current content is not saved locally.'}</ItemDescription>}</ItemContent>
+  return <ItemGroup>{preparations.map(draft => <Item key={draft.sourceId} role="listitem" variant="outline" size="sm" data-preparation-source={draft.sourceId}>
+    <ItemContent className="min-w-0"><ItemTitle>{draft.inspection?.label ?? `Capture ${draft.sourceId}`}</ItemTitle><div><CaptureStatusBadge state={draft.error ? 'failed' : draft.busy === 'enqueue' ? 'importing' : 'checking'} /></div>
+      {draft.error ? <TechnicalFailure title="Capture preparation failed" message={draft.error} context={{sourceId:draft.sourceId,sourceUrl:draft.url,phase:'prepare/enqueue'}} /> : <ItemDescription>Preparing the selected content and its files.</ItemDescription>}
+    </ItemContent>{draft.error && <ItemActions><Button size="sm" variant="outline" onClick={event => { if (event.nativeEvent.isTrusted) void store.quickCapture(draft.url); }}>Retry capture</Button></ItemActions>}
+  </Item>)}{ordered.map(task => <Item key={task.summary.id} role="listitem" variant="outline" size="sm" data-task-id={task.summary.id}>
+    <ItemContent className="min-w-0"><ItemTitle>{task.summary.label}</ItemTitle><div className="flex flex-wrap items-center gap-2"><CaptureStatusBadge state={task.error ? 'unknown' : getCaptureStatus(task.summary)} />{task.summary.queuePosition !== undefined && <span className="text-xs text-muted-foreground">Position {task.summary.queuePosition}</span>}</div>
+      {task.error && <TechnicalFailure title="Task observation failed" message={task.error} context={{resultId:task.summary.id,sourceUrl:task.summary.sourceUrl}} />}
+      {task.summary.issues?.map(issue=><TechnicalFailure key={issue.target} title={`Acquisition failed · ${issue.target}`} message={issue.reason} context={{resultId:task.summary.id,sourceUrl:task.summary.sourceUrl,revision:task.summary.revision,target:issue.target}} />)}
+      {task.summary.retention.state === 'failed' && <TechnicalFailure title="Retention failed" message={task.summary.retention.reason ?? 'Current content is not saved locally.'} context={{resultId:task.summary.id,revision:task.summary.revision,committedRevision:task.summary.retention.revision}} />}
+    </ItemContent>
     <ItemActions><Button variant="ghost" size="icon-sm" aria-label="Open result" title={`Open result for ${task.summary.label}`} onClick={event => { if (event.nativeEvent.isTrusted) void store.openResult(task.summary.id); }}><ExternalLinkIcon /></Button></ItemActions>
   </Item>)}</ItemGroup>;
 }
@@ -53,7 +61,7 @@ export function CaptureQueuePanel({ store }: { store: CaptureStore }) {
       <Card size="sm" className="flex max-h-[min(75dvh,42rem)] flex-col gap-0 overflow-hidden pb-0">
         <CardHeader className="shrink-0 pb-3"><CardTitle>{draft ? 'Add capture' : 'Capture queue'}</CardTitle><CardDescription>{draft ? 'Select a scope, then keep browsing.' : detail}</CardDescription><CardAction><Button size="icon-sm" variant="ghost" aria-label="Minimize capture queue" onClick={event => { if (event.nativeEvent.isTrusted) store.minimize(); }}><ChevronDownIcon /></Button></CardAction></CardHeader>
         <CardContent data-locus-scroll className="min-h-0 overflow-y-auto overscroll-contain pb-4">
-          {view.error && <Alert className="mb-3"><AlertTitle>Queue status unavailable</AlertTitle><AlertDescription>{view.error} Previously read tasks remain visible.</AlertDescription></Alert>}
+          {view.error && <TechnicalFailure title="Queue status unavailable" message={view.error} context={{phase:'queue.observe'}} />}
           {draft ? <Selection draft={draft} store={store} /> : <QueueTasks tasks={view.tasks} preparations={preparations} store={store} />}
         </CardContent>
         <CardFooter className="shrink-0 flex-wrap justify-between gap-2 border-t py-3">

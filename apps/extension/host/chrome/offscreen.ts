@@ -9,6 +9,7 @@ import { ResultDatabase, ClearedError } from './database';
 import { acquireMedia, loadTwitter } from './network';
 import { createArchive } from './archive';
 import { CHANNEL, coordinator, type Inspection } from './protocol';
+import { diagnosticError } from '@locus/capture-core/diagnostics';
 
 type Candidate=TwitterCandidate|BilibiliCandidate;
 export function startOffscreen() {
@@ -77,8 +78,9 @@ export function startOffscreen() {
     try { const committed = await database.commit(snapshot); snapshot.result.retention = committed.retention; storageError = undefined; }
     catch (error) {
       if (error instanceof ClearedError) { live.delete(snapshot.result.id); throw error; }
-      snapshot.result.retention = { state: 'failed', revision: snapshot.result.retention.revision, reason: errorMessage(error) };
-      storageError = errorMessage(error);
+      const reason = diagnosticError('RESULT_STORAGE_FAILED', 'indexeddb.commit', errorMessage(error), { resultId: snapshot.result.id, revision: snapshot.result.revision, committedRevision: snapshot.result.retention.revision, blobBytes: Object.values(snapshot.blobs).reduce((sum, blob) => sum + blob.size, 0) }, error).message;
+      snapshot.result.retention = { state: 'failed', revision: snapshot.result.retention.revision, reason };
+      storageError = reason;
     }
     changed();
   }
@@ -140,7 +142,7 @@ export function startOffscreen() {
           if(liveBytes()+blob.size>512*1048576)throw new Error('Live capture content exceeds the 512 MiB owner memory limit. Finish or clear unsaved content before another capture.');
           size += blob.size; snapshot.blobs[asset.id] = blob;
           asset.mime = blob.type; asset.size = blob.size; asset.acquisition = { state: 'acquired' };
-        } catch (error) { asset.acquisition = { state: 'unavailable', reason: errorMessage(error) }; }
+        } catch (error) { asset.acquisition = { state: 'unavailable', reason: diagnosticError('CAPTURE_ASSET_FAILED', 'capture.acquire', 'Selected asset could not be acquired', { resultId: id, site, sourceUrl: candidate.sourceUrl, assetId: asset.id, aborted: controller.signal.aborted }, error).message }; }
         if(disposed)return;
         snapshot.result.revision++; await retain(snapshot);
       }
@@ -217,7 +219,7 @@ export function startOffscreen() {
     requests++;
     void (async () => {
       try { if (grant.expiresAt < Date.now()) throw new Error('Read authorization expired; retry'); await recover(); channel.postMessage({ requestId: token, ok: true, value: await consume(grant.operation, grant.id) }); }
-      catch (error) { channel.postMessage({ requestId: token, ok: false, error: errorMessage(error) }); }
+      catch (error) { channel.postMessage({ requestId: token, ok: false, error: diagnosticError('RESULT_OPERATION_FAILED', `result.${grant.operation}`, errorMessage(error).split('\n')[0]!, { resultId: grant.id ?? null }, error).message }); }
       finally { requests--; lastUse = Date.now(); }
     })();
   };
@@ -292,7 +294,7 @@ export function startOffscreen() {
           default: throw new Error('Unsupported execution command');
         }
         respond({ ok: true, value });
-      } catch (error) { respond({ ok: false, error: errorMessage(error) }); }
+      } catch (error) { respond({ ok: false, error: diagnosticError('OWNER_COMMAND_FAILED', `offscreen.${typeof message?.op === 'string' ? message.op : 'unknown'}`, errorMessage(error).split('\n')[0]!, { sourceUrl: typeof message?.url === 'string' ? message.url : null, resultId: typeof message?.id === 'string' ? message.id : null }, error).message }); }
       finally { requests--; if(message.op!=='lease-live'&&message.op!=='source-status'&&message.op!=='live-status'&&message.op!=='capture-tasks') lastUse = Date.now(); }
     })();
     return true;

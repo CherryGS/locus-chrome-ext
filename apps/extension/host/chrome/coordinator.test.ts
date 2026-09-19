@@ -22,7 +22,7 @@ beforeEach(() => {
   contexts = vi.fn().mockResolvedValue([{documentUrl:runtimeUrl('offscreen.html')}]);
   permissions=vi.fn().mockResolvedValue(false);native = vi.fn().mockResolvedValue(7); search = vi.fn().mockResolvedValue([{id:7,state:'in_progress',danger:'safe'}]);
   send = vi.fn().mockImplementation(async (message: {op:string}) => ({ok:true,value:message.op === 'export-state' ? {state:'packaging'} : true}));
-  vi.stubGlobal('chrome',{ alarms:{get:vi.fn().mockResolvedValue(undefined),create:vi.fn(),clear:vi.fn(),onAlarm:event()},declarativeNetRequest:{getSessionRules:vi.fn().mockResolvedValue([]),updateSessionRules:vi.fn().mockResolvedValue(undefined)}, runtime:{id:'synthetic',getURL:runtimeUrl,getContexts:contexts,sendMessage:send,onMessage:{addListener:(handler:typeof listener)=>{listener=handler;}},onStartup:event(),onInstalled:event()}, action:{onClicked:event()}, permissions:{contains:permissions,onAdded:{addListener:(handler:typeof addedPermissions)=>{addedPermissions=handler;}},onRemoved:{addListener:(handler:typeof removedPermissions)=>{removedPermissions=handler;}}}, storage:{session:{get:vi.fn().mockResolvedValue({}),set:vi.fn().mockResolvedValue(undefined),remove:vi.fn().mockResolvedValue(undefined)}}, scripting:{getRegisteredContentScripts:vi.fn().mockResolvedValue([]),registerContentScripts:vi.fn().mockResolvedValue(undefined),unregisterContentScripts:vi.fn().mockResolvedValue(undefined)}, tabs:{query:vi.fn().mockResolvedValue([]),onRemoved:event(),onUpdated:event()}, downloads:{download:native,search,onChanged:{addListener:(handler:typeof changed)=>{changed=handler;}}} });
+  vi.stubGlobal('chrome',{ alarms:{get:vi.fn().mockResolvedValue(undefined),create:vi.fn(),clear:vi.fn(),onAlarm:event()},declarativeNetRequest:{getSessionRules:vi.fn().mockResolvedValue([]),updateSessionRules:vi.fn().mockResolvedValue(undefined)}, runtime:{id:'synthetic',getURL:runtimeUrl,getContexts:contexts,sendMessage:send,onMessage:{addListener:(handler:typeof listener)=>{listener=handler;}},onStartup:event(),onInstalled:event()}, action:{onClicked:event()}, permissions:{contains:permissions,onAdded:{addListener:(handler:typeof addedPermissions)=>{addedPermissions=handler;}},onRemoved:{addListener:(handler:typeof removedPermissions)=>{removedPermissions=handler;}}}, storage:{session:{get:vi.fn().mockResolvedValue({}),set:vi.fn().mockResolvedValue(undefined),remove:vi.fn().mockResolvedValue(undefined)}}, scripting:{getRegisteredContentScripts:vi.fn().mockResolvedValue([]),registerContentScripts:vi.fn().mockResolvedValue(undefined),updateContentScripts:vi.fn().mockResolvedValue(undefined),unregisterContentScripts:vi.fn().mockResolvedValue(undefined)}, tabs:{query:vi.fn().mockResolvedValue([]),onRemoved:event(),onUpdated:event()}, downloads:{download:native,search,onChanged:{addListener:(handler:typeof changed)=>{changed=handler;}}} });
 });
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
 async function message(op:string, values:Record<string,unknown>={}, origin='results.html') {
@@ -31,6 +31,24 @@ async function message(op:string, values:Record<string,unknown>={}, origin='resu
 }
 function delivery(): Delivery { return {id:crypto.randomUUID(),resultId:crypto.randomUUID(),revision:1,createdAt:new Date().toISOString(),state:'packaging',partial:false}; }
 describe('wakeable native delivery coordination',()=>{
+  it('upgrades persisted Bilibili page registration without expanding source probes to favorites',async()=>{
+    permissions.mockResolvedValue(true);
+    vi.mocked(chrome.scripting.getRegisteredContentScripts).mockImplementation(async filter=>(filter?.ids??[]).filter(id=>id.startsWith('locus-bilibili')).map(id=>({id,matches:['https://www.bilibili.com/*']})));
+    startCoordinator();await message('activate');
+    const updates=vi.mocked(chrome.scripting.updateContentScripts).mock.calls.flatMap(([scripts])=>scripts);
+    expect(updates.some(script=>script.id==='locus-bilibili'&&script.matches?.includes('https://space.bilibili.com/*'))).toBe(true);
+    expect(updates.some(script=>script.id==='locus-bilibili-main'||script.id==='locus-bilibili-bridge')).toBe(false);
+  });
+  it('accepts ordinary selections from homepage/favorites while rejecting other pages and source types',async()=>{
+    permissions.mockResolvedValue(true);startCoordinator();await message('activate');send.mockClear();
+    const selected='https://www.bilibili.com/video/BV145PxzCEoE/?p=2';
+    const inspect=(url:string,source=selected)=>new Promise<any>(resolve=>listener({target:'coordinator',op:'inspect',url:source},{id:'synthetic',url,tab:{id:7},frameId:0,documentId:'listing-doc'},resolve));
+    for(const page of ['https://www.bilibili.com/','https://space.bilibili.com/123/favlist?fid=456'])expect((await inspect(page)).ok).toBe(true);
+    for(const page of ['https://space.bilibili.com/123/settings','http://www.bilibili.com/','https://www.bilibili.com.evil.test/'])expect((await inspect(page)).ok).toBe(false);
+    expect((await inspect('https://www.bilibili.com/','https://www.bilibili.com/bangumi/play/ep123')).ok).toBe(false);
+    expect((await inspect('https://www.bilibili.com/','https://x.com/user/status/123')).ok).toBe(false);
+    expect(send.mock.calls.filter(([request])=>request.op==='inspect')).toHaveLength(2);
+  });
   it('invalidates an old inspection across delayed owner creation and site withdrawal/regrant',async()=>{
     permissions.mockResolvedValue(true);contexts.mockResolvedValue([]);let created!:()=>void;
     Object.assign(chrome,{offscreen:{createDocument:vi.fn(()=>new Promise<void>(resolve=>{created=()=>{contexts.mockResolvedValue([{documentUrl:runtimeUrl('offscreen.html')}]);resolve();};}))}});
