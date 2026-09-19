@@ -3,7 +3,7 @@ import { CaptureQueuePanel } from './CaptureQueuePanel';
 import { CaptureStore } from './capture-store';
 import { createCaptureAction, findActionRow, matchActionPresentation, setActionStatus, type TwitterActionRow } from './action-row';
 import { coordinator, type SourceStatus } from '@/host/chrome/protocol';
-import { postUrl } from '@/sites/twitter/urls';
+import { postUrl } from '@locus/twitter/urls';
 import { captureStates } from '@/ui/shared/capture-status';
 import styles from '@/assets/tailwind.css?inline';
 

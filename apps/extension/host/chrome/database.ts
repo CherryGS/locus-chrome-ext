@@ -1,4 +1,4 @@
-import type { CaptureResult, Delivery, Snapshot } from '@/core/results/model';
+import type { CaptureResult, Delivery, Snapshot } from '@locus/capture-core/model';
 
 export class ClearedError extends Error { constructor() { super('This result was cleared'); } }
 const done = (tx: IDBTransaction) => {

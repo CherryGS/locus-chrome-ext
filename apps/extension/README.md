@@ -137,15 +137,28 @@ its Blob owner alive until actual terminal browser state is known.
 
 ## Ownership and verification
 
-`core/results` owns site-opaque state and serialization; `sites/twitter` owns
-source meaning; `host/chrome` owns IndexedDB, network, execution and native APIs;
+`packages/capture-core` owns site-opaque state and serialization, exposed as
+`@locus/capture-core/model` and `/serialization`. `packages/twitter` owns source
+meaning through explicit `@locus/twitter` subpaths: `/urls`, `/relay-parser`,
+`/source`, `/authenticated-projection`, `/authenticated-source`, and `/presentation`.
+These private TypeScript source packages use local imports internally and public
+exports across members. Twitter depends on capture-core; neither imports the app.
+The lightweight authenticated projection does not load the Acorn parser.
+
+Within this app, `host/chrome` owns IndexedDB, network, execution and native APIs;
 `ui` consumes those capabilities. WXT entrypoints contain only wiring. Runtime
 content registration is intentionally declared without WXT `matches` because
 WXT otherwise adds required host permissions; the coordinator registers matches
 only after checking actual optional grants.
 
 Run `pnpm check:deps`, `pnpm prepare:types`, `pnpm lint`, `pnpm typecheck`,
-`pnpm test`, and `pnpm build` from the workspace root. Test fixtures are explicitly
+`pnpm test`, and `pnpm build` from the workspace root. Lint and strict typechecking
+cover all members. Twitter's source tests run independently in its package;
+the extension's tests retain storage, execution, and archive/serialization coverage.
+Package lint/typecheck also run from either package directory, and `pnpm test`
+inside `packages/twitter` needs no WXT aliases or generated configuration.
+Build, development, ZIP packaging, and type generation remain WXT app commands.
+Test fixtures are explicitly
 synthetic and disposable. The built manifest must have optional site origins,
 no required site host access, no static content scripts, an action without a
 popup, and the offscreen/download/storage permissions. The two runtime probe

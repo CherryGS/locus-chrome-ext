@@ -9,6 +9,7 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "compile": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
     "test:browser": "node testing/browser-smoke.mjs",
@@ -16,8 +17,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@locus/capture-core": "workspace:*",
+    "@locus/twitter": "workspace:*",
     "@zip.js/zip.js": "^2.15.0",
-    "acorn": "^8.18.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
     "lucide-react": "^1.44.0",

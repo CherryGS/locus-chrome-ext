@@ -1,4 +1,4 @@
-import { postUrl } from '@/sites/twitter/urls';
+import { postUrl } from '@locus/twitter/urls';
 export const PROBE_FRAGMENT='__locus_probe=';
 export const PROBE_CHANNEL='locus-authenticated-source-v1';
 export const PROBE_TIMEOUT=25_000;

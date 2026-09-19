@@ -1,4 +1,4 @@
-import type { CaptureResult, Delivery, Snapshot } from '@/core/results/model';
+import type { CaptureResult, Delivery, Snapshot } from '@locus/capture-core/model';
 
 export const CHANNEL = 'locus-results-v1';
 export interface ResultSummary { id: string; label: string; sourceUrl: string; createdAt: string; revision: number; acquisition: string; retention: CaptureResult['retention']; unresolvedReason?: string; queuePosition?: number }

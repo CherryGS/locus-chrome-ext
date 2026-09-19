@@ -1,7 +1,7 @@
-import type { MediaCandidate } from '@/sites/twitter/source';
-import { parseRelay } from '@/sites/twitter/relay-parser';
-import { normalizeTwitter, PublicTwitterSourceUnavailableError, type TwitterCandidate } from '@/sites/twitter/source';
-import { mediaUrl, postUrl } from '@/sites/twitter/urls';
+import type { MediaCandidate } from '@locus/twitter/source';
+import { parseRelay } from '@locus/twitter/relay-parser';
+import { normalizeTwitter, PublicTwitterSourceUnavailableError, type TwitterCandidate } from '@locus/twitter/source';
+import { mediaUrl, postUrl } from '@locus/twitter/urls';
 
 export async function boundedBody(response: Response, limit: number): Promise<Blob> {
   if (!response.ok || response.status !== 200 || response.headers.has('content-range')) throw new Error(`Incomplete or failed HTTP response (${response.status})`);

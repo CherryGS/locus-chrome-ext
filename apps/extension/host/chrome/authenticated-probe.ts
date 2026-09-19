@@ -1,5 +1,5 @@
-import { AUTHENTICATED_SOURCE_LIMIT } from '@/sites/twitter/authenticated-projection';
-import { postUrl } from '@/sites/twitter/urls';
+import { AUTHENTICATED_SOURCE_LIMIT } from '@locus/twitter/authenticated-projection';
+import { postUrl } from '@locus/twitter/urls';
 import { PROBE_TIMEOUT, probeIdentity, probeMessageSize, probeUrl } from './probe-protocol';
 
 const STORAGE_KEY='locus-authenticated-probes-v1';

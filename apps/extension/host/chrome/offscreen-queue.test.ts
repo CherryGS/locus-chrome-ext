@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startOffscreen } from './offscreen';
 import { ResultDatabase } from './database';
 import { CHANNEL, type ResultSummary, type Collection, type ReadResponse } from './protocol';
-import type { TwitterCandidate } from '@/sites/twitter/source';
+import type { TwitterCandidate } from '@locus/twitter/source';
 
 const mocks=vi.hoisted(()=>({load:vi.fn(),acquire:vi.fn(),coordinator:vi.fn()}));
 vi.mock('./network',()=>({loadTwitter:mocks.load,acquireMedia:mocks.acquire}));

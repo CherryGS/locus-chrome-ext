@@ -1,4 +1,4 @@
-import type { Json } from '@/core/results/model';
+import type { Json } from '@locus/capture-core/model';
 
 /** A read-only projection of the retained Twitter schema, not source extraction. */
 export function twitterPresentation(payload: Json | undefined) {

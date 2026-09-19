@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startCoordinator } from './coordinator';
 import { ResultDatabase } from './database';
-import type { Delivery } from '@/core/results/model';
+import type { Delivery } from '@locus/capture-core/model';
 import { syntheticSnapshot } from '@/testing/result-fixture';
 
 let listener: (message: unknown, sender: unknown, callback: (value: any) => void) => void;

@@ -10,7 +10,9 @@ websites and Locus integration remain outside the current workflow.
 
 ## Workspace
 
-- `apps/extension`: the browser extension member.
+- `apps/extension`: the WXT delivery root, Chrome host, and React UI.
+- `packages/capture-core`: private result model and receiver serialization.
+- `packages/twitter`: private Twitter source interpretation, selection, and presentation.
 - `rules/implementation.md`: validated commands and implementation guidance.
 - `skills-lock.json`: the preserved lockfile for the installed shadcn skill.
 - `project-doc/`: a separate local Git repository, ignored by this repository.
@@ -47,8 +49,26 @@ pnpm deps:list
 pnpm shadcn:info
 ```
 
+Root lint and typecheck cover all three members. Tests run the independent Twitter
+suite and the extension's WXT-backed suite. The packages expose explicit TypeScript
+source subpaths; WXT bundles them without a separate package build or publication.
+The app depends on both packages, Twitter depends on capture-core, and neither
+package depends on app aliases or generated WXT types.
+
+Standalone package checks can also run from the workspace root:
+
+```sh
+pnpm --dir packages/capture-core lint
+pnpm --dir packages/capture-core typecheck
+pnpm --dir packages/twitter lint
+pnpm --dir packages/twitter typecheck
+pnpm --dir packages/twitter test
+```
+
 Vitest covers source binding and hostile data, transactional Blob storage,
 offscreen capture/clear races, native delivery reconciliation, and archive bytes.
+Capture-core serialization remains exercised through the app's archive tests;
+there is no empty package test suite counted as coverage.
 Unit tests do not replace real Chrome lifecycle and download verification. See
 `apps/extension/README.md` for loading and exercising the application.
 

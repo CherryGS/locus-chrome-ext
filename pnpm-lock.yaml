@@ -212,12 +212,15 @@ importers:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@locus/capture-core':
+        specifier: workspace:*
+        version: link:../../packages/capture-core
+      '@locus/twitter':
+        specifier: workspace:*
+        version: link:../../packages/twitter
       '@zip.js/zip.js':
         specifier: ^2.15.0
         version: 2.15.0
-      acorn:
-        specifier: ^8.18.0
-        version: 8.18.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -282,6 +285,34 @@ importers:
       wxt:
         specifier: 0.21.4
         version: 0.21.4(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(rolldown@1.1.5)(typescript@5.9.3)(vite@8.1.5(@types/node@22.20.2)(jiti@2.7.0))(web-ext@10.5.0(express@5.2.1(supports-color@7.2.0))(jiti@2.7.0)(supports-color@7.2.0))
+
+  packages/capture-core:
+    devDependencies:
+      oxlint:
+        specifier: 1.82.0
+        version: 1.82.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/twitter:
+    dependencies:
+      '@locus/capture-core':
+        specifier: workspace:*
+        version: link:../capture-core
+      acorn:
+        specifier: ^8.18.0
+        version: 8.18.0
+    devDependencies:
+      oxlint:
+        specifier: 1.82.0
+        version: 1.82.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@22.20.2)(vite@8.1.5(@types/node@22.20.2)(jiti@2.7.0))
 
 packages:
 

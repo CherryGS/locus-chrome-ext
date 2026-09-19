@@ -1,4 +1,4 @@
-import type { Json } from '@/core/results/model';
+import type { Json } from '@locus/capture-core/model';
 import { object, type Data, type DataObject } from './relay-parser';
 import { normalizeTwitter, type TwitterCandidate } from './source';
 import { postUrl } from './urls';

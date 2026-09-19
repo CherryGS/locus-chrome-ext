@@ -1,4 +1,4 @@
-import { postUrl } from '@/sites/twitter/urls';
+import { postUrl } from '@locus/twitter/urls';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
 
 export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; reply: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }

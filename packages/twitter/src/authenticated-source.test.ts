@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availability } from '@/core/results/model';
+import { availability } from '@locus/capture-core/model';
 import { AUTHENTICATED_SOURCE_LIMIT, normalizeAuthenticatedTwitter, selectAuthenticatedTweetDetail as selectDetail } from './authenticated-source';
 import { selectTwitter } from './source';
 

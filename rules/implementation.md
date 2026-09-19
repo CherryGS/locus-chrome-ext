@@ -3,15 +3,15 @@
 ## Commands
 
 Run these validated entry points from the repository root. Their underlying
-arguments live in the root and extension `package.json` files.
+arguments live in the root and workspace members' `package.json` files.
 
 | Command | Purpose |
 | --- | --- |
 | `pnpm check:deps` | Validate the frozen workspace lockfile and strict peer dependencies |
 | `pnpm prepare:types` | Generate WXT TypeScript declarations |
-| `pnpm lint` | Run Oxlint in check-only mode |
-| `pnpm typecheck` | Run TypeScript without emitting output |
-| `pnpm test` | Run Vitest with the WXT plugin; allow the bootstrap's empty suite |
+| `pnpm lint` | Run Oxlint in check-only mode across all members |
+| `pnpm typecheck` | Strictly check all members without emitting output |
+| `pnpm test` | Run Twitter's standalone Vitest suite and the app's WXT-backed suite |
 | `pnpm build` | Build the Chrome MV3 extension |
 | `pnpm deps:list` | Inspect resolved workspace dependencies |
 | `pnpm shadcn:info` | Inspect the extension's shadcn configuration and resolved paths |
@@ -30,6 +30,18 @@ pins pnpm and reports a mismatch instead of downloading another version.
 - Configure extension entrypoints through WXT and Vite plugins through
   `apps/extension/wxt.config.ts`. Treat the generated starter as a provisional
   delivery shell; product responsibilities come from the design contracts.
+- Keep site-opaque result semantics and serialization in `packages/capture-core`,
+  and Twitter source interpretation, selection, and presentation in
+  `packages/twitter`. Chrome host execution, storage, byte access, and UI remain
+  in `apps/extension`.
+- Use declared package export subpaths across workspace members. The app depends
+  on both packages; Twitter depends on capture-core. Packages must not depend on
+  application source, aliases, generated WXT configuration, React, or Chrome APIs.
+  Keep authenticated projection usable without loading the Relay parser.
+- Private packages expose TypeScript source for WXT to bundle. Their `lint` and
+  `typecheck` scripts run independently from each package directory. Twitter's
+  `test` script runs without WXT; capture-core serialization is covered by the
+  app's archive tests. Do not add empty test scripts as coverage evidence.
 - Keep shadcn aliases in `components.json` aligned with the explicit paths in
   the extension's `tsconfig.json`. Verify that all CLI output paths stay inside
   the extension member before generating files.
@@ -42,8 +54,8 @@ pins pnpm and reports a mismatch instead of downloading another version.
 - Keep theme variables in the CSS file identified by shadcn project context.
   Use semantic tokens and the `cn` helper; keep component layout separate from
   theme customization, following the installed skill's composition rules.
-- Keep Oxlint in check-only mode. Add executable product tests as implementation
-  begins; the bootstrap's empty-suite result is not product test coverage.
+- Keep Oxlint in check-only mode and retain meaningful executable coverage across
+  package and application consumers.
 
 ## User preferences
 

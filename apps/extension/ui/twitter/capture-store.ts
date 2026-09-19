@@ -1,6 +1,6 @@
 import { coordinator, type Inspection, type ResultSummary, type SourceStatus } from '@/host/chrome/protocol';
-import { errorMessage } from '@/core/results/model';
-import { postUrl } from '@/sites/twitter/urls';
+import { errorMessage } from '@locus/capture-core/model';
+import { postUrl } from '@locus/twitter/urls';
 import { captureStates, getCaptureStatus, type CaptureState } from '@/ui/shared/capture-status';
 
 export interface CaptureDraft {

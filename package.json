@@ -13,9 +13,9 @@
   "scripts": {
     "dev": "pnpm --dir apps/extension dev",
     "prepare:types": "pnpm --dir apps/extension exec wxt prepare",
-    "lint": "pnpm --dir apps/extension lint",
-    "typecheck": "pnpm --dir apps/extension compile",
-    "test": "pnpm --dir apps/extension test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
     "build": "pnpm --dir apps/extension build",
     "zip": "pnpm --dir apps/extension zip",
     "check:deps": "pnpm install --frozen-lockfile --strict-peer-dependencies",

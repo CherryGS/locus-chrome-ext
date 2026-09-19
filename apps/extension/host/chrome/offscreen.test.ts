@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startOffscreen } from './offscreen';
 import { ResultDatabase } from './database';
 import { CHANNEL, type ReadResponse } from './protocol';
-import type { TwitterCandidate } from '@/sites/twitter/source';
+import type { TwitterCandidate } from '@locus/twitter/source';
 import { syntheticSnapshot } from '@/testing/result-fixture';
 
 const mocks = vi.hoisted(() => ({ acquire: vi.fn(), load: vi.fn(), coordinator: vi.fn(), archive: vi.fn() }));

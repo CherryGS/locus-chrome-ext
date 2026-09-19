@@ -1,4 +1,4 @@
-import { AUTHENTICATED_SOURCE_LIMIT } from '@/sites/twitter/authenticated-projection';
+import { AUTHENTICATED_SOURCE_LIMIT } from '@locus/twitter/authenticated-projection';
 import { coordinator } from './protocol';
 import { PROBE_CHANNEL, PROBE_TIMEOUT, probeIdentity, probeMessageSize } from './probe-protocol';
 

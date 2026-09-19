@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
-import type { Snapshot } from '@/core/results/model';
-import { serializeSnapshot } from '@/core/results/serialization';
+import type { Snapshot } from '@locus/capture-core/model';
+import { serializeSnapshot } from '@locus/capture-core/serialization';
 
 export async function createArchive(snapshot: Snapshot) {
   // Store entries without compression: media is already encoded. Disabling both

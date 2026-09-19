@@ -1,5 +1,5 @@
 import type { ResultSummary } from '@/host/chrome/protocol';
-import { availability, type CaptureResult } from '@/core/results/model';
+import { availability, type CaptureResult } from '@locus/capture-core/model';
 
 export type CaptureState = 'uncaptured' | 'checking' | 'queued' | 'importing' | 'saving' | 'saved' | 'partial' | 'failed' | 'unknown';
 export type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'destructive';

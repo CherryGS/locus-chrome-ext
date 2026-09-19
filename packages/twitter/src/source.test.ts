@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availability } from '@/core/results/model';
+import { availability } from '@locus/capture-core/model';
 import { normalizeTwitter, PublicTwitterSourceUnavailableError, selectTwitter } from './source';
 import { parseRelay, type DataObject } from './relay-parser';
 import { mediaUrl, postUrl } from './urls';

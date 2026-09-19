@@ -1,5 +1,5 @@
 import type { ResultSummary } from '@/host/chrome/protocol';
-import type { Delivery } from '@/core/results/model';
+import type { Delivery } from '@locus/capture-core/model';
 
 export type LibraryView = 'all' | 'progress' | 'ready' | 'attention';
 export const viewLabels: Record<LibraryView, string> = { all: 'All captures', progress: 'In progress', ready: 'Ready', attention: 'Needs attention' };

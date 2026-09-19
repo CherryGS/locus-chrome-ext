@@ -1,4 +1,4 @@
-import type { CaptureResult, Json } from '@/core/results/model';
+import type { CaptureResult, Json } from '@locus/capture-core/model';
 import { object, type Data, type DataObject } from './relay-parser';
 import { mediaUrl, postUrl } from './urls';
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage, type Snapshot, type Delivery } from '@/core/results/model';
+import { errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/model';
 import { CHANNEL, coordinator, ownerRequest, type Collection, type ReadResponse } from '@/host/chrome/protocol';
-import { TWITTER_ORIGINS } from '@/sites/twitter/urls';
+import { TWITTER_ORIGINS } from '@locus/twitter/urls';
 export function useResultsState() {
   const [collection, setCollection] = useState<Collection>();
   const [collectionError, setCollectionError] = useState('');

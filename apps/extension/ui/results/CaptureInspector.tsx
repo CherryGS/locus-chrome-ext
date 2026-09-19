@@ -9,8 +9,8 @@ import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription } f
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { availability, errorMessage, type Snapshot, type Delivery } from '@/core/results/model';
-import { twitterPresentation } from '@/sites/twitter/presentation';
+import { availability, errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/model';
+import { twitterPresentation } from '@locus/twitter/presentation';
 import { CaptureStatusBadge } from '@/ui/shared/CaptureStatusBadge';
 import { getResultCaptureStatus } from '@/ui/shared/capture-status';
 import { acquisitionLabel, deliveryLabels, exactTime, fileSize, retentionLabel, safeSource, sourceName } from './presentation';

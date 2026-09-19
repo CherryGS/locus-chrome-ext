@@ -1,10 +1,10 @@
-import { errorMessage, type Delivery } from '@/core/results/model';
-import { isTwitterDocument, postUrl, TWITTER_ORIGINS } from '@/sites/twitter/urls';
+import { errorMessage, type Delivery } from '@locus/capture-core/model';
+import { isTwitterDocument, postUrl, TWITTER_ORIGINS } from '@locus/twitter/urls';
 import { ResultDatabase } from './database';
 import { sourceSummaries, summarizeResult } from './result-summary';
 import type { SourceStatus } from './protocol';
 import { AuthenticatedProbeManager } from './authenticated-probe';
-import { AUTHENTICATED_SOURCE_LIMIT } from '@/sites/twitter/authenticated-projection';
+import { AUTHENTICATED_SOURCE_LIMIT } from '@locus/twitter/authenticated-projection';
 import { probeMessageSize } from './probe-protocol';
 
 export function startCoordinator() {

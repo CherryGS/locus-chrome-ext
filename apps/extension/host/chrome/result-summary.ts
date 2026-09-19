@@ -1,5 +1,5 @@
-import { availability, type CaptureResult } from '@/core/results/model';
-import { postUrl } from '@/sites/twitter/urls';
+import { availability, type CaptureResult } from '@locus/capture-core/model';
+import { postUrl } from '@locus/twitter/urls';
 import type { ResultSummary, SourceStatus } from './protocol';
 
 export function summarizeResult(result: CaptureResult): ResultSummary {

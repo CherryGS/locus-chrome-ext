@@ -1,6 +1,6 @@
-import { availability, errorMessage, interrupt, type CaptureResult, type Delivery, type Snapshot } from '@/core/results/model';
-import { selectTwitter, type TwitterCandidate } from '@/sites/twitter/source';
-import { normalizeAuthenticatedTwitter } from '@/sites/twitter/authenticated-source';
+import { availability, errorMessage, interrupt, type CaptureResult, type Delivery, type Snapshot } from '@locus/capture-core/model';
+import { selectTwitter, type TwitterCandidate } from '@locus/twitter/source';
+import { normalizeAuthenticatedTwitter } from '@locus/twitter/authenticated-source';
 import { sourceSummaries, summarizeResult } from './result-summary';
 import { ResultDatabase, ClearedError } from './database';
 import { acquireMedia, loadTwitter } from './network';
