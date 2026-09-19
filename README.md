@@ -1,11 +1,12 @@
 # Locus browser extension
 
-A design-ready WXT, React, and TypeScript workspace for Locus's browser
-extension. The current application is the generated WXT React starter with
-Tailwind CSS and shadcn foundations.
+A Chrome MV3 extension for manually capturing supported Twitter/X posts and
+selected complete media files. Results stay in extension-origin IndexedDB until
+manual clear and can be exported as a ZIP with separate files, JSON and JSONL.
 
 Confirmed product intent lives in the independent local `project-doc/INTENT.md`.
-Website workflows and Locus integration are the next design handoffs.
+This implementation covers bounded current Twitter source structures. Other
+websites and Locus integration remain outside the current workflow.
 
 ## Workspace
 
@@ -46,14 +47,17 @@ pnpm deps:list
 pnpm shadcn:info
 ```
 
-Vitest is configured with WXT's plugin. No product tests exist in the bootstrap;
-the test command currently allows an empty suite.
+Vitest covers source binding and hostile data, transactional Blob storage,
+offscreen capture/clear races, native delivery reconciliation, and archive bytes.
+Unit tests do not replace real Chrome lifecycle and download verification. See
+`apps/extension/README.md` for loading and exercising the application.
 
 ## shadcn
 
 The initial foundation uses Base UI, Nova styling, semantic CSS variables, and
 Lucide icons. Tailwind is connected through WXT's Vite configuration and imported
-by the popup. Theme variables live in `apps/extension/assets/tailwind.css`.
+by the results tab and isolated page controls. Theme variables live in
+`apps/extension/assets/tailwind.css`.
 
 WXT is reported as a manual framework by the shadcn CLI. Its official manual
 configuration is in `apps/extension/components.json`; `pnpm shadcn:info` verifies

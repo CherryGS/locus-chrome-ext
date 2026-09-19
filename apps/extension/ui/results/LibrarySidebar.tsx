@@ -1,0 +1,14 @@
+import { AlertCircleIcon, CheckCheckIcon, CircleDashedIcon, Globe2Icon, LibraryIcon, ScanLineIcon, ShieldCheckIcon } from 'lucide-react';
+import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge, SidebarFooter, SidebarSeparator, useSidebar } from '@/components/ui/sidebar';
+import type { ResultSummary } from '@/host/chrome/protocol';
+import { resultView, viewLabels, type LibraryView } from './presentation';
+
+const views = [{ id:'all', icon:LibraryIcon }, { id:'progress', icon:CircleDashedIcon }, { id:'ready', icon:CheckCheckIcon }, { id:'attention', icon:AlertCircleIcon }] as const;
+export function LibrarySidebar({ view, onView, items, access, busy, onEnable }: { view: LibraryView; onView: (view: LibraryView) => void; items?: ResultSummary[]; access?: boolean; busy: string; onEnable: () => void }) {
+  const { setOpenMobile } = useSidebar();
+  return <Sidebar collapsible="icon">
+    <SidebarHeader className="px-3 py-5"><div className="flex items-center gap-3 px-1"><ScanLineIcon className="size-6 shrink-0" aria-hidden="true" /><div className="group-data-[collapsible=icon]:hidden"><h1 className="text-base font-semibold tracking-tight">Locus</h1><p className="text-xs text-muted-foreground">Capture library</p></div></div></SidebarHeader>
+    <SidebarContent><SidebarGroup><SidebarGroupLabel>Library</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>{views.map(({ id, icon:Icon }) => <SidebarMenuItem key={id}><SidebarMenuButton tooltip={viewLabels[id]} isActive={view === id} onClick={() => { onView(id);setOpenMobile(false); }}><Icon /><span>{viewLabels[id]}</span></SidebarMenuButton><SidebarMenuBadge>{items ? id === 'all' ? items.length : items.filter(item => resultView(item) === id).length : '—'}</SidebarMenuBadge></SidebarMenuItem>)}</SidebarMenu></SidebarGroupContent></SidebarGroup></SidebarContent>
+    <SidebarFooter className="gap-4 p-3"><SidebarGroup className="p-0"><SidebarGroupLabel>Source access</SidebarGroupLabel><SidebarMenu><SidebarMenuItem><SidebarMenuButton tooltip={access ? 'Twitter enabled' : 'Enable Twitter'} disabled={!!busy || access === true} onClick={onEnable}><Globe2Icon /><span>{access ? 'Twitter enabled' : busy === 'enable' ? 'Enabling…' : 'Enable Twitter'}</span></SidebarMenuButton></SidebarMenuItem></SidebarMenu><p className="px-2 pt-2 text-xs leading-relaxed text-muted-foreground group-data-[collapsible=icon]:hidden">Capture a post from its Locus action on Twitter.</p></SidebarGroup><SidebarSeparator className="mx-0" /><div className="flex items-start gap-2 px-2 pb-1 text-xs leading-relaxed text-muted-foreground"><ShieldCheckIcon className="mt-0.5 size-4 shrink-0" /><span className="group-data-[collapsible=icon]:hidden">On this device.<br />Kept until you clear it.</span></div></SidebarFooter>
+  </Sidebar>;
+}
