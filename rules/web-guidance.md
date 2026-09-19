@@ -82,6 +82,13 @@ implement every feature they describe.
   variables or all short-lived timers is not the project's lifecycle contract.
 - Syntax preferences such as banning all `.then()` chains are not adopted.
   Keep the implementation's sequencing, error handling, and cancellation clear.
+- The pinned message-passing guide incorrectly identifies Chrome 99 as sufficient
+  for returning a Promise directly from a native `runtime.onMessage` listener.
+  The [official response documentation](https://developer.chrome.com/docs/extensions/develop/concepts/messaging#responses),
+  checked on 2026-09-20, describes a gradual Chrome 148 rollout. At this project's
+  Chrome 116 floor, keep `sendResponse` with a literal `return true` for asynchronous
+  native listeners. Sender-side Promise support does not establish listener-side
+  Promise support.
 - Chrome API claims are checked against official documentation and actual
   browser behavior. Site response formats, source identity, and media ownership
   still require real source evidence and focused regression tests.
