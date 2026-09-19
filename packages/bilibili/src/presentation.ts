@@ -1,0 +1,3 @@
+import type { Json } from '@locus/capture-core/model';
+import { object } from './projection';
+export function bilibiliPresentation(payload?: Json) { const p = object(payload); if (p.schema !== 'bilibili-part/1') return null; const part = object(p.part), owner = object(p.uploader), selected = object(p.representation); return { title: String(p.title), description: String(p.description), uploader: typeof owner.name === 'string' ? owner.name : null, part: `P${part.index}${part.name ? ` · ${part.name}` : ''}`, quality: selected.quality ? `${selected.qualityLabel ?? "Supported video"} · ${selected.width}×${selected.height} · AVC/AAC` : 'Video representation unavailable' }; }

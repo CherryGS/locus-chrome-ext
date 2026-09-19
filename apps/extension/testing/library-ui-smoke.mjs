@@ -56,7 +56,7 @@ export async function verifyLibraryUi({ context, extensionId, work }) {
   await page.getByRole('button',{name:'Toggle Sidebar',exact:true}).click();await page.getByRole('button',{name:'Toggle Sidebar',exact:true}).click();
   await page.getByRole('tab',{name:'Metadata',exact:true}).click();await page.getByRole('button',{name:'Copy JSON',exact:true}).waitFor();await page.screenshot({path:path.join(work,'library-metadata-desktop.png')});
   await open(fixtures[1]);assert.equal(await page.getByRole('tab',{name:'Preview',exact:true}).getAttribute('aria-selected'),'true','Switching captures starts with content, not the previous Metadata tab');
-  const search=page.getByRole('textbox',{name:'Search captures by label, author, post ID or URL',exact:true});
+  const search=page.getByRole('textbox',{name:/^Search captures by label/});
   await search.fill('fieldnotes');assert.equal(await page.getByRole('button',{name:/^Open capture /}).count(),2);
   await search.fill('quiet path');await page.getByText('No matching captures',{exact:true}).waitFor();await page.screenshot({path:path.join(work,'library-no-matches.png')});
   await page.getByRole('button',{name:'Clear search',exact:true}).first().click();

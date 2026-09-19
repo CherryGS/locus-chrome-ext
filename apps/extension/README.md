@@ -10,7 +10,7 @@ runner at a personal browser profile.
 ## Use
 
 1. Click the extension action to open **Locus results**.
-2. Choose **Enable Twitter** and grant the four declared site/media origins.
+2. Choose **Enable Twitter** or **Enable Bilibili** and grant the declared origins for that site.
 3. Open a supported post on x.com. Choose the **Locus capture** icon in its
    bottom action row, between Bookmark and Share. A normal click or Enter starts
    a fresh source inspection and queues its message and all directly attached
@@ -48,7 +48,7 @@ runner at a personal browser profile.
    filesystem files remain; an already granted export may finish. Clear cannot
    be undone by late producer writes.
 
-Removing Twitter host permissions interrupts active and waiting work; regranting
+Removing host permissions for a site interrupts its active and waiting work; regranting
 does not restart those tasks. Confirmed clear prevents a waiting task from starting.
 Retained local results remain readable and exportable after permissions are removed.
 Reopening after restart reads committed data
@@ -67,6 +67,71 @@ falling back to an older successful capture. Passive checks read summaries only,
 do not acquire source content, and do not create or keep a Blob helper alive.
 
 ## Current bounds
+
+### Bilibili current-part capture
+
+Choose **Enable Bilibili** in the library and grant its separate optional origins:
+`www.bilibili.com`, `api.bilibili.com`, `*.bilivideo.com`, and `*.hdslb.com` over
+HTTPS. On an ordinary `/video/BV…` page, **Capture P…** near Favorite/Share starts
+the current part immediately. It uses the same dark, nonmodal queue and explicit
+Open result action. Changing parts affects only the next capture. Other parts,
+collections, comments, subtitles and programme/live products are not captured.
+
+The current browser session is required. A nonce-bound inactive source tab observes
+the initial JSON assignments at document start, including removed scripts, and
+makes one fixed credentialed nav request in that page. Only session success/login
+Boolean and selected source facts cross the bridge. Root BV/P/CID must match the
+selected pages entry; the parent's first-part CID is not substituted for P2.
+Known tracking parameters are discarded from canonical selection identity.
+Source script text is parsed as bounded JSON and never evaluated.
+
+Metadata preserves full verified description segments and line breaks, uploader,
+parent and selected-part identifiers, publication/observation times and known
+quality facts. Unverified precise duration falls back to explicitly coarse part
+duration. Video, parent cover and metadata have independent outcomes. A missing
+audio track, unsupported source or metadata limitation remains partial; it does
+not remove an expected portion. The preview presents video before cover.
+
+The first media route supports complete AVC/AAC MP4 tracks with known BT.709
+limited-range color, no rotation, and square pixels. It chooses an actual supplied
+AVC representation using agreeing source quality order and dimensions, then
+validates the downloaded configuration/dimensions. Advertised-only quality is not
+claimed; failed chosen media does not silently fall back. AV1/HEVC/HDR, unverified
+source paths, missing audio, unknown color and unqualified transforms remain video
+limitations. Unknown-color and AV1 configuration normalization observed in the
+isolated feasibility probe are deliberately excluded from production support.
+
+Mediabunny 1.58.1 copies encoded packets only in the offscreen owner. Detached
+configuration/color snapshots and a reopened output verify packet hashes/counts,
+presentation timestamps, duration and configuration before acquired success.
+Measured quantization up to 2 ms and constant reconstructed decode origin are
+allowed; no transcoding or deliberately shortened file is produced. Its MPL-2.0
+license is shipped under `licenses/Mediabunny-MPL-2.0.txt`.
+
+Limits are 64 MiB per input track, 160 MiB assembled output, 320 MiB cumulative
+output writes, 600 seconds and 100,000 packets per track. Each Bilibili asset has a
+120-second fetch/assembly deadline. One Bilibili preparation/assembly runs at a time
+inside the existing two-running/twenty-waiting queue. Admission reserves 1 GiB for
+its bounded working buffers, 256 MiB per active Twitter acquisition, and counts
+live result Blobs against a 1.5 GiB owner admission budget. These are conservative
+reservations, not measured usage or an unlimited-memory promise. Memory/storage
+failures preserve independent usable content and expose the failure.
+
+Only validated CDN URLs receive an exact-URL/host/extension-initiator GET session
+rule setting `Referer: https://www.bilibili.com/`. CDN fetches omit credentials and
+refuse redirects; cookies/auth headers are never copied. `declarativeNetRequestWithHostAccess`
+and `alarms` provide scoped leases and cleanup. A one-minute alarm exists only while
+leases remain, with its cadence preserved on traffic/worker wake. Reconciliation
+keeps a surviving owner's actual fetch, removes lost/revoked ownership, and bounds
+unverified leases. Signed query strings remain private ephemeral operation inputs,
+not retained result metadata. Source cover HTTP is upgraded only for verified
+hdslb cover paths; no HTTP host grant is added.
+
+Withdrawing one site's permission interrupts its old work even after rapid regrant,
+without cancelling the other site or waiting behind its source inspection. Regrant
+never resumes old downloads. Clear and retained-result semantics stay common.
+
+### Twitter source scope
 
 The public parser recognizes the initial hydration Relay records observed on
 2026-09-19. It reads a restricted data grammar through bundled Acorn, never runs
@@ -144,6 +209,9 @@ meaning through explicit `@locus/twitter` subpaths: `/urls`, `/relay-parser`,
 These private TypeScript source packages use local imports internally and public
 exports across members. Twitter depends on capture-core; neither imports the app.
 The lightweight authenticated projection does not load the Acorn parser.
+`packages/bilibili` exposes `/urls`, `/projection`, `/source` and `/presentation`;
+it depends only on capture-core. Host composition uses an explicit two-site union,
+without a plugin registry or a storage schema migration.
 
 Within this app, `host/chrome` owns IndexedDB, network, execution and native APIs;
 `ui` consumes those capabilities. WXT entrypoints contain only wiring. Runtime
@@ -153,7 +221,7 @@ only after checking actual optional grants.
 
 Run `pnpm check:deps`, `pnpm prepare:types`, `pnpm lint`, `pnpm typecheck`,
 `pnpm test`, and `pnpm build` from the workspace root. Lint and strict typechecking
-cover all members. Twitter's source tests run independently in its package;
+cover all members. Site source tests run independently in their packages;
 the extension's tests retain storage, execution, and archive/serialization coverage.
 Package lint/typecheck also run from either package directory, and `pnpm test`
 inside `packages/twitter` needs no WXT aliases or generated configuration.
@@ -161,7 +229,7 @@ Build, development, ZIP packaging, and type generation remain WXT app commands.
 Test fixtures are explicitly
 synthetic and disposable. The built manifest must have optional site origins,
 no required site host access, no static content scripts, an action without a
-popup, and the offscreen/download/storage permissions. The two runtime probe
+popup, and the declared host-facility permissions. The two Twitter runtime probe
 scripts run at document start in MAIN and isolated worlds only on granted X
 origins, and immediately return in ordinary unmarked documents.
 
@@ -234,6 +302,36 @@ A native permission-removal listener is captured only in the disposable worker
 copy to test interruption ordering while grants remain present, modeling rapid
 regrant; this is event simulation, not automated native permission-prompt coverage.
 All temporary tabs and session ownership must be gone at test completion.
+
+## Bilibili production browser regression
+
+After a normal build, run `pnpm --dir apps/extension test:browser:bilibili` with
+the same `LOCUS_CHROME_PATH`. It loads a disposable copy of the actual production
+extension and pre-grants hosts only in that test copy. Synthetic ordinary-video
+HTML removes its initial-state script, supplies distinct P1/P2 CIDs, and returns a
+bounded login response. Actual offscreen AVC/AAC assembly, closed-owner Blob
+reopening, playback, native ZIP completion and independent packet/configuration
+comparisons use locally generated fixtures. Missing audio, truncation, oversize,
+metadata partials, explicit clear, and simulated withdrawal/rapid regrant stay
+separate checks. The simulation does not claim native permission-prompt coverage.
+
+Optional real media through the same production byte path:
+
+```powershell
+$env:LOCUS_BILI_REAL_VIDEO = 'C:/temporary-inputs/avc-video.m4s'
+$env:LOCUS_BILI_REAL_AUDIO = 'C:/temporary-inputs/audio.m4s'
+$env:LOCUS_BILI_REAL_DURATION = '182.461'
+pnpm --dir apps/extension test:browser:bilibili
+```
+
+These local files are associated with synthetic page/source fixtures for execution
+verification; they do not prove current signed-in source selection. Real-profile
+acceptance remains separate and uses supported browser tools. No private URLs or
+real media are committed. Evidence directories are retained for review.
+The independent Chrome 116 media probe verified encoded assembly, storage,
+archive bytes and full external decode; that old CfT binary lacked AVC/AAC browser
+decoders. That observation does not raise the product floor or claim old-CfT
+playback support. Current CfT153 validates browser playback as well.
 
 Default-action checks also verify one trusted activation captures all direct
 media without a selection confirmation, keeps the compact panel and page focus,

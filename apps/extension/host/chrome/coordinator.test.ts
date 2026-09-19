@@ -22,7 +22,7 @@ beforeEach(() => {
   contexts = vi.fn().mockResolvedValue([{documentUrl:runtimeUrl('offscreen.html')}]);
   permissions=vi.fn().mockResolvedValue(false);native = vi.fn().mockResolvedValue(7); search = vi.fn().mockResolvedValue([{id:7,state:'in_progress',danger:'safe'}]);
   send = vi.fn().mockImplementation(async (message: {op:string}) => ({ok:true,value:message.op === 'export-state' ? {state:'packaging'} : true}));
-  vi.stubGlobal('chrome',{ runtime:{id:'synthetic',getURL:runtimeUrl,getContexts:contexts,sendMessage:send,onMessage:{addListener:(handler:typeof listener)=>{listener=handler;}},onStartup:event(),onInstalled:event()}, action:{onClicked:event()}, permissions:{contains:permissions,onAdded:{addListener:(handler:typeof addedPermissions)=>{addedPermissions=handler;}},onRemoved:{addListener:(handler:typeof removedPermissions)=>{removedPermissions=handler;}}}, storage:{session:{get:vi.fn().mockResolvedValue({}),set:vi.fn().mockResolvedValue(undefined),remove:vi.fn().mockResolvedValue(undefined)}}, scripting:{getRegisteredContentScripts:vi.fn().mockResolvedValue([]),registerContentScripts:vi.fn().mockResolvedValue(undefined),unregisterContentScripts:vi.fn().mockResolvedValue(undefined)}, tabs:{query:vi.fn().mockResolvedValue([]),onRemoved:event(),onUpdated:event()}, downloads:{download:native,search,onChanged:{addListener:(handler:typeof changed)=>{changed=handler;}}} });
+  vi.stubGlobal('chrome',{ alarms:{get:vi.fn().mockResolvedValue(undefined),create:vi.fn(),clear:vi.fn(),onAlarm:event()},declarativeNetRequest:{getSessionRules:vi.fn().mockResolvedValue([]),updateSessionRules:vi.fn().mockResolvedValue(undefined)}, runtime:{id:'synthetic',getURL:runtimeUrl,getContexts:contexts,sendMessage:send,onMessage:{addListener:(handler:typeof listener)=>{listener=handler;}},onStartup:event(),onInstalled:event()}, action:{onClicked:event()}, permissions:{contains:permissions,onAdded:{addListener:(handler:typeof addedPermissions)=>{addedPermissions=handler;}},onRemoved:{addListener:(handler:typeof removedPermissions)=>{removedPermissions=handler;}}}, storage:{session:{get:vi.fn().mockResolvedValue({}),set:vi.fn().mockResolvedValue(undefined),remove:vi.fn().mockResolvedValue(undefined)}}, scripting:{getRegisteredContentScripts:vi.fn().mockResolvedValue([]),registerContentScripts:vi.fn().mockResolvedValue(undefined),unregisterContentScripts:vi.fn().mockResolvedValue(undefined)}, tabs:{query:vi.fn().mockResolvedValue([]),onRemoved:event(),onUpdated:event()}, downloads:{download:native,search,onChanged:{addListener:(handler:typeof changed)=>{changed=handler;}}} });
 });
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
 async function message(op:string, values:Record<string,unknown>={}, origin='results.html') {
@@ -31,6 +31,25 @@ async function message(op:string, values:Record<string,unknown>={}, origin='resu
 }
 function delivery(): Delivery { return {id:crypto.randomUUID(),resultId:crypto.randomUUID(),revision:1,createdAt:new Date().toISOString(),state:'packaging',partial:false}; }
 describe('wakeable native delivery coordination',()=>{
+  it('invalidates an old inspection across delayed owner creation and site withdrawal/regrant',async()=>{
+    permissions.mockResolvedValue(true);contexts.mockResolvedValue([]);let created!:()=>void;
+    Object.assign(chrome,{offscreen:{createDocument:vi.fn(()=>new Promise<void>(resolve=>{created=()=>{contexts.mockResolvedValue([{documentUrl:runtimeUrl('offscreen.html')}]);resolve();};}))}});
+    startCoordinator();const selected='https://www.bilibili.com/video/BV145PxzCEoE/?p=2';
+    const response=new Promise<any>(resolve=>listener({target:'coordinator',op:'inspect',url:selected},{id:'synthetic',url:selected,tab:{id:1},frameId:0,documentId:'bili-doc'},resolve));
+    await vi.waitFor(()=>expect(created).toBeTypeOf('function'));removedPermissions({origins:['https://www.bilibili.com/*']});addedPermissions();await new Promise(resolve=>setTimeout(resolve,0));created();
+    const result=await response;expect(result.ok).toBe(false);expect(result.error).toContain('removed');expect(send.mock.calls.some(([request])=>request.op==='inspect')).toBe(false);
+  });
+  it('delivers Bilibili withdrawal while an unrelated Twitter inspection holds the owner queue',async()=>{
+    permissions.mockResolvedValue(true);let finishInspect!:(value:unknown)=>void,finishRevoke!:(value:unknown)=>void;
+    send.mockImplementation((request:{op:string;site?:string})=>request.op==='inspect'?new Promise(resolve=>{finishInspect=resolve;}):request.op==='revoke'&&request.site==='bilibili'?new Promise(resolve=>{finishRevoke=resolve;}):Promise.resolve({ok:true,value:true}));
+    startCoordinator();
+    const inspect=new Promise<any>(resolve=>listener({target:'coordinator',op:'inspect',url:'https://x.com/synthetic/status/123'},{id:'synthetic',url:'https://x.com/synthetic/status/123',tab:{id:1},frameId:0,documentId:'twitter-doc'},resolve));
+    await vi.waitFor(()=>expect(finishInspect).toBeTypeOf('function'));
+    removedPermissions({origins:['https://www.bilibili.com/*']});addedPermissions();
+    await vi.waitFor(()=>expect(finishRevoke).toBeTypeOf('function'));await expect(message('access',{site:'bilibili'})).rejects.toThrow('must be interrupted');
+    finishRevoke({ok:true,value:true});await vi.waitFor(async()=>expect(await message('access',{site:'bilibili'})).toBe(true));
+    finishInspect({ok:true,value:{token:'test'}});expect((await inspect).ok).toBe(true);
+  });
   it('latches relevant withdrawal despite a delayed activation and immediate regrant',async()=>{
     permissions.mockResolvedValue(true);vi.mocked(chrome.scripting.getRegisteredContentScripts).mockImplementation(async()=>[{id:'locus-twitter'}]);
     let releaseActivation!:(value:unknown[])=>void,releaseRevoke!:(value:unknown)=>void;
@@ -64,7 +83,7 @@ describe('wakeable native delivery coordination',()=>{
     expect((await request(['https://x.com/a/status/123'])).ok).toBe(false);
     permissions.mockResolvedValue(true);
     send.mockResolvedValue({ok:true,value:[]});
-    const response=await request(['https://x.com/a/status/123','https://twitter.com/b/status/123']);expect(response.ok).toBe(true);expect(send).toHaveBeenCalledWith({target:'offscreen',op:'source-status',sourceIds:['123']});
+    const response=await request(['https://x.com/a/status/123','https://twitter.com/b/status/123']);expect(response.ok).toBe(true);expect(send).toHaveBeenCalledWith({target:'offscreen',op:'source-status',sourceIds:['123'],site:'twitter'});
     for(const urls of [[],Array(51).fill('https://x.com/a/status/123'),['https://example.com/a/status/123'],[null]])expect((await request(urls)).ok).toBe(false);
     expect((await request(['https://x.com/a/status/123'],{id:'synthetic',url:runtimeUrl('results.html')})).ok).toBe(false);
     expect((await request(['https://x.com/a/status/123'],{id:'synthetic',url:'https://x.com/home',tab:{id:7},frameId:1,documentId:'doc'})).ok).toBe(false);

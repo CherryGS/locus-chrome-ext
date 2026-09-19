@@ -2,7 +2,8 @@ import { AUTHENTICATED_SOURCE_LIMIT } from '@locus/twitter/authenticated-project
 import { postUrl } from '@locus/twitter/urls';
 import { PROBE_TIMEOUT, probeIdentity, probeMessageSize, probeUrl } from './probe-protocol';
 
-const STORAGE_KEY='locus-authenticated-probes-v1';
+interface ProbeOptions { key:string; canonical:(url:string)=>string; identify:(url:string)=>unknown; navigate:(url:string,token:string)=>string; matches:(actual:unknown,url:string,token:string)=>boolean; limit:number }
+const twitterOptions:ProbeOptions={key:'locus-authenticated-probes-v1',canonical:url=>postUrl(url).url,identify:probeIdentity,navigate:probeUrl,matches:(actual,url,token)=>actual===probeUrl(url,token),limit:AUTHENTICATED_SOURCE_LIMIT};
 interface Ownership { token:string; url:string; tabId?:number; deadline:number; opening?:boolean }
 interface Probe extends Ownership { documentId?:string; started:boolean; creating:boolean; done:boolean; timer:ReturnType<typeof setTimeout>; resolve:(value:unknown)=>void; reject:(reason:Error)=>void }
 
@@ -13,14 +14,14 @@ export class AuthenticatedProbeManager {
   private writes=Promise.resolve();
   private recovering:Promise<void>;
   private placeholder=(token:string)=>`${chrome.runtime.getURL('probe.html')}#${token}`;
-  constructor(private access:()=>Promise<unknown>,private register:()=>Promise<void>) {
+  constructor(private access:()=>Promise<unknown>,private register:()=>Promise<void>,private options:ProbeOptions=twitterOptions) {
     this.recovering=this.recover();void this.recovering.catch(()=>{});
     chrome.tabs.onRemoved.addListener(id=>{const job=[...this.jobs.values()].find(job=>job.tabId===id);if(job)void this.finish(job,undefined,new Error('The temporary signed-in source tab was closed'));});
     // A late loading notification can follow document-start readiness on X's
     // initial load. Only bound()'s live documentId check proves replacement.
-    chrome.tabs.onUpdated.addListener((id,change)=>{const job=[...this.jobs.values()].find(job=>job.tabId===id);if(!job)return;if(change.url&&change.url!==probeUrl(job.url,job.token)&&change.url!==this.placeholder(job.token))void this.finish(job,undefined,new Error('Signed-in source redirected away from the selected post; login or source access is unavailable'));});
+    chrome.tabs.onUpdated.addListener((id,change)=>{const job=[...this.jobs.values()].find(job=>job.tabId===id);if(!job)return;if(change.url&&!this.options.matches(change.url,job.url,job.token)&&change.url!==this.placeholder(job.token))void this.finish(job,undefined,new Error('Signed-in source redirected away from the selected post; login or source access is unavailable'));});
   }
-  private persist(){const values=[...new Map([...[...this.jobs.values()].filter(job=>!job.done&&(job.opening||job.tabId!==undefined)),...this.cleanup.values()].map(value=>[value.token,value])).values()].map(({token,url,tabId,deadline,opening})=>({token,url,tabId,deadline,opening}));const next=this.writes.then(()=>chrome.storage.session.set({[STORAGE_KEY]:values}));this.writes=next.catch(()=>{});return next;}
+  private persist(){const values=[...new Map([...[...this.jobs.values()].filter(job=>!job.done&&(job.opening||job.tabId!==undefined)),...this.cleanup.values()].map(value=>[value.token,value])).values()].map(({token,url,tabId,deadline,opening})=>({token,url,tabId,deadline,opening}));const next=this.writes.then(()=>chrome.storage.session.set({[this.options.key]:values}));this.writes=next.catch(()=>{});return next;}
   private async closeOwned(value:Ownership){
     if(value.tabId===undefined){
       if(value.opening)this.cleanup.set(value.token,value);
@@ -32,25 +33,25 @@ export class AuthenticatedProbeManager {
     catch(error){try{await chrome.tabs.get(value.tabId);}catch{this.cleanup.delete(value.token);return;}this.cleanup.set(value.token,value);throw error;}
   }
   private async recover(){
-    const stored=(await chrome.storage.session.get(STORAGE_KEY))[STORAGE_KEY];
+    const stored=(await chrome.storage.session.get(this.options.key))[this.options.key];
     if(Array.isArray(stored)&&stored.length>64)throw new Error('Temporary source ownership exceeds its recovery bound');
     if(Array.isArray(stored))for(const value of stored){
       if(!value||typeof value.token!=='string'||!/^[0-9a-f-]{36}$/.test(value.token)||typeof value.url!=='string')continue;
-      try{postUrl(value.url);}catch{continue;}
+      try{this.options.canonical(value.url);}catch{continue;}
       if(value.tabId!==undefined&&!Number.isSafeInteger(value.tabId))continue;
       await this.closeOwned(value).catch(()=>{});
     }
     await this.persist();
   }
-  owns(tabId:number|undefined,url?:string){return tabId!==undefined&&[...this.jobs.values()].some(job=>job.tabId===tabId)||!!url&&(url.startsWith(chrome.runtime.getURL('probe.html'))||!!probeIdentity(url));}
+  owns(tabId:number|undefined,url?:string){return tabId!==undefined&&[...this.jobs.values()].some(job=>job.tabId===tabId)||!!url&&(url.startsWith(chrome.runtime.getURL('probe.html'))||!!this.options.identify(url));}
   async request(input:string,deadline:number):Promise<unknown>{
     if(!Number.isSafeInteger(deadline))throw new Error('Invalid signed-in source deadline');
-    const url=postUrl(input).url;deadline=Math.min(deadline,Date.now()+PROBE_TIMEOUT);
+    const url=this.options.canonical(input);deadline=Math.min(deadline,Date.now()+PROBE_TIMEOUT);
     if(deadline<=Date.now())throw new Error('The signed-in source inspection deadline expired');
     if(new Set([...this.jobs.keys(),...this.cleanup.keys()]).size>=6)throw new Error('Signed-in source capacity is full: two active probes and four waiting, including pending cleanup');
     const token=crypto.randomUUID();let resolve!:(value:unknown)=>void,reject!:(error:Error)=>void;
     const result=new Promise((yes,no)=>{resolve=yes;reject=no;});
-    const job:Probe={token,url,deadline,started:false,creating:false,done:false,resolve,reject,timer:setTimeout(()=>{const error=new Error('Signed-in source unavailable before timeout; the current X session did not provide the selected post');job.reject(error);void this.finish(job,undefined,error);},deadline-Date.now())};
+    const job:Probe={token,url,deadline,started:false,creating:false,done:false,resolve,reject,timer:setTimeout(()=>{const error=new Error('Signed-in source unavailable before timeout; the current site session did not provide the selected content');job.reject(error);void this.finish(job,undefined,error);},deadline-Date.now())};
     this.jobs.set(token,job);this.pump();return result;
   }
   private pump(){for(const job of this.jobs.values()){if([...this.jobs.values()].filter(item=>item.started&&!item.done).length>=2)return;if(job.started||job.done)continue;job.started=true;void this.start(job);}}
@@ -71,17 +72,17 @@ export class AuthenticatedProbeManager {
       job.creating=false;if(tab.id===undefined)throw new Error('Temporary source tab was not created');job.tabId=tab.id;job.opening=false;
       if(job.done){await this.closeOwned(job).catch(()=>{});await this.persist();return;}
       await this.persist();await this.access();if(job.done)return;
-      await chrome.tabs.update(tab.id,{url:probeUrl(job.url,job.token),active:false});
+      await chrome.tabs.update(tab.id,{url:this.options.navigate(job.url,job.token),active:false});
     }catch(error){await this.finish(job,undefined,error instanceof Error?error:new Error(String(error)));}
   }
   private async bound(token:unknown,url:unknown,sender:chrome.runtime.MessageSender){
     await this.recovering;
     const job=typeof token==='string'?this.jobs.get(token):undefined;
-    if(!job||job.done||sender.id!==chrome.runtime.id||sender.frameId!==0||!sender.documentId||sender.tab?.id!==job.tabId||url!==job.url||sender.url!==probeUrl(job.url,job.token))throw new Error('Unowned or mismatched signed-in source document');
+    if(!job||job.done||sender.id!==chrome.runtime.id||sender.frameId!==0||!sender.documentId||sender.tab?.id!==job.tabId||url!==job.url||!this.options.matches(sender.url,job.url,job.token))throw new Error('Unowned or mismatched signed-in source document');
     await this.access();if(job.done||Date.now()>=job.deadline)throw new Error('Signed-in source attempt expired or was interrupted');
-    const current=await chrome.tabs.get(job.tabId!);if(current.url!==probeUrl(job.url,job.token))throw new Error('Signed-in source tab changed before response');
+    const current=await chrome.tabs.get(job.tabId!);if(!this.options.matches(current.url,job.url,job.token))throw new Error('Signed-in source tab changed before response');
     const documents=await chrome.scripting.executeScript({target:{tabId:job.tabId!,frameIds:[0]},injectImmediately:true,func:()=>location.href});
-    if(job.done||documents.length!==1||documents[0]!.documentId!==sender.documentId||documents[0]!.result!==probeUrl(job.url,job.token)){
+    if(job.done||documents.length!==1||documents[0]!.documentId!==sender.documentId||!this.options.matches(documents[0]!.result,job.url,job.token)){
       const error=new Error('Signed-in source document is no longer the active selected document');void this.finish(job,undefined,error);throw error;
     }
     return job;
@@ -90,7 +91,7 @@ export class AuthenticatedProbeManager {
   async accept(message:{token?:unknown;url?:unknown;data?:unknown;error?:unknown},sender:chrome.runtime.MessageSender){
     const job=await this.bound(message.token,message.url,sender);
     if(job.documentId!==sender.documentId)throw new Error('Signed-in source document has not completed authorization');
-    if(probeMessageSize(message)>AUTHENTICATED_SOURCE_LIMIT)throw new Error('Signed-in source exceeds the message capability limit');
+    if(probeMessageSize(message)>this.options.limit)throw new Error('Signed-in source exceeds the message capability limit');
     if(typeof message.error==='string')await this.finish(job,undefined,new Error(`Signed-in source unavailable: ${message.error.slice(0,1000)}`));
     else if(message.data!==undefined)await this.finish(job,message.data);
     else throw new Error('Signed-in source response is empty');return true;

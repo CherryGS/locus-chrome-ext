@@ -11,7 +11,7 @@ arguments live in the root and workspace members' `package.json` files.
 | `pnpm prepare:types` | Generate WXT TypeScript declarations |
 | `pnpm lint` | Run Oxlint in check-only mode across all members |
 | `pnpm typecheck` | Strictly check all members without emitting output |
-| `pnpm test` | Run Twitter's standalone Vitest suite and the app's WXT-backed suite |
+| `pnpm test` | Run standalone site-package suites and the app's WXT-backed suite |
 | `pnpm build` | Build the Chrome MV3 extension |
 | `pnpm deps:list` | Inspect resolved workspace dependencies |
 | `pnpm shadcn:info` | Inspect the extension's shadcn configuration and resolved paths |
@@ -31,16 +31,16 @@ pins pnpm and reports a mismatch instead of downloading another version.
   `apps/extension/wxt.config.ts`. Treat the generated starter as a provisional
   delivery shell; product responsibilities come from the design contracts.
 - Keep site-opaque result semantics and serialization in `packages/capture-core`,
-  and Twitter source interpretation, selection, and presentation in
-  `packages/twitter`. Chrome host execution, storage, byte access, and UI remain
+  and site source interpretation, selection, and presentation in
+  `packages/twitter` and `packages/bilibili`. Chrome host execution, storage, byte access, and UI remain
   in `apps/extension`.
 - Use declared package export subpaths across workspace members. The app depends
-  on both packages; Twitter depends on capture-core. Packages must not depend on
+  on all three packages; site packages depend on capture-core. Packages must not depend on
   application source, aliases, generated WXT configuration, React, or Chrome APIs.
   Keep authenticated projection usable without loading the Relay parser.
 - Private packages expose TypeScript source for WXT to bundle. Their `lint` and
-  `typecheck` scripts run independently from each package directory. Twitter's
-  `test` script runs without WXT; capture-core serialization is covered by the
+  `typecheck` scripts run independently from each package directory. Site-package
+  `test` scripts run without WXT; capture-core serialization is covered by the
   app's archive tests. Do not add empty test scripts as coverage evidence.
 - Keep shadcn aliases in `components.json` aligned with the explicit paths in
   the extension's `tsconfig.json`. Verify that all CLI output paths stay inside
@@ -56,6 +56,13 @@ pins pnpm and reports a mismatch instead of downloading another version.
   theme customization, following the installed skill's composition rules.
 - Keep Oxlint in check-only mode and retain meaningful executable coverage across
   package and application consumers.
+- Bilibili packet assembly belongs only to the offscreen host. Keep Mediabunny
+  out of content scripts, source observers and UI bundles; preserve its bundled
+  MPL-2.0 license. Do not add decoder/encoder use or unsupported format fallback.
+- Bilibili CDN access uses exact-URL, host, initiator and GET-scoped session leases
+  with only a fixed Referer. Cleanup alarms exist only while ownership remains and
+  must preserve their cadence across worker recreation. Per-site access removal
+  must reach existing producers independently of unrelated inspection queues.
 
 ## User preferences
 

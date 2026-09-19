@@ -1,3 +1,6 @@
 packages:
   - apps/*
   - packages/*
+# Exact reviewed media candidate: official tarball integrity matches the pinned probe.
+minimumReleaseAgeExclude:
+  - mediabunny@1.58.1

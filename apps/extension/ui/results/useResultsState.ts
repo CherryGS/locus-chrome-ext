@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/model';
 import { CHANNEL, coordinator, ownerRequest, type Collection, type ReadResponse } from '@/host/chrome/protocol';
 import { TWITTER_ORIGINS } from '@locus/twitter/urls';
+import { BILIBILI_ORIGINS } from '@locus/bilibili/urls';
 export function useResultsState() {
   const [collection, setCollection] = useState<Collection>();
   const [collectionError, setCollectionError] = useState('');
@@ -9,7 +10,7 @@ export function useResultsState() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>();
   const [readError, setReadError] = useState('');
   const [delivery, setDelivery] = useState<Delivery[]>([]);
-  const [access, setAccess] = useState<boolean>();
+  const [access, setAccess] = useState<boolean>(); const [bilibiliAccess,setBilibiliAccess]=useState<boolean>();
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState('');
   const [clearTarget, setClearTarget] = useState<{ id: string; label: string }>();
@@ -44,15 +45,15 @@ export function useResultsState() {
   }, []);
   useEffect(() => { void refresh(true); }, [selected, refresh]);
   useEffect(() => {
-    void chrome.permissions.contains({ origins: TWITTER_ORIGINS }).then(setAccess);
+    void chrome.permissions.contains({ origins: TWITTER_ORIGINS }).then(setAccess);void chrome.permissions.contains({origins:BILIBILI_ORIGINS}).then(setBilibiliAccess);
     void coordinator('reconcile').catch(error => setNotice(errorMessage(error)));
     const channel = new BroadcastChannel(CHANNEL); channel.onmessage = event => { if (event.data?.changed) void refresh(); };
-    const timer = setInterval(() => { void refresh(); void chrome.permissions.contains({ origins: TWITTER_ORIGINS }).then(setAccess); }, 4000);
+    const timer = setInterval(() => { void refresh(); void chrome.permissions.contains({ origins: TWITTER_ORIGINS }).then(setAccess);void chrome.permissions.contains({origins:BILIBILI_ORIGINS}).then(setBilibiliAccess); }, 4000);
     return () => { channel.close(); clearInterval(timer); };
   }, [refresh]);
-  async function enable() {
-    setBusy('enable'); setNotice('');
-    try { const granted = await chrome.permissions.request({ origins: TWITTER_ORIGINS }); setAccess(granted); if (granted) await coordinator('activate'); else setNotice('Twitter access was not granted. Local results remain available.'); }
+  async function enable(site:'twitter'|'bilibili'='twitter') {
+    setBusy(site==='twitter'?'enable':'enable-bilibili'); setNotice('');
+    try { const granted = await chrome.permissions.request({ origins: site==='twitter'?TWITTER_ORIGINS:BILIBILI_ORIGINS }); (site==='twitter'?setAccess:setBilibiliAccess)(granted); if (granted) await coordinator('activate'); else setNotice('Site access was not granted. Local results remain available.'); }
     catch (error) { setNotice(errorMessage(error)); } finally { setBusy(''); }
   }
   async function exportResult() {
@@ -65,5 +66,5 @@ export function useResultsState() {
     try { await ownerRequest('clear', target.id); ++readGeneration.current; setClearTarget(undefined); setNotice(`Cleared ${target.label}. Exported files were not removed.`); if (currentId.current === target.id) { setSnapshot(null); lastRevision.current = ''; } await refresh(true); }
     catch (error) { setClearError(`Clear failed: ${errorMessage(error)}`); } finally { setBusy(''); }
   }
-  return { collection, collectionError, selected, snapshot, readError, delivery, access, notice, setNotice, busy, clearTarget, setClearTarget, clearError, setClearError, refresh, enable, exportResult, clear };
+  return { collection, collectionError, selected, snapshot, readError, delivery, access, bilibiliAccess, notice, setNotice, busy, clearTarget, setClearTarget, clearError, setClearError, refresh, enable, exportResult, clear };
 }

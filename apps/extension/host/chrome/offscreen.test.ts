@@ -5,9 +5,11 @@ import { startOffscreen } from './offscreen';
 import { ResultDatabase } from './database';
 import { CHANNEL, type ReadResponse } from './protocol';
 import type { TwitterCandidate } from '@locus/twitter/source';
+import { projectBilibili } from '@locus/bilibili/projection';
 import { syntheticSnapshot } from '@/testing/result-fixture';
 
-const mocks = vi.hoisted(() => ({ acquire: vi.fn(), load: vi.fn(), coordinator: vi.fn(), archive: vi.fn() }));
+const mocks = vi.hoisted(() => ({ acquire: vi.fn(), load: vi.fn(), coordinator: vi.fn(), archive: vi.fn(), acquireBili: vi.fn() }));
+vi.mock('./bilibili-media',()=>({acquireBilibili:mocks.acquireBili}));
 vi.mock('./network', () => ({ acquireMedia: mocks.acquire, loadTwitter: mocks.load }));
 vi.mock('./protocol', async original => ({ ...await original<typeof import('./protocol')>(), coordinator: mocks.coordinator }));
 vi.mock('./archive', () => ({ createArchive: mocks.archive }));
@@ -17,7 +19,7 @@ const candidate: TwitterCandidate = { sourceId:'1', sourceUrl:'https://x.com/syn
 beforeEach(() => {
   vi.stubGlobal('indexedDB', new IDBFactory());
   vi.stubGlobal('chrome', { runtime:{ id:'synthetic', getURL:(path: string) => `chrome-extension://synthetic/${path}`, onMessage:{ addListener:(handler: typeof listener) => { listener = handler; } } } });
-  mocks.coordinator.mockReset().mockResolvedValue(true); mocks.load.mockReset().mockResolvedValue(structuredClone(candidate)); mocks.acquire.mockReset().mockImplementation(async (media: {id: string}) => new Blob([media.id],{type:'image/jpeg'}));
+  mocks.acquireBili.mockReset();mocks.coordinator.mockReset().mockResolvedValue(true); mocks.load.mockReset().mockResolvedValue(structuredClone(candidate)); mocks.acquire.mockReset().mockImplementation(async (media: {id: string}) => new Blob([media.id],{type:'image/jpeg'}));
   dispose = startOffscreen();
 });
 afterEach(() => { dispose?.(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -32,6 +34,24 @@ async function consume<T>(operation: string, id?: string): Promise<T> {
 }
 async function begin() { const inspection = await command('inspect',{url:candidate.sourceUrl, owner:'tab:doc'}); return command('capture',{token:inspection.token, selected:['media-1','media-2'], owner:'tab:doc'}); }
 describe('offscreen producer lifetime', () => {
+  it('interrupts only the withdrawn site and cannot retain late Bilibili bytes after rapid regrant',async()=>{
+    const sourceUrl='https://www.bilibili.com/video/BV145PxzCEoE/?p=2',cid='123';
+    const track=(id:number,codecs:string)=>({id,codecs,bandwidth:100,width:320,height:180,baseUrl:`https://synthetic.bilivideo.com/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s`});
+    const source=projectBilibili({bvid:'BV145PxzCEoE',aid:'1',cid,p:2,videoData:{bvid:'BV145PxzCEoE',title:'Synthetic',desc:'',desc_v2:null,rights:{ugc_pay_preview:0,is_stein_gate:0},pic:'https://i0.hdslb.com/bfs/archive/synthetic.png',pages:[{page:2,cid,duration:3}]}},{code:0,data:{timelength:3000,accept_quality:[64],support_formats:[{quality:64}],dash:{video:[track(64,'avc1.64000d')],audio:[track(30280,'mp4a.40.2')]}}},sourceUrl,true);
+    mocks.coordinator.mockImplementation(async(op:string)=>op==='bilibili-source'?source:true);
+    let finishTwitter!:(blob:Blob)=>void,finishBilibili!:(blob:Blob)=>void;
+    mocks.acquire.mockImplementationOnce(()=>new Promise<Blob>(resolve=>{finishTwitter=resolve;}));
+    mocks.acquireBili.mockImplementation((media:{kind:string})=>media.kind==='cover'?Promise.resolve(new Blob(['cover'],{type:'image/png'})):new Promise<Blob>(resolve=>{finishBilibili=resolve;}));
+    const twitter=await begin();const inspected=await command('inspect',{site:'bilibili',url:sourceUrl,owner:'bili-doc'});const bili=await command('capture',{site:'bilibili',token:inspected.token,selected:['media-1','media-2'],owner:'bili-doc'});
+    await vi.waitFor(()=>expect(finishBilibili).toBeTypeOf('function'));
+    const secondInspection=await command('inspect',{site:'bilibili',url:sourceUrl,owner:'bili-doc'});const second=await command('capture',{site:'bilibili',token:secondInspection.token,selected:['media-1','media-2'],owner:'bili-doc'});
+    expect(second.queuePosition).toBe(1);expect(mocks.acquireBili).toHaveBeenCalledTimes(2);await command('revoke',{site:'bilibili'});
+    finishBilibili(new Blob(['late video'],{type:'video/mp4'}));finishTwitter(new Blob(['photo'],{type:'image/jpeg'}));
+    await vi.waitFor(async()=>expect((await command('status',{id:twitter.id})).acquisition).toBe('complete'));
+    await vi.waitFor(async()=>expect((await command('status',{id:bili.id})).acquisition).toBe('partial'));
+    const read=await consume<ReadResponse>('read',bili.id);expect(read.snapshot!.blobs['media-2']).toBeUndefined();expect(read.snapshot!.blobs['media-1']).toBeInstanceOf(Blob);
+    expect((await consume<ReadResponse>('read',second.id)).snapshot!.result.assets.every(asset=>asset.acquisition.state==='unavailable')).toBe(true);expect(mocks.acquireBili).toHaveBeenCalledTimes(2);
+  });
   it('returns live source overrides without storage, payloads, Blobs or network acquisition', async () => {
     let release!: (blob:Blob)=>void;mocks.acquire.mockImplementationOnce(()=>new Promise<Blob>(resolve=>{release=resolve;}));
     const accepted=await begin();await vi.waitFor(()=>expect(release).toBeTypeOf('function'));

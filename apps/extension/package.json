@@ -1,6 +1,6 @@
 {
   "name": "@locus/extension",
-  "description": "Manual Twitter capture, retained results, and JSON/file export",
+  "description": "Twitter and Bilibili capture, retained results, and JSON/file export",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:browser": "node testing/browser-smoke.mjs",
+    "test:browser:bilibili": "node testing/bilibili-smoke.mjs",
     "probe:bilibili-media": "node testing/bilibili-media-probe/run.mjs",
     "postinstall": "wxt prepare"
   },
@@ -25,7 +26,9 @@
     "cn": "^0.2.6",
     "lucide-react": "^1.44.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "@locus/bilibili": "workspace:*",
+    "mediabunny": "1.58.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
@@ -34,7 +37,6 @@
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
     "fake-indexeddb": "^6.2.5",
-    "mediabunny": "1.58.1",
     "oxlint": "1.82.0",
     "playwright-core": "^1.63.0",
     "shadcn": "^4.21.0",

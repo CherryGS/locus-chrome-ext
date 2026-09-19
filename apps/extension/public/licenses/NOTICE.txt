@@ -1,0 +1,11 @@
+Mediabunny 1.58.1
+Copyright (c) 2026-present, Vanilagy and contributors.
+
+This extension bundles unmodified Mediabunny library source under the Mozilla
+Public License, version 2.0. The license is included as Mediabunny-MPL-2.0.txt.
+Corresponding source, including the original copyright and license notices:
+https://registry.npmjs.org/mediabunny/-/mediabunny-1.58.1.tgz
+Project: https://github.com/Vanilagy/mediabunny
+
+The extension's Bilibili media adapter uses the library's encoded-packet APIs.
+It does not modify the library source.

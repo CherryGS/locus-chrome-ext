@@ -1,5 +1,8 @@
 import { availability, errorMessage, interrupt, type CaptureResult, type Delivery, type Snapshot } from '@locus/capture-core/model';
 import { selectTwitter, type TwitterCandidate } from '@locus/twitter/source';
+import { normalizeBilibili, selectBilibili, type BilibiliCandidate } from '@locus/bilibili/source';
+import { acquireBilibili } from './bilibili-media';
+import { sourceSelection, type CaptureSite } from './sites';
 import { normalizeAuthenticatedTwitter } from '@locus/twitter/authenticated-source';
 import { sourceSummaries, summarizeResult } from './result-summary';
 import { ResultDatabase, ClearedError } from './database';
@@ -7,18 +10,22 @@ import { acquireMedia, loadTwitter } from './network';
 import { createArchive } from './archive';
 import { CHANNEL, coordinator, type Inspection } from './protocol';
 
+type Candidate=TwitterCandidate|BilibiliCandidate;
 export function startOffscreen() {
   const database = new ResultDatabase();
   const live = new Map<string, Snapshot>();
   const active = new Map<string, AbortController>();
-  type Job = { id: string; candidate: TwitterCandidate; controller: AbortController; initial: Promise<void> };
+  type Job = { id: string; candidate: Candidate; controller: AbortController; initial: Promise<void> };
   const jobs=new Map<string,Job>();
   const waiting:string[]=[];
   const clearing=new Set<string>();
-  let accessEpoch=0;
+  const accessEpoch:Record<CaptureSite,number>={twitter:0,bilibili:0};
+  const leases=new Map<string,string>();
+  const working=new Map<string,number>();
+  let assemblyJob:string|undefined;
   let inspections=0;
   let disposed=false;
-  const candidates = new Map<string, { owner: string; expiresAt: number; candidate: TwitterCandidate }>();
+  const candidates = new Map<string, { owner: string; expiresAt: number; candidate: Candidate }>();
   const grants = new Map<string, { operation: string; id?: string; expiresAt: number }>();
   const exports = new Map<string, { delivery: Delivery; url?: string }>();
   const terminalReports = new Map<string, Delivery>();
@@ -44,6 +51,14 @@ export function startOffscreen() {
         }
         return;
       }
+      const site=sourceSelection(job.candidate.sourceUrl).site;
+      if(site==='bilibili'&&assemblyJob)return;
+      // Reserve working buffers as well as live retained/unsaved Blobs. Bilibili
+      // includes input copies, mux writes, output copies and verification reads;
+      // the single assembly lease prevents simultaneous large working sets.
+      const reserve=(site==='bilibili'?1024:256)*1048576;
+      if(liveBytes()+[...working.values()].reduce((a,b)=>a+b,0)+reserve>1536*1048576){if(active.size)return;waiting.shift();job.controller.abort();void abandon(job,'Capture working-memory budget unavailable. Export and clear unsaved content before a fresh capture.');continue;}
+      working.set(id,reserve);if(site==='bilibili')assemblyJob=id;
       waiting.shift();active.set(id,job.controller);changed();void capture(job);
     }
   }
@@ -98,28 +113,29 @@ export function startOffscreen() {
     return [...new Map([...saved, ...terminalReports.values(), ...[...exports.values()].map(item => item.delivery)].map(row => [row.id, row])).values()];
   }
   async function capture(job:Job) {
-    const {id,candidate,controller}=job;
+    const {id,candidate,controller}=job;const site=sourceSelection(candidate.sourceUrl).site;
     const snapshot = live.get(id)!;
     try {
       await job.initial;
       if(disposed)return;
       if(!live.has(id))throw new ClearedError();
-      if(controller.signal.aborted)throw new Error('Twitter access removed or capture cleared');
-      await coordinator('access');
-      if(controller.signal.aborted||!live.has(id))throw new Error('Twitter access removed or capture cleared');
+      if(controller.signal.aborted)throw new Error('Site access removed or capture cleared');
+      await coordinator('access',{site});
+      if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
       let size = 0;
       for (const asset of snapshot.result.assets) {
         if (!live.has(id)) break;
         if (asset.acquisition.state !== 'pending') continue;
         try {
-          if (controller.signal.aborted) throw new Error('Twitter access removed or capture cleared');
-          await coordinator('access');
-          if(controller.signal.aborted||!live.has(id))throw new Error('Twitter access removed or capture cleared');
-          const media = candidate.media.find(m => m.id === asset.id)!;
-          const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)]);
-          const blob = await acquireMedia(media, signal);
+          if (controller.signal.aborted) throw new Error('Site access removed or capture cleared');
+          await coordinator('access',{site});
+          if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
+
+          const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(site==='bilibili'?120_000:180_000)]);
+          const blob = 'site' in candidate ? await acquireBilibili(candidate.media.find(m=>m.id===asset.id)!,signal,async(url,role,cid)=>{const token=crypto.randomUUID();leases.set(token,id);try{await coordinator('cdn-acquire',{token,jobId:id,url,role,cid});}catch(error){leases.delete(token);throw error;}return async()=>{try{await coordinator('cdn-release',{token});}finally{leases.delete(token);}};}) : await acquireMedia(candidate.media.find(m=>m.id===asset.id)!, signal);
+          await coordinator('access',{site});
           if(disposed)return;
-          if(controller.signal.aborted||!live.has(id))throw new Error('Twitter access removed or capture cleared');
+          if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
           if (size + blob.size > 512 * 1048576) throw new Error('Capture exceeds the 512 MiB capability limit');
           if(liveBytes()+blob.size>512*1048576)throw new Error('Live capture content exceeds the 512 MiB owner memory limit. Finish or clear unsaved content before another capture.');
           size += blob.size; snapshot.blobs[asset.id] = blob;
@@ -134,7 +150,7 @@ export function startOffscreen() {
         snapshot.result.revision++; await retain(snapshot).catch(() => {});
       }
     } finally {
-      active.delete(id);
+      active.delete(id);working.delete(id);if(assemblyJob===id)assemblyJob=undefined;
       jobs.delete(id);
       if (snapshot.result.retention.state === 'retained') live.delete(id);
       changed();
@@ -211,21 +227,22 @@ export function startOffscreen() {
     void (async () => {
       try {
         if (closing) throw new Error('Execution owner is closing; retry');
-        const passive=message.op==='source-status'||message.op==='live-status'||message.op==='capture-tasks';
+        const passive=message.op==='lease-live'||message.op==='source-status'||message.op==='live-status'||message.op==='capture-tasks';
         if(!passive) await recover();
         let value: unknown;
         switch (message.op) {
           case 'hello': value = { active: [...active.keys()] }; break;
+          case 'lease-live':value=leases.get(message.token)===message.jobId&&active.has(message.jobId)&&!active.get(message.jobId)?.signal.aborted;break;
           case 'export-state': value = exports.get(message.id)?.delivery ?? null; break;
           case 'grant': grants.set(message.token, { operation: message.operation, id: message.id, expiresAt: Date.now() + 30_000 }); value = true; break;
           case 'inspect': {
             for (const [token, entry] of candidates) if (entry.expiresAt < Date.now()) candidates.delete(token);
             if (candidates.size+inspections >= 30) throw new Error('Too many inspections; wait for an existing inspection to expire');
-            const epoch=accessEpoch;inspections++;
+            const site:CaptureSite=message.site??'twitter';const epoch=accessEpoch[site];inspections++;
             try {
               const deadline=Date.now()+40_000;
-              const candidate=await loadTwitter(message.url,AbortSignal.timeout(40_000),async()=>normalizeAuthenticatedTwitter(await coordinator('authenticated-source',{url:message.url,deadline}),message.url));await coordinator('access');
-              if(epoch!==accessEpoch)throw new Error('Twitter access was removed during inspection. Inspect again after enabling access.');
+              const candidate:Candidate=site==='bilibili'?normalizeBilibili(await coordinator('bilibili-source',{url:message.url,deadline}),message.url):await loadTwitter(message.url,AbortSignal.timeout(40_000),async()=>normalizeAuthenticatedTwitter(await coordinator('authenticated-source',{url:message.url,deadline}),message.url));await coordinator('access',{site});
+              if(epoch!==accessEpoch[site])throw new Error('Site access was removed during inspection. Inspect again after enabling access.');
               const token = crypto.randomUUID(); const expiresAt = Date.now() + 5 * 60_000;
               candidates.set(token, { owner: message.owner, expiresAt, candidate });
               value = { token, expiresAt, sourceUrl: candidate.sourceUrl, label: candidate.label, textPreview: candidate.text?.slice(0, 1000) ?? null, textFailure: candidate.textFailure, media: candidate.media.map(({ id, kind, sourceId, previewUrl, reason, quality }) => ({ id, kind, sourceId, previewUrl, reason, quality })) } satisfies Inspection;
@@ -233,14 +250,14 @@ export function startOffscreen() {
             break;
           }
           case 'capture': {
-            const epoch=accessEpoch;
-            await coordinator('access');
-            if(epoch!==accessEpoch)throw new Error('Twitter access was removed before queue acceptance');
+            const site:CaptureSite=message.site??'twitter';const epoch=accessEpoch[site];
+            await coordinator('access',{site});
+            if(epoch!==accessEpoch[site])throw new Error('Site access was removed before queue acceptance');
             const entry = candidates.get(message.token);
-            if (!entry || entry.owner !== message.owner || entry.expiresAt < Date.now()) throw new Error('Inspection expired or belongs to another document. Inspect this post again.');
+            if (!entry || sourceSelection(entry.candidate.sourceUrl).site!==site || entry.owner !== message.owner || entry.expiresAt < Date.now()) throw new Error('Inspection expired or belongs to another document. Inspect this post again.');
             if(waiting.length>=20||jobs.size>=22)throw new Error('Capture queue is full: two running and twenty waiting. Wait for a task to finish.');
             if(liveBytes()>=512*1048576)throw new Error('Live capture content uses the 512 MiB owner memory limit. Finish or clear an existing capture first.');
-            const id = crypto.randomUUID(); const result = selectTwitter(entry.candidate, message.selected, id);
+            const id = crypto.randomUUID(); const result = 'site' in entry.candidate?selectBilibili(entry.candidate,message.selected,id):selectTwitter(entry.candidate, message.selected, id);
             candidates.delete(message.token);
             const snapshot={result,blobs:{},readErrors:{}};live.set(id,snapshot);
             const job:Job={id,candidate:structuredClone(entry.candidate),controller:new AbortController(),initial:Promise.resolve()};jobs.set(id,job);waiting.push(id);
@@ -250,13 +267,13 @@ export function startOffscreen() {
           case 'status': { const snapshot = await read(message.id); value = snapshot ? summary(snapshot.result) : null; break; }
           case 'live-status': { const snapshot=live.get(message.id);value=snapshot?summary(snapshot.result):null;break; }
           case 'source-status': {
-            value=sourceSummaries([...live.values()].map(item=>item.result),message.sourceIds).map(row=>({...row,summary:row.summary?summary(live.get(row.summary.id)!.result):null}));break;
+            value=sourceSummaries([...live.values()].map(item=>item.result),message.sourceIds,message.site??'twitter').map(row=>({...row,summary:row.summary?summary(live.get(row.summary.id)!.result):null}));break;
           }
-          case 'capture-tasks':value=[...jobs.keys()].filter(id=>active.has(id)||waiting.includes(id)).map(id=>live.get(id)).filter((snapshot):snapshot is Snapshot=>!!snapshot).map(snapshot=>summary(snapshot.result));break;
+          case 'capture-tasks':value=[...jobs.keys()].filter(id=>(!message.site||sourceSelection(jobs.get(id)!.candidate.sourceUrl).site===message.site)&&(active.has(id)||waiting.includes(id))).map(id=>live.get(id)).filter((snapshot):snapshot is Snapshot=>!!snapshot).map(snapshot=>summary(snapshot.result));break;
           case 'revoke': {
-            accessEpoch++;for (const job of jobs.values())job.controller.abort();candidates.clear();
-            const queued=waiting.splice(0).map(id=>jobs.get(id)).filter((job):job is Job=>!!job);
-            await Promise.all(queued.map(job=>abandon(job,'Interrupted: Twitter access was removed before this queued capture started. Start a new capture explicitly.')));value=true;break;
+            const site:CaptureSite=message.site??'twitter';accessEpoch[site]++;for(const job of jobs.values())if(sourceSelection(job.candidate.sourceUrl).site===site)job.controller.abort();for(const [token,entry] of candidates)if(sourceSelection(entry.candidate.sourceUrl).site===site)candidates.delete(token);
+            const queued=waiting.filter(id=>sourceSelection(jobs.get(id)!.candidate.sourceUrl).site===site).map(id=>jobs.get(id)!).filter(Boolean);for(const job of queued)removeWaiting(job.id);
+            await Promise.all(queued.map(job=>abandon(job,'Interrupted: Source access was removed before this queued capture started. Start a new capture explicitly.')));value=true;break;
           }
           case 'delivery': {
             const delivery = message.delivery as Delivery;
@@ -276,7 +293,7 @@ export function startOffscreen() {
         }
         respond({ ok: true, value });
       } catch (error) { respond({ ok: false, error: errorMessage(error) }); }
-      finally { requests--; if(message.op!=='source-status'&&message.op!=='live-status'&&message.op!=='capture-tasks') lastUse = Date.now(); }
+      finally { requests--; if(message.op!=='lease-live'&&message.op!=='source-status'&&message.op!=='live-status'&&message.op!=='capture-tasks') lastUse = Date.now(); }
     })();
     return true;
   });

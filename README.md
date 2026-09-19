@@ -1,11 +1,11 @@
 # Locus browser extension
 
 A Chrome MV3 extension for manually capturing supported Twitter/X posts and
-selected complete media files. Results stay in extension-origin IndexedDB until
+Bilibili ordinary-video parts with complete media files. Results stay in extension-origin IndexedDB until
 manual clear and can be exported as a ZIP with separate files, JSON and JSONL.
 
 Confirmed product intent lives in the independent local `project-doc/INTENT.md`.
-This implementation covers bounded current Twitter source structures. Other
+This implementation covers bounded current Twitter and Bilibili source structures. Other
 websites and Locus integration remain outside the current workflow.
 
 ## Workspace
@@ -13,6 +13,7 @@ websites and Locus integration remain outside the current workflow.
 - `apps/extension`: the WXT delivery root, Chrome host, and React UI.
 - `packages/capture-core`: private result model and receiver serialization.
 - `packages/twitter`: private Twitter source interpretation, selection, and presentation.
+- `packages/bilibili`: private current-part binding, source projection, quality selection and presentation.
 - `rules/implementation.md`: validated commands and implementation guidance.
 - `skills-lock.json`: the preserved lockfile for the installed shadcn skill.
 - `project-doc/`: a separate local Git repository, ignored by this repository.
@@ -49,11 +50,11 @@ pnpm deps:list
 pnpm shadcn:info
 ```
 
-Root lint and typecheck cover all three members. Tests run the independent Twitter
-suite and the extension's WXT-backed suite. The packages expose explicit TypeScript
+Root lint and typecheck cover all four members. Tests run the independent Twitter
+and Bilibili suites and the extension's WXT-backed suite. The packages expose explicit TypeScript
 source subpaths; WXT bundles them without a separate package build or publication.
-The app depends on both packages, Twitter depends on capture-core, and neither
-package depends on app aliases or generated WXT types.
+The app depends on all three packages; both site packages depend on capture-core.
+No package depends on app aliases or generated WXT types.
 
 Standalone package checks can also run from the workspace root:
 
@@ -63,6 +64,9 @@ pnpm --dir packages/capture-core typecheck
 pnpm --dir packages/twitter lint
 pnpm --dir packages/twitter typecheck
 pnpm --dir packages/twitter test
+pnpm --dir packages/bilibili lint
+pnpm --dir packages/bilibili typecheck
+pnpm --dir packages/bilibili test
 ```
 
 Vitest covers source binding and hostile data, transactional Blob storage,

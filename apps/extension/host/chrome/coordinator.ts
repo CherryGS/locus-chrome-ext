@@ -1,5 +1,10 @@
 import { errorMessage, type Delivery } from '@locus/capture-core/model';
-import { isTwitterDocument, postUrl, TWITTER_ORIGINS } from '@locus/twitter/urls';
+import { postUrl } from '@locus/twitter/urls';
+import { partUrl } from '@locus/bilibili/urls';
+import { BILIBILI_SOURCE_LIMIT } from '@locus/bilibili/projection';
+import { documentSite, sourceSelection, siteOrigins, type CaptureSite } from './sites';
+import { biliIdentity, biliProbeUrl, sameBiliDocument } from './bilibili-protocol';
+import { BilibiliLeases } from './bilibili-leases';
 import { ResultDatabase } from './database';
 import { sourceSummaries, summarizeResult } from './result-summary';
 import type { SourceStatus } from './protocol';
@@ -9,16 +14,17 @@ import { probeMessageSize } from './probe-protocol';
 
 export function startCoordinator() {
   const database = new ResultDatabase();
-  const scriptId = 'locus-twitter';
+  const sites:CaptureSite[]=['twitter','bilibili'];
   const offscreenUrl = chrome.runtime.getURL('offscreen.html');
   const resultsUrl = chrome.runtime.getURL('results.html');
   const deliveries = new Map<string, Delivery>();
   const deliveryQueries = new Map<string, Promise<void>>();
   let queue = Promise.resolve();
   let registrations = Promise.resolve();
-  let removedEpoch=0;
-  let interruptedEpoch=0;
+  const removedEpoch:Record<CaptureSite,number>={twitter:0,bilibili:0};
+  const interruptedEpoch:Record<CaptureSite,number>={twitter:0,bilibili:0};
   let scriptChanges=Promise.resolve();
+  const interruptions:Partial<Record<CaptureSite,Promise<void>>>={};
   async function contexts() { return chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT' as chrome.runtime.ContextType], documentUrls: [offscreenUrl] }); }
   async function sendOwner(op: string, values: Record<string, unknown> = {}) {
     const response = await chrome.runtime.sendMessage({ target: 'offscreen', op, ...values });
@@ -28,46 +34,56 @@ export function startCoordinator() {
   function exclusive<T>(operation: () => Promise<T>): Promise<T> {
     const current = queue.then(operation); queue = current.then(() => {}, () => {}); return current;
   }
-  async function owner(op: string, values: Record<string, unknown> = {}) {
+  async function owner(op: string, values: Record<string, unknown> = {}, guard?:()=>void|Promise<void>) {
     return exclusive(async () => {
+      await guard?.();
       if (!(await contexts()).length) await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['BLOBS' as chrome.offscreen.Reason, 'DOM_PARSER' as chrome.offscreen.Reason], justification: 'Parse selected source data, acquire and retain media Blobs, and back explicit result exports.' });
+      await guard?.();
       return sendOwner(op, values);
     });
   }
-  function interruptRemovedWork() {
-    return exclusive(async()=>{const epoch=removedEpoch;if(interruptedEpoch===epoch)return;if((await contexts()).length)await sendOwner('revoke');interruptedEpoch=epoch;});
+  function interruptRemovedWork(site:CaptureSite='twitter') {
+    // Withdrawal must reach a surviving producer even while an unrelated source
+    // inspection is awaiting its temporary tab inside the owner command queue.
+    if(interruptions[site])return interruptions[site]!;
+    const pending=(async()=>{while(interruptedEpoch[site]!==removedEpoch[site]){const epoch=removedEpoch[site];if((await contexts()).length)await sendOwner('revoke',{site});interruptedEpoch[site]=epoch;}})().finally(()=>{delete interruptions[site];});
+    interruptions[site]=pending;return pending;
   }
-  const access = async () => {
-    if(interruptedEpoch!==removedEpoch){void interruptRemovedWork().catch(()=>{});throw new Error('Twitter access was removed. Previous queued work must be interrupted before new work starts.');}
-    const epoch=removedEpoch;
-    if (!(await chrome.permissions.contains({ origins: TWITTER_ORIGINS }))) throw new Error('Twitter access is not granted. Enable Twitter in the results tab.');
-    if(epoch!==removedEpoch||interruptedEpoch!==removedEpoch)throw new Error('Twitter access changed during authorization. Retry after interrupted work is settled.');
+  const access = async (site:CaptureSite='twitter') => {
+    if(interruptedEpoch[site]!==removedEpoch[site]){void interruptRemovedWork(site).catch(()=>{});throw new Error('Source access was removed. Previous queued work must be interrupted before new work starts.');}
+    const epoch=removedEpoch[site];
+    if (!(await chrome.permissions.contains({ origins: siteOrigins[site] }))) throw new Error('Source access is not granted. Enable this site in the results tab.');
+    if(epoch!==removedEpoch[site]||interruptedEpoch[site]!==removedEpoch[site])throw new Error('Source access changed during authorization. Retry after interrupted work is settled.');
     return true;
   };
   const probeScripts:chrome.scripting.RegisteredContentScript[]=[
     {id:'locus-probe-main',matches:['https://x.com/*','https://twitter.com/*'],js:['content-scripts/twitter-probe-main.js'],runAt:'document_start',world:'MAIN',persistAcrossSessions:true},
     {id:'locus-probe-bridge',matches:['https://x.com/*','https://twitter.com/*'],js:['content-scripts/twitter-probe-bridge.js'],runAt:'document_start',world:'ISOLATED',persistAcrossSessions:true},
   ];
-  function synchronizeScripts(enabled:boolean){
+  function synchronizeScripts(enabled:boolean,site:CaptureSite='twitter'){
     const next=scriptChanges.then(async()=>{
-      const desired=[{id:scriptId,matches:['https://x.com/*','https://twitter.com/*'],js:['content-scripts/twitter.js'],runAt:'document_idle',persistAcrossSessions:true} as chrome.scripting.RegisteredContentScript,...probeScripts];
+      const matches=site==='twitter'?['https://x.com/*','https://twitter.com/*']:['https://www.bilibili.com/*'];
+      const desired=[{id:'locus-'+site,matches,js:['content-scripts/'+site+'.js'],runAt:'document_idle',persistAcrossSessions:true} as chrome.scripting.RegisteredContentScript,...(site==='twitter'?probeScripts:[{id:'locus-bilibili-main',matches,js:['content-scripts/bilibili-probe-main.js'],runAt:'document_start',world:'MAIN',persistAcrossSessions:true},{id:'locus-bilibili-bridge',matches,js:['content-scripts/bilibili-probe-bridge.js'],runAt:'document_start',world:'ISOLATED',persistAcrossSessions:true}] as chrome.scripting.RegisteredContentScript[])];
       const existing=await chrome.scripting.getRegisteredContentScripts({ids:desired.map(script=>script.id)});
       if(enabled){const missing=desired.filter(script=>!existing.some(value=>value.id===script.id));if(missing.length)await chrome.scripting.registerContentScripts(missing);}
       else if(existing.length)await chrome.scripting.unregisterContentScripts({ids:existing.map(script=>script.id)});
     });scriptChanges=next.catch(()=>{});return next;
   }
-  const probes=new AuthenticatedProbeManager(access,()=>synchronizeScripts(true));
-  async function activate() {
-    const enabled = await chrome.permissions.contains({ origins: TWITTER_ORIGINS });
-    await synchronizeScripts(enabled);
-    const tabs = await chrome.tabs.query({ url: ['https://x.com/*', 'https://twitter.com/*'] });
-    for (const tab of tabs) if (tab.id !== undefined) {
-      if (enabled) await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content-scripts/twitter.js'] }).catch(() => {});
+  const probes=new AuthenticatedProbeManager(()=>access('twitter'),()=>synchronizeScripts(true));
+  const biliProbes=new AuthenticatedProbeManager(()=>access('bilibili'),()=>synchronizeScripts(true,'bilibili'),{key:'locus-bilibili-probes-v1',canonical:url=>partUrl(url).url,identify:biliIdentity,navigate:biliProbeUrl,matches:sameBiliDocument,limit:BILIBILI_SOURCE_LIMIT});
+  const leases=new BilibiliLeases(()=>access('bilibili'),async(token,jobId)=>(await contexts()).length?sendOwner('lease-live',{token,jobId}):false);
+  async function activateSite(site:CaptureSite) {
+    const enabled = await chrome.permissions.contains({ origins: siteOrigins[site] });
+    await synchronizeScripts(enabled,site);
+    const tabs = await chrome.tabs.query({ url: site==='twitter'?['https://x.com/*','https://twitter.com/*']:['https://www.bilibili.com/*'] });
+    for (const tab of tabs) if (tab.id !== undefined && documentSite(tab.url)===site) {
+      if (enabled) await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content-scripts/'+site+'.js'] }).catch(() => {});
       else await chrome.tabs.sendMessage(tab.id, { target: 'page', op: 'revoke' }).catch(() => {});
     }
-    if (!enabled && (await contexts()).length) await owner('revoke');
+    if (!enabled && (await contexts()).length) await sendOwner('revoke',{site});
     return enabled;
   }
+  async function activate(){for(const site of sites)await activateSite(site);}
   function activation() { const next = registrations.then(activate); registrations = next.then(() => {}, () => {}); return next; }
   async function openResult(id?: string, windowId?: number) {
     const url = resultsUrl + (id ? `#${id}` : '');
@@ -125,32 +141,42 @@ export function startCoordinator() {
     if (message?.target !== 'coordinator') return;
     void (async () => {
       try {
-        if (sender.id !== chrome.runtime.id || (message.op==='probe-data'?probeMessageSize(message)>AUTHENTICATED_SOURCE_LIMIT:JSON.stringify(message).length>16_000)) throw new Error('Invalid extension request');
+        if (sender.id !== chrome.runtime.id || (message.op==='probe-data'?probeMessageSize(message)>AUTHENTICATED_SOURCE_LIMIT:message.op==='bilibili-data'?probeMessageSize(message)>BILIBILI_SOURCE_LIMIT:JSON.stringify(message).length>16_000)) throw new Error('Invalid extension request');
         const resultPage = sender.url?.split('#')[0] === resultsUrl;
         const offscreen = sender.url === offscreenUrl && !sender.tab;
-        const page = !!sender.tab?.id && sender.frameId === 0 && !!sender.documentId && !!sender.url && isTwitterDocument(sender.url);
+        const site=documentSite(sender.url);
+        const page = !!sender.tab?.id && sender.frameId === 0 && !!sender.documentId && !!sender.url && !!site;
         const documentOwner = page ? `${sender.tab!.id}:${sender.documentId}` : '';
-        if(probes.owns(sender.tab?.id,sender.url)&&!['probe-ready','probe-data'].includes(message.op))throw new Error('Internal source probes cannot perform normal page operations');
+        if((probes.owns(sender.tab?.id,sender.url)||biliProbes.owns(sender.tab?.id,sender.url))&&!['probe-ready','probe-data','bilibili-ready','bilibili-data'].includes(message.op))throw new Error('Internal source probes cannot perform normal page operations');
         let value: unknown;
         switch (message.op) {
           case 'authenticated-source':if(!offscreen||typeof message.url!=='string'||!Number.isSafeInteger(message.deadline)||message.deadline>Date.now()+40_000)throw new Error('Invalid authenticated source request');value=await probes.request(postUrl(message.url).url,message.deadline);break;
+          case 'bilibili-source':if(!offscreen||typeof message.url!=='string'||!Number.isSafeInteger(message.deadline)||message.deadline>Date.now()+40_000)throw new Error('Invalid Bilibili source request');value=await biliProbes.request(partUrl(message.url).url,message.deadline);break;
+          case 'bilibili-ready':value=await biliProbes.ready(message.token,message.url,sender);break;
+          case 'bilibili-data':value=await biliProbes.accept(message,sender);break;
+          case 'cdn-acquire':if(!offscreen||!validId(message.token)||!validId(message.jobId)||typeof message.url!=='string'||!['cover','track'].includes(message.role)||typeof message.cid!=='string')throw new Error('Untrusted CDN lease');value=await leases.acquire(message.token,message.jobId,message.url,message.role,message.cid);break;
+          case 'cdn-release':if(!offscreen||!validId(message.token))throw new Error('Invalid CDN lease release');await leases.release(message.token);value=true;break;
           case 'probe-ready':value=await probes.ready(message.token,message.url,sender);break;
           case 'probe-data':value=await probes.accept(message,sender);break;
-          case 'access': if (!offscreen && !page && !resultPage) throw new Error('Untrusted access request'); value = await access(); break;
-          case 'activate': if (!resultPage) throw new Error('Use the results tab to enable Twitter'); value = await activation(); break;
+          case 'access': if (!offscreen && !page && !resultPage) throw new Error('Untrusted access request'); value = await access(page?site!:message.site==='bilibili'?'bilibili':'twitter'); break;
+          case 'activate': if (!resultPage) throw new Error('Use the results tab to enable source access'); value = await activation(); break;
           case 'grant': {
             if (!resultPage || !['list','read','clear','export'].includes(message.operation) || (message.operation !== 'list' && !validId(message.id))) throw new Error('Invalid result operation');
             const token = crypto.randomUUID(); await owner('grant', { token, operation: message.operation, id: message.id }); value = token; break;
           }
-          case 'inspect': if (!page) throw new Error('Inspection requires an authorized Twitter document'); await access(); value = await owner('inspect', { url: postUrl(message.url).url, owner: documentOwner }); break;
+          case 'inspect': {
+            if (!page||typeof message.url!=='string'||sourceSelection(message.url).site!==site) throw new Error('Inspection requires an authorized matching site document');
+            const epoch=removedEpoch[site!];const stillAuthorized=async()=>{if(epoch!==removedEpoch[site!])throw new Error('Site access was removed during inspection preparation. Start a fresh capture.');await access(site);if(epoch!==removedEpoch[site!])throw new Error('Site access changed during inspection preparation.');};
+            await stillAuthorized();value=await owner('inspect',{url:sourceSelection(message.url).url,site,owner:documentOwner},stillAuthorized);await stillAuthorized();break;
+          }
           case 'source-status': {
             if (!page || !Array.isArray(message.urls) || !message.urls.length || message.urls.length > 50) throw new Error('Invalid visible source lookup');
-            const sourceIds = [...new Set<string>(message.urls.map((url: unknown) => { if (typeof url !== 'string') throw new Error('Invalid source URL'); return postUrl(url).id; }))];
-            await access();
-            const stored=sourceSummaries(await database.list(),sourceIds);
+            const sourceIds = [...new Set<string>(message.urls.map((url: unknown) => { if (typeof url !== 'string') throw new Error('Invalid source URL'); const source=sourceSelection(url);if(source.site!==site)throw new Error('Mismatched source site');return source.id; }))];
+            await access(site);
+            const stored=sourceSummaries(await database.list(),sourceIds,site);
             // Passive indicators never create or keep alive a Blob owner.
             const ownerExists=(await contexts()).length>0;
-            const live: SourceStatus[]=ownerExists?await sendOwner('source-status',{sourceIds}):[];
+            const live: SourceStatus[]=ownerExists?await sendOwner('source-status',{sourceIds,site}):[];
             value=stored.map(row=>{
               const current=live.find(item=>item.sourceId===row.sourceId)?.summary;
               const selected=current&&(!row.summary||current.createdAt>=row.summary.createdAt)?{...row,summary:current}:row;
@@ -159,20 +185,20 @@ export function startCoordinator() {
           }
           case 'capture': {
             if (!page || !validId(message.token) || !Array.isArray(message.selected) || message.selected.length > 16 || !message.selected.every((id: unknown) => typeof id === 'string' && /^media-\d{1,2}$/.test(id))) throw new Error('Invalid source selection');
-            await access(); value = await owner('capture', { token: message.token, selected: message.selected, owner: documentOwner });
+            await access(site); value = await owner('capture', { token: message.token, selected: message.selected, site, owner: documentOwner });
             break;
           }
           case 'capture-tasks': {
             if(!page&&!resultPage)throw new Error('Invalid capture task lookup');
-            if(page)await access();
-            value=(await contexts()).length?await sendOwner('capture-tasks'):[];break;
+            if(page)await access(site);
+            value=(await contexts()).length?await sendOwner('capture-tasks',{site:page?site:undefined}):[];break;
           }
           case 'status':
           case 'open-result': {
             if (!validId(message.id) || (!resultPage && !page)) throw new Error('Invalid result reference');
             // Possession of an unguessable local result reference is a read-only
             // page capability; it survives worker recreation without site bytes.
-            if (page) await access();
+            if (page) await access(site);
             if(message.op==='open-result') value=await openResult(message.id,sender.tab?.windowId);
             else {
               const stored=await database.metadata(message.id);
@@ -209,8 +235,7 @@ export function startCoordinator() {
   chrome.action.onClicked.addListener(tab => { void openResult(undefined, tab.windowId); });
   chrome.permissions.onAdded.addListener(() => { void activation().catch(() => {}); });
   chrome.permissions.onRemoved.addListener(removed => {
-    if(removed.origins?.some(origin=>TWITTER_ORIGINS.includes(origin))){removedEpoch++;probes.abort();void interruptRemovedWork().then(activation).catch(()=>{});}
-    else void activation().catch(()=>{});
+    for(const site of sites)if(removed.origins?.some(origin=>siteOrigins[site].includes(origin))){removedEpoch[site]++;(site==='twitter'?probes:biliProbes).abort('Site access removed during source inspection');if(site==='bilibili')void leases.revoke().catch(()=>{});void interruptRemovedWork(site).then(activation).catch(()=>{});}
   });
   chrome.downloads.onChanged.addListener(delta => { void (async () => {
     const all = [...deliveries.values(), ...await database.deliveries().catch(() => [])];

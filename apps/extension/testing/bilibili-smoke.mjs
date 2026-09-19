@@ -1,0 +1,121 @@
+/** Production Bilibili pipeline in a disposable profile; all network content is synthetic. */
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, cp, readFile, writeFile, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { chromium } from 'playwright-core';
+import { BlobReader, ZipReader, TextWriter, Uint8ArrayWriter } from '@zip.js/zip.js';
+const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const executablePath = process.env.LOCUS_CHROME_PATH; if (!executablePath) throw new Error('Set LOCUS_CHROME_PATH');
+const work = await mkdtemp(path.join(tmpdir(), 'locus-bilibili-capture-')), extension = path.join(work, 'extension'), downloads = path.join(work, 'downloads');
+await cp(path.join(member, '.output/chrome-mv3'), extension, { recursive: true }); await mkdir(downloads);
+const manifestPath = path.join(extension, 'manifest.json'), manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+assert.equal(manifest.host_permissions, undefined); assert.equal(manifest.content_scripts, undefined);
+manifest.host_permissions = manifest.optional_host_permissions; await writeFile(manifestPath, JSON.stringify(manifest));
+// Event injection is restricted to the disposable worker copy; effective-grant checks stay real.
+const backgroundPath = path.join(extension, 'background.js'); await writeFile(backgroundPath, `{const add=chrome.permissions.onRemoved.addListener.bind(chrome.permissions.onRemoved);globalThis.fixtureRemoval=[];chrome.permissions.onRemoved.addListener=f=>{fixtureRemoval.push(f);add(f);};}\n` + await readFile(backgroundPath, 'utf8'));
+const cmd = (name, args) => execFileSync(name, args, { encoding: 'utf8', windowsHide: true, timeout: 120000, maxBuffer: 64 * 1048576, stdio: ['ignore', 'pipe', 'pipe'] });
+const videoFile = path.join(work, 'video.mp4'), audioFile = path.join(work, 'audio.mp4');
+cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30', '-vf', 'setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709', '-t', '3', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+faststart', videoFile]);
+cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-t', '3', '-c:a', 'aac', '-vn', '-movflags', '+faststart', audioFile]);
+const video = await readFile(videoFile), audio = await readFile(audioFile), cover = await readFile(path.join(member, 'testing/fixtures/black-frame.png'));
+let real;
+if(process.env.LOCUS_BILI_REAL_VIDEO&&process.env.LOCUS_BILI_REAL_AUDIO){
+  const bytes=await readFile(process.env.LOCUS_BILI_REAL_VIDEO),sound=await readFile(process.env.LOCUS_BILI_REAL_AUDIO);assert(bytes.length<=64*1048576&&sound.length<=64*1048576);
+  const info=JSON.parse(cmd('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','json',process.env.LOCUS_BILI_REAL_VIDEO])).streams[0];const avcc=bytes.indexOf(Buffer.from('avcC'));assert(avcc>=0);
+  real={video:bytes,audio:sound,width:info.width,height:info.height,codec:'avc1.'+bytes.subarray(avcc+5,avcc+8).toString('hex'),duration:Number(process.env.LOCUS_BILI_REAL_DURATION??182.461)};
+}
+const bvid = 'BV145PxzCEoE', base = `https://www.bilibili.com/video/${bvid}/`;
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function until(read, predicate, label, ms = 40000) { const deadline = Date.now() + ms; let value; do { value = await read(); if (predicate(value)) return value; await pause(100); } while (Date.now() < deadline); throw new Error(`${label}: ${JSON.stringify(value)}`); }
+let context, worker, resultPage, extensionId, sessionLogin = true, navRequests = 0, hold;
+const checks = []; const routing = [];
+function fixture(p) {
+  const cid = String(100000 + p), track = (id, codecs) => ({ id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: `https://synthetic.bilivideo.com/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s` });
+  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 9 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
+  const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
+  if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
+  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center;gap:12px}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main"><button class="video-fav video-toolbar-left-item">Favorite</button><div class="video-share-wrap video-toolbar-left-item"><button class="video-share">Share</button></div></div></div><div class="video-toolbar-right">Native toolbar</div></div><main>Independent page browsing</main>`;
+}
+async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1', 1); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
+async function routeOwner() {
+  const cdp = await context.browser().newBrowserCDPSession(); const target = await until(async () => (await cdp.send('Target.getTargets')).targetInfos.find(t => t.url.endsWith('/offscreen.html')), Boolean, 'offscreen target');
+  const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: false }); let counter = 0; const pending = new Map();
+  const send = (method, params = {}) => new Promise((resolve, reject) => { const id = ++counter; pending.set(id, { resolve, reject }); cdp.send('Target.sendMessageToTarget', { sessionId, message: JSON.stringify({ id, method, params }) }).catch(reject); });
+  cdp.on('Target.receivedMessageFromTarget', event => { if (event.sessionId !== sessionId) return; const msg = JSON.parse(event.message); if (msg.id) { const request = pending.get(msg.id); pending.delete(msg.id); if (msg.error) request?.reject(new Error('Fixture CDP command failed')); else request?.resolve(msg.result); return; } if (msg.method !== 'Fetch.requestPaused') return; void (async () => {
+    const req = msg.params, url = new URL(req.request.url); if (hold) await hold(url);
+    const isCover = url.hostname.endsWith('.hdslb.com'), p = Number(url.pathname.split('/')[4]) - 100000, isAudio = url.pathname.includes('-30280.');
+    let body = isCover ? cover : p===8&&real?(isAudio?real.audio:real.video):isAudio ? audio : video; if (p === 4 && !isAudio) body = body.subarray(0, Math.floor(body.length / 2));
+    const headers = [{ name: 'Content-Type', value: isCover ? 'image/png' : 'application/octet-stream' }, { name: 'Content-Length', value: String(p === 5 && !isAudio ? 65 * 1048576 : body.length) }];
+    await send('Fetch.fulfillRequest', { requestId: req.requestId, responseCode: 200, responseHeaders: headers, body: body.toString('base64') });
+  })().catch(() => {}); });
+  await send('Fetch.enable', { patterns: [{ urlPattern: 'https://*.bilivideo.com/*' }, { urlPattern: 'https://*.hdslb.com/*' }] }); routing.push(cdp);
+}
+async function capture(p) {
+  const page = await context.newPage(); await page.goto(`${base}?p=${p}`); const button = page.getByRole('button', { name: `Locus capture P${p}`, exact: true }); await button.waitFor();
+  const before = (await rows()).length, navBefore = navRequests; await button.evaluate(button => button.click()); await pause(150); assert.equal(navRequests, navBefore); assert.equal((await rows()).length, before);
+  await button.click(); await page.getByRole('button', { name: 'Expand capture queue', exact: true }).waitFor();
+  const result = await until(rows, list => list.length > before, 'capture acceptance'); const row = result.find(row => row.sourceUrl.endsWith(`?p=${p}`) && !row.id.startsWith('old')) ?? result.at(-1);
+  assert.equal(await page.getByRole('dialog').count(), 0); assert.equal((await worker.evaluate(() => chrome.tabs.query({ active: true, currentWindow: true })))[0].url, `${base}?p=${p}`);
+  return { page, id: row.id };
+}
+try {
+  context = await chromium.launchPersistentContext(path.join(work, 'profile'), { executablePath, headless: true, acceptDownloads: true, downloadsPath: downloads, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
+  worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
+  await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://api.bilibili.com/x/web-interface/nav', route => { navRequests++; return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': 'https://www.bilibili.com', 'Access-Control-Allow-Credentials': 'true' }, body: JSON.stringify({ code: 0, data: { isLogin: sessionLogin, unrelatedAccount: 'not-selected' } }) }); });
+  await until(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), values => values.some(value => value.id === 'locus-bilibili-main'), 'Bilibili source registration');
+  resultPage = await context.newPage(); await resultPage.goto(`chrome-extension://${extensionId}/results.html`); await resultPage.getByText('No captures yet', { exact: true }).waitFor(); await routeOwner();
+  const success = await capture(2); const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
+  const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\nSecond line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
+  assert.equal(await success.page.evaluate(() => !!document.querySelector('script')?.textContent?.includes('__INITIAL_STATE__')), false);
+  await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
+  await success.page.evaluate(() => { history.pushState({}, '', '?p=1&vd_source=fixture'); document.body.append(document.createElement('span')); }); await success.page.getByRole('button', { name: 'Locus capture P1', exact: true }).waitFor(); assert.equal((await rows()).find(row => row.id === success.id).sourceUrl, `${base}?p=2`);
+  checks.push('Trusted immediate P2 capture; removed initial script; authenticated nav; exact CID; nonmodal browsing; SPA next selection preserves accepted P2');
+  await success.page.close(); await worker.evaluate(() => chrome.offscreen.closeDocument());
+  await resultPage.goto(`chrome-extension://${extensionId}/results.html#${success.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();
+  await until(() => resultPage.locator('video').evaluate(video => ({ ready: video.readyState, width: video.videoWidth })), value => value.ready >= 1 && value.width === 320, 'restored production Blob preview');
+  await resultPage.locator('video').evaluate(async video => { video.muted = true; await video.play(); }); await pause(400); assert(await resultPage.locator('video').evaluate(video => video.currentTime > 0)); await resultPage.screenshot({ path: path.join(work, 'bilibili-library.png') });
+  const browserCdp = await context.browser().newBrowserCDPSession(); await browserCdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads, eventsEnabled: true }); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).click();
+  const item = await until(() => resultPage.evaluate(() => chrome.downloads.search({})), values => values.some(value => value.state === 'complete'), 'native Bilibili ZIP'); const zipPath = item.find(value => value.state === 'complete').filename;
+  const zip = new ZipReader(new BlobReader(new Blob([await readFile(zipPath)]))), entries = await zip.getEntries(); const metadata = JSON.parse(await entries.find(entry => entry.filename === 'metadata.json').getData(new TextWriter())); const jsonl = JSON.parse((await entries.find(entry => entry.filename === 'records.jsonl').getData(new TextWriter())).trim());
+  assert.equal(jsonl.record.assetIds.length, 2); const file = metadata.files.find(file => file.id === 'media-2'); const output = await entries.find(entry => entry.filename === file.path).getData(new Uint8ArrayWriter()); const outputFile = path.join(work, 'captured.mp4'); await writeFile(outputFile, output); await zip.close();
+  const packets = file => JSON.parse(cmd('ffprobe', ['-v', 'error', '-show_streams', '-show_packets', '-show_data_hash', 'sha256', '-show_entries', 'stream=index,codec_type,extradata_hash:packet=stream_index,data_hash,pts_time,duration_time', '-of', 'json', file])); const captured = packets(outputFile);
+  for (const [kind, source] of [['video', videoFile], ['audio', audioFile]]) { const before = packets(source), track = captured.streams.find(stream => stream.codec_type === kind), after = captured.packets.filter(packet => packet.stream_index === track.index); assert.equal(track.extradata_hash, before.streams[0].extradata_hash); assert.deepEqual(after.map(packet => packet.data_hash), before.packets.map(packet => packet.data_hash)); }
+  cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', outputFile, '-f', 'null', '-']);
+  checks.push('Production offscreen assembly/configuration and complete packet sets; closed-owner Blob reopen; native ZIP complete with video+cover and JSON/JSONL associations');
+  await routeOwner();
+  if(real){
+    const attempt=await capture(8);await attempt.page.close();const saved=await until(rows,list=>list.find(row=>row.id===attempt.id)?.assets.every(asset=>asset.acquisition.state!=='pending'),'real AVC terminal',120000);assert(saved.find(row=>row.id===attempt.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(saved));
+    await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
+    const playback=[];for(const position of [0,real.duration/2,real.duration-.6]){const state=await resultPage.locator('video').evaluate(async(video,position)=>{video.muted=true;if(position)await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Seek timed out')),10000);video.addEventListener('seeked',()=>{clearTimeout(timer);resolve();},{once:true});video.currentTime=position;});const before=video.getVideoPlaybackQuality().totalVideoFrames;await video.play();await new Promise(resolve=>setTimeout(resolve,300));video.pause();return{width:video.videoWidth,height:video.videoHeight,time:video.currentTime,frames:video.getVideoPlaybackQuality().totalVideoFrames-before};},position);assert(state.frames>0&&state.width===real.width);playback.push(state);}
+    const old=await resultPage.evaluate(async()=>new Set((await chrome.downloads.search({})).map(item=>item.id)).values().toArray());await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).click();const downloaded=await until(()=>resultPage.evaluate(()=>chrome.downloads.search({})),items=>items.some(item=>!old.includes(item.id)&&item.state==='complete'),'real native archive',60000);
+    const z=new ZipReader(new BlobReader(new Blob([await readFile(downloaded.find(item=>!old.includes(item.id)&&item.state==='complete').filename)]))),entries=await z.getEntries(),metadata=JSON.parse(await entries.find(entry=>entry.filename==='metadata.json').getData(new TextWriter()));const file=metadata.files.find(file=>file.id==='media-2');const encoded=await entries.find(entry=>entry.filename===file.path).getData(new Uint8ArrayWriter());const output=path.join(work,'real-captured.mp4');await writeFile(output,encoded);await z.close();
+    const after=packets(output),proof=[];for(const[kind,file]of[['video',process.env.LOCUS_BILI_REAL_VIDEO],['audio',process.env.LOCUS_BILI_REAL_AUDIO]]){const original=packets(file),stream=after.streams.find(stream=>stream.codec_type===kind),actual=after.packets.filter(packet=>packet.stream_index===stream.index);assert.equal(stream.extradata_hash,original.streams[0].extradata_hash);assert.deepEqual(actual.map(packet=>packet.data_hash),original.packets.map(packet=>packet.data_hash));proof.push({kind,packets:actual.length,configurationEqual:true,encodedPacketsEqual:true});}
+    cmd('ffmpeg',['-v','error','-xerror','-i',output,'-f','null','-']);await writeFile(path.join(work,'real-media-evidence.json'),JSON.stringify({proof,playback,fullDecode:true},null,2));checks.push('Optional real AVC/AAC through production source fixture/byte path: complete packet+configuration preservation, source page closed, start/mid/end playback, full decode and native ZIP');
+  }
+  for (const p of [3, 4, 5, 6]) { const attempt = await capture(p); const values = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `partial P${p}`); const row = values.find(row => row.id === attempt.id); assert(row.assets.some(asset => asset.acquisition.state === 'acquired')); if (p !== 6) assert.equal(row.assets.find(asset => asset.id === 'media-2').acquisition.state, 'unavailable'); else assert.equal(row.records[0].acquisition.state, 'unavailable'); await attempt.page.close(); }
+  checks.push('Missing audio, truncated track and oversize response preserve metadata/cover; incomplete metadata preserves independently acquired files');
+  let releaseClear; hold=url=>url.pathname.includes('/100009/')?new Promise(resolve=>{releaseClear=resolve;}):undefined;
+  const clearing=await capture(9);await until(async()=>typeof releaseClear,value=>value==='function','held clear media');
+  const rulesBefore=await worker.evaluate(async()=>(await chrome.declarativeNetRequest.getSessionRules()).map(rule=>rule.id));assert.equal(rulesBefore.length,1);
+  await worker.evaluate(()=>{globalThis.biliWorkerMarker=true;});const workerControl=await context.newCDPSession(resultPage);await workerControl.send('ServiceWorker.enable');await workerControl.send('ServiceWorker.stopAllWorkers');
+  await resultPage.evaluate(id=>chrome.runtime.sendMessage({target:'coordinator',op:'status',id}),clearing.id);
+  await until(async()=>{const current=context.serviceWorkers().find(value=>value.url().includes(extensionId));return current?current.evaluate(()=>!globalThis.biliWorkerMarker).catch(()=>false):false;},Boolean,'worker recreation with active CDN lease');worker=context.serviceWorkers().find(value=>value.url().includes(extensionId));await workerControl.detach();
+  assert.deepEqual(await worker.evaluate(async()=>(await chrome.declarativeNetRequest.getSessionRules()).map(rule=>rule.id)),rulesBefore);
+  await resultPage.goto(`chrome-extension://${extensionId}/results.html#${clearing.id}`);await resultPage.getByRole('button',{name:'Clear result',exact:true}).click();await resultPage.getByRole('button',{name:'Confirm clear',exact:true}).click();await until(rows,list=>!list.some(row=>row.id===clearing.id),'clear commit');hold=undefined;releaseClear();await pause(300);assert(!(await rows()).some(row=>row.id===clearing.id));await clearing.page.close();
+  let releaseRevoke;hold=url=>url.pathname.includes('/100001/')?new Promise(resolve=>{releaseRevoke=resolve;}):undefined;
+  const revoking=await capture(1);await until(async()=>typeof releaseRevoke,value=>value==='function','held revoke media');
+  await worker.evaluate(()=>{for(const listener of globalThis.fixtureRemoval)listener({origins:['https://www.bilibili.com/*']});});
+  hold=undefined;releaseRevoke();const interrupted=await until(rows,list=>list.find(row=>row.id===revoking.id)?.assets.find(asset=>asset.id==='media-2')?.acquisition.state==='unavailable','revoked video');assert.equal(interrupted.find(row=>row.id===revoking.id).assets[0].acquisition.state,'acquired');await revoking.page.close();
+  checks.push('Worker recreation preserves a surviving CDN lease; clear during fetch prevents resurrection; simulated removal/rapid regrant interrupts accepted Bilibili bytes and preserves committed cover');
+  sessionLogin = false; const denied = await context.newPage(); await denied.goto(`${base}?p=7`); const beforeDenied = (await rows()).length; await denied.getByRole('button', { name: 'Locus capture P7' }).click(); await denied.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await denied.getByText(/Sign in to Bilibili before capturing this part/).waitFor(); assert.equal((await rows()).length, beforeDenied); await denied.close(); sessionLogin = true;
+  await until(() => worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), rules => rules.length === 0, 'DNR cleanup');
+  const sessions = await worker.evaluate(() => chrome.storage.session.get(null)); assert.equal(sessions['locus-bilibili-probes-v1']?.length ?? 0, 0); assert.equal(sessions['locus-bilibili-cdn-leases-v1']?.length ?? 0, 0);
+  checks.push('Session denial creates no capture; all temporary source tabs and DNR leases cleaned');
+  await writeFile(path.join(work, 'evidence.json'), JSON.stringify({ status: 'PASS', checks, outputSha256: createHash('sha256').update(output).digest('hex'), files: await readdir(work) }, null, 2)); console.log(JSON.stringify({ status: 'PASS', work, checks }, null, 2));
+} catch (error) { await writeFile(path.join(work, 'failure.txt'), String(error)); console.error(`Bilibili smoke failed; evidence: ${work}\n${String(error)}`); process.exitCode = 1; }
+finally { for (const session of routing) await session.detach().catch(() => {}); await context?.close(); }

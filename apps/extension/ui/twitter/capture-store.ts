@@ -1,6 +1,6 @@
 import { coordinator, type Inspection, type ResultSummary, type SourceStatus } from '@/host/chrome/protocol';
 import { errorMessage } from '@locus/capture-core/model';
-import { postUrl } from '@locus/twitter/urls';
+import { sourceSelection as postUrl } from '@/host/chrome/sites';
 import { captureStates, getCaptureStatus, type CaptureState } from '@/ui/shared/capture-status';
 
 export interface CaptureDraft {
@@ -15,7 +15,7 @@ export interface QueueView {
   tasks: CaptureTask[]; error: string;
 }
 
-/** One page observer, independent of X's virtualized article nodes. */
+/** One page observer, independent of site's virtualized article nodes. */
 export class CaptureStore {
   private value: QueueView = { visible: false, expanded: false, drafts: {}, tasks: [], error: '' };
   private listeners = new Set<() => void>();
@@ -153,7 +153,7 @@ export class CaptureStore {
   }
   sourceStatus(sourceId: string): { state: CaptureState; message: string } {
     const draft = this.value.drafts[sourceId];
-    if (draft?.autoStart && draft.busy === 'inspect') return { state: 'checking', message: 'Inspecting this post before capturing its message and all direct media.' };
+    if (draft?.autoStart && draft.busy === 'inspect') return { state: 'checking', message: 'Inspecting the selected content before capturing its metadata and files.' };
     if (draft?.busy === 'enqueue') return { state: 'importing', message: 'Submitting the selected scope to the task queue.' };
     if (draft?.enqueueFailed) return { state: 'failed', message: draft.error };
     const task = this.value.tasks.find(item => item.summary.id === this.latest.get(sourceId));

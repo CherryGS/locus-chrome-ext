@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticatedProbeManager } from './authenticated-probe';
 import { probeIdentity, probeUrl } from './probe-protocol';
+import { biliIdentity, biliProbeUrl, sameBiliDocument } from './bilibili-protocol';
+import { partUrl } from '@locus/bilibili/urls';
 
 let activeDocument='document-one';
 let stored:Record<string,unknown>,tabs:Map<number,{id:number;url:string}>,nextId:number;
@@ -16,6 +18,15 @@ afterEach(()=>{manager.abort('Test ended');vi.useRealTimers();vi.restoreAllMocks
 async function start(){const result=manager.request(url,Date.now()+40_000);void result.catch(()=>{});await vi.waitFor(()=>expect([...tabs.values()].some(tab=>!!probeIdentity(tab.url))).toBe(true));const tab=[...tabs.values()].find(tab=>probeIdentity(tab.url))!;const identity=probeIdentity(tab.url)!;const sender={id:'synthetic',tab:{id:tab.id},frameId:0,documentId:'document-one',url:tab.url} as chrome.runtime.MessageSender;return {result,tab,identity,sender};}
 
 describe('owned authenticated source tabs',()=>{
+  it('allows Bilibili tracking hydration only with the same P, nonce and active document',async()=>{
+    manager=new AuthenticatedProbeManager(access,register,{key:'locus-bilibili-probes-v1',canonical:url=>partUrl(url).url,identify:biliIdentity,navigate:biliProbeUrl,matches:sameBiliDocument,limit:524288});
+    const selected='https://www.bilibili.com/video/BV145PxzCEoE/?p=2',result=manager.request(selected,Date.now()+40000);void result.catch(()=>{});
+    await vi.waitFor(()=>expect([...tabs.values()].some(tab=>biliIdentity(tab.url))).toBe(true));const tab=[...tabs.values()].find(tab=>biliIdentity(tab.url))!,identity=biliIdentity(tab.url)!;
+    tab.url=tab.url.replace('?p=2#','?p=2&vd_source=hydration#');for(const fn of updated)fn(tab.id,{url:tab.url});
+    const sender={id:'synthetic',tab:{id:tab.id},frameId:0,documentId:'document-one',url:tab.url} as chrome.runtime.MessageSender;
+    await manager.ready(identity.token,selected,sender);await manager.accept({token:identity.token,url:selected,data:{bound:true}},sender);expect(await result).toEqual({bound:true});
+    const changed=manager.request(selected,Date.now()+40000);void changed.catch(()=>{});await vi.waitFor(()=>expect([...tabs.values()].some(tab=>biliIdentity(tab.url))).toBe(true));const next=[...tabs.values()].find(tab=>biliIdentity(tab.url))!;for(const fn of updated)fn(next.id,{url:next.url.replace('?p=2#','?p=1#')});await expect(changed).rejects.toThrow('redirected');
+  });
   it.each(['timeout','abort'] as const)('keeps write-ahead ownership through %s while tab creation is unresolved',async(reason)=>{
     vi.useFakeTimers({toFake:['setTimeout','clearTimeout','Date']});
     let release!:(tab:chrome.tabs.Tab)=>void;

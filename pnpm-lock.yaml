@@ -212,6 +212,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.8.0
         version: 1.8.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@locus/bilibili':
+        specifier: workspace:*
+        version: link:../../packages/bilibili
       '@locus/capture-core':
         specifier: workspace:*
         version: link:../../packages/capture-core
@@ -230,6 +233,9 @@ importers:
       lucide-react:
         specifier: ^1.44.0
         version: 1.44.0(react@19.3.0)
+      mediabunny:
+        specifier: 1.58.1
+        version: 1.58.1
       react:
         specifier: ^19.2.4
         version: 19.3.0
@@ -255,9 +261,6 @@ importers:
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
-      mediabunny:
-        specifier: 1.58.1
-        version: 1.58.1
       oxlint:
         specifier: 1.82.0
         version: 1.82.0
@@ -288,6 +291,22 @@ importers:
       wxt:
         specifier: 0.21.4
         version: 0.21.4(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(rolldown@1.1.5)(typescript@5.9.3)(vite@8.1.5(@types/node@22.20.2)(jiti@2.7.0))(web-ext@10.5.0(express@5.2.1(supports-color@7.2.0))(jiti@2.7.0)(supports-color@7.2.0))
+
+  packages/bilibili:
+    dependencies:
+      '@locus/capture-core':
+        specifier: workspace:*
+        version: link:../capture-core
+    devDependencies:
+      oxlint:
+        specifier: 1.82.0
+        version: 1.82.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@22.20.2)(vite@8.1.5(@types/node@22.20.2)(jiti@2.7.0))
 
   packages/capture-core:
     devDependencies:

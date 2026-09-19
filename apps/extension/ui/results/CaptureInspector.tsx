@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { availability, errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/model';
+import { bilibiliPresentation } from '@locus/bilibili/presentation';
 import { twitterPresentation } from '@locus/twitter/presentation';
 import { CaptureStatusBadge } from '@/ui/shared/CaptureStatusBadge';
 import { getResultCaptureStatus } from '@/ui/shared/capture-status';
@@ -33,19 +34,21 @@ function FilePreview({ blob, label }: { blob: Blob; label: string }) {
 function Preview({ snapshot }: { snapshot: Snapshot }) {
   const { result, blobs, readErrors } = snapshot;
   const acquiredFiles = result.assets.filter(asset => asset.acquisition.state === 'acquired').length;
+  const previewAssets=result.site==='bilibili'?[...result.assets].sort((a,b)=>Number(b.id==='media-2')-Number(a.id==='media-2')):result.assets;
   return <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-6 sm:px-8 sm:py-8">
     {result.records.map(record => {
       const post = result.site === 'twitter' && record.acquisition.state === 'acquired' ? twitterPresentation(record.payload) : null;
+      const part=result.site==='bilibili'&&record.acquisition.state==='acquired'?bilibiliPresentation(record.payload):null;
       return <article key={record.id} className="flex flex-col gap-5">
         {post && <><header className="flex items-center gap-3"><Avatar size="lg"><AvatarFallback>{(post.displayName ?? post.username ?? 'X').slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0"><p className="font-medium">{post.displayName ?? post.username ?? 'Author unknown'}</p><p className="text-sm text-muted-foreground">{post.username ? `@${post.username}` : 'Username unknown'}{post.publishedAt ? ` · ${exactTime(post.publishedAt)}` : ' · Publication time unknown'}</p></div></header><div className="whitespace-pre-wrap break-words text-base leading-7">{post.text || <span className="text-muted-foreground">Empty authored message</span>}</div></>}
-        {!post && record.acquisition.state === 'acquired' && <Alert><AlertTitle>Record available</AlertTitle><AlertDescription>This record has no supported text preview. Its full payload is available in Metadata.</AlertDescription></Alert>}
-        {record.acquisition.state === 'pending' && <Pending title="Message is still being acquired" message={record.acquisition.reason ?? 'The producer has not supplied the message yet.'} />}
-        {record.acquisition.state === 'unavailable' && <Failure title="Message unavailable" message={record.acquisition.reason ?? 'The producer could not supply the message.'} />}
+        {part && <><header><h3 className="text-lg font-medium">{part.title}</h3><p className="text-sm text-muted-foreground">Uploader: {part.uploader ?? "Unknown"} · {part.part}</p><p className="text-sm text-muted-foreground">{part.quality}</p></header><p className="whitespace-pre-wrap break-words">{part.description || "Empty authored description"}</p></>}{!post && !part && record.acquisition.state === 'acquired' && <Alert><AlertTitle>Record available</AlertTitle><AlertDescription>This record has no supported text preview. Its full payload is available in Metadata.</AlertDescription></Alert>}
+        {record.acquisition.state === 'pending' && <Pending title="Content is still being acquired" message={record.acquisition.reason ?? 'The producer has not supplied the message yet.'} />}
+        {record.acquisition.state === 'unavailable' && <Failure title="Content unavailable" message={record.acquisition.reason ?? 'The producer could not supply the message.'} />}
       </article>;
     })}
     <section aria-label="Selected files" className="flex flex-col gap-4"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-medium">Selected files</h3><span className="text-xs text-muted-foreground">{result.assets.length ? `${acquiredFiles} of ${result.assets.length} acquired` : 'Text-only capture'}</span></div>
       {!result.assets.length && <p className="text-sm text-muted-foreground">Only the message and metadata were selected. No media files are missing.</p>}
-      <ItemGroup>{result.assets.map((asset, index) => <Item key={asset.id} variant="outline" className="flex-col items-stretch"><div className="flex items-center gap-3"><ItemMedia variant="icon">{asset.mime?.startsWith('image/') ? <ImageIcon /> : asset.mime?.startsWith('video/') ? <VideoIcon /> : <FileIcon />}</ItemMedia><ItemContent><ItemTitle>{asset.mime?.startsWith('image/') ? 'Image' : asset.mime?.startsWith('video/') ? 'Video' : 'File'} {index + 1}</ItemTitle><ItemDescription>{asset.mime ? `${asset.mime} · ${fileSize(asset.size)}` : asset.id}</ItemDescription></ItemContent><AcquisitionBadge state={asset.acquisition.state} /></div>
+      <ItemGroup>{previewAssets.map((asset, index) => <Item key={asset.id} variant="outline" className="flex-col items-stretch"><div className="flex items-center gap-3"><ItemMedia variant="icon">{asset.mime?.startsWith('image/') ? <ImageIcon /> : asset.mime?.startsWith('video/') ? <VideoIcon /> : <FileIcon />}</ItemMedia><ItemContent><ItemTitle>{result.site==='bilibili'&&asset.id==='media-1'?'Parent cover':asset.mime?.startsWith('image/') ? 'Image' : asset.mime?.startsWith('video/') ? 'Video' : 'File'} {index + 1}</ItemTitle><ItemDescription>{asset.mime ? `${asset.mime} · ${fileSize(asset.size)}` : asset.id}</ItemDescription></ItemContent><AcquisitionBadge state={asset.acquisition.state} /></div>
         {asset.acquisition.reason && <Failure title="Selected file unavailable" message={asset.acquisition.reason} />}
         {readErrors[asset.id] && <Failure title="File read failed" message={`${readErrors[asset.id]}. Retry reads to try again; acquisition has not changed.`} />}
         {blobs[asset.id] && <FilePreview blob={blobs[asset.id]!} label={`Selected file ${index + 1} (${asset.id})`} />}
