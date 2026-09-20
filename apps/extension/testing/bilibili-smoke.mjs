@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { chromium } from 'playwright-core';
 import { BlobReader, ZipReader, TextWriter, Uint8ArrayWriter } from '@zip.js/zip.js';
 import { bilibiliListingFixture, verifyBilibiliControls } from './bilibili-controls-smoke.mjs';
+import { bilibiliNativeFixture } from './bilibili-native-fixture.mjs';
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executablePath = process.env.LOCUS_CHROME_PATH; if (!executablePath) throw new Error('Set LOCUS_CHROME_PATH');
 const work = await mkdtemp(path.join(tmpdir(), 'locus-bilibili-capture-')), extension = path.join(work, 'extension'), downloads = path.join(work, 'downloads');
@@ -44,7 +45,7 @@ function fixture(p) {
   const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 9 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
-  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right">Native toolbar</div></div><main>Independent page browsing</main>`;
+  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right">Native toolbar</div></div>${bilibiliNativeFixture(p)}<main>Independent page browsing</main></div>`;
 }
 async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1', 1); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
 async function routeOwner() {
@@ -61,7 +62,10 @@ async function routeOwner() {
   await send('Fetch.enable', { patterns: [{ urlPattern: 'https://*.bilivideo.com/*' }, { urlPattern: 'https://*.hdslb.com/*' }] }); routing.push(cdp);
 }
 async function capture(p) {
-  const page = await context.newPage(); await page.goto(`${base}?p=${p}`); const button = page.getByRole('button', { name: `Locus capture P${p}`, exact: true }); await button.waitFor();
+  const page = await context.newPage(); await page.goto(`${base}?p=${p}`);
+  await page.locator('#bilibili-player video').waitFor();
+  assert.equal(await page.locator('html').getAttribute('data-premature-capture'), 'false', 'No capture DOM before native bootstrap');
+  const button = page.getByRole('button', { name: `Locus capture P${p}`, exact: true }); await button.waitFor();
   const before = (await rows()).length, navBefore = navRequests; await button.evaluate(button => button.click()); await pause(150); assert.equal(navRequests, navBefore); assert.equal((await rows()).length, before);
   await button.click(); await page.getByRole('button', { name: 'Expand capture queue', exact: true }).waitFor();
   const result = await until(rows, list => list.length > before, 'capture acceptance'); const row = result.find(row => row.sourceUrl.endsWith(`?p=${p}`) && !row.id.startsWith('old')) ?? result.at(-1);
@@ -73,10 +77,23 @@ try {
   context.on('page', page => page.on('pageerror', error => { if (/NotFoundError|removeChild/.test(String(error))) renderErrors.push(String(error)); }));
   worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
   await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://www.bilibili.com/fixture-native.mp4*', route => route.fulfill({ contentType: 'video/mp4', body: video }));
   await context.route('https://space.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('favorites', base) }));
   await context.route('https://api.bilibili.com/x/web-interface/nav', route => { navRequests++; return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': 'https://www.bilibili.com', 'Access-Control-Allow-Credentials': 'true' }, body: JSON.stringify({ code: 0, data: { isLogin: sessionLogin, unrelatedAccount: 'not-selected' } }) }); });
   await until(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), values => values.some(value => value.id === 'locus-bilibili-main'), 'Bilibili source registration');
   resultPage = await context.newPage(); await resultPage.goto(`chrome-extension://${extensionId}/results.html`); await resultPage.getByText('No captures yet', { exact: true }).waitFor(); await routeOwner();
+  const bootRevoked = await context.newPage(); await bootRevoked.goto(`${base}?p=8`);
+  await worker.evaluate(async url => {
+    const [tab] = await chrome.tabs.query({ url });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content-scripts/bilibili.js'] });
+    await chrome.tabs.sendMessage(tab.id, { target: 'page', op: 'revoke' }).catch(() => {});
+  }, bootRevoked.url());
+  await bootRevoked.locator('#bilibili-player video').waitFor();
+  assert.equal(await bootRevoked.locator('[data-locus-bilibili-action]').count(), 0, 'Revocation cancels deferred mounting');
+  await worker.evaluate(async url => { const [tab] = await chrome.tabs.query({ url }); await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content-scripts/bilibili.js'] }); }, bootRevoked.url());
+  await bootRevoked.getByRole('button', { name: 'Locus capture P8', exact: true }).waitFor();
+  assert.equal(await bootRevoked.locator('[data-locus-bilibili-action]').count(), 1); await bootRevoked.close();
+  checks.push('Revocation before native bootstrap cancels deferred controls; explicit reactivation mounts once');
   const success = await capture(2); const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\nSecond line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
   assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-64.m4s');
@@ -94,7 +111,20 @@ try {
   await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).waitFor();
   assert.equal(await success.page.locator('[data-locus-bilibili-action="toolbar"]').count(),1);
   await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
-  await success.page.evaluate(() => { history.pushState({}, '', '?p=1&vd_source=fixture'); document.body.append(document.createElement('span')); }); await success.page.getByRole('button', { name: 'Locus capture P1', exact: true }).waitFor(); assert.equal((await rows()).find(row => row.id === success.id).sourceUrl, `${base}?p=2`);
+  const playback = () => success.page.locator('#bilibili-player video').evaluate(video => ({ ready: video.readyState, frames: video.getVideoPlaybackQuality().totalVideoFrames, part: video.dataset.part, error: video.error?.message }));
+  const beforeFrames = (await playback()).frames;
+  await until(playback, value => value.ready >= 2 && value.frames > beforeFrames && !value.error, 'native video continues after retained capture');
+  await success.page.getByRole('button', { name: 'Play native P1', exact: true }).click();
+  await success.page.getByRole('button', { name: 'Locus capture P1', exact: true }).waitFor();
+  await until(playback, value => value.part === '1' && value.ready >= 2 && value.frames > 0 && !value.error, 'native P1 playback after switch');
+  assert.equal(new URL(success.page.url()).searchParams.get('p'), '1');
+  assert.equal((await rows()).find(row => row.id === success.id).sourceUrl, `${base}?p=2`);
+  await success.page.getByRole('button', { name: 'Play native P2', exact: true }).click();
+  await success.page.getByRole('button', { name: 'Locus capture P2', exact: true }).waitFor();
+  await until(playback, value => value.part === '2' && value.ready >= 2 && value.frames > 0 && !value.error, 'native P2 playback after switch back');
+  await success.page.getByRole('button', { name: 'Play native P1', exact: true }).click();
+  await success.page.getByRole('button', { name: 'Locus capture P1', exact: true }).waitFor();
+  checks.push('Async native bootstrap sees no extension DOM; original video keeps decoding after capture, native P1/P2 switching updates playback and the next selection');
   await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.tabs.sendMessage(tab.id,{target:'page',op:'revoke'}).catch(()=>{});},success.page.url());
   await until(()=>success.page.locator('[data-locus-bilibili-action]').count(),count=>count===0,'toolbar teardown');
   await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},files:['content-scripts/bilibili.js']});},success.page.url());

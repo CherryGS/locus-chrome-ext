@@ -110,6 +110,14 @@ Both entry surfaces use the same dark, nonmodal queue and explicit
 Open result action. Changing parts affects only the next capture. Other parts,
 collections, comments, subtitles and programme/live products are not captured.
 
+On detail pages, UI mounting waits for Bilibili's native player container and
+removal of the app's `data-server-rendered` marker before touching its toolbar.
+Neither `document_idle` nor the player shell alone proves the
+asynchronously loaded site application is ready. The observer also defers new
+detail controls while the native player is absent during navigation, and site
+access withdrawal cancels an outstanding mount. Native playback and P switching
+remain page-owned.
+
 The current browser session is required. A nonce-bound inactive source tab observes
 the initial JSON assignments at document start, including removed scripts, and
 makes one fixed credentialed nav request in that page. Only session success/login

@@ -9,10 +9,18 @@ export interface BilibiliCandidate {
   reference?: HTMLElement;
 }
 
+/** The async native app must own/hydrate the SSR toolbar before we add a child. */
+export function bilibiliPageReady() {
+  if (bilibiliPage(location.href) !== 'video') return true;
+  const app = document.querySelector('#app');
+  return !!app && !app.hasAttribute('data-server-rendered') && !!app.querySelector('#bilibili-player .bpx-player-container');
+}
+
 export function readBilibiliCandidate(owner: HTMLElement): BilibiliCandidate | undefined {
   if (!owner.isConnected) return;
   const page = bilibiliPage(location.href);
   if (page === 'video' && owner.matches('#arc_toolbar_report .video-toolbar-left-main')) {
+    if (!bilibiliPageReady()) return;
     return { owner, target: owner, kind: 'toolbar', source: partUrl(location.href), title: document.querySelector('h1')?.textContent?.trim() ?? '', reference: owner.querySelector<HTMLElement>('.video-fav') ?? undefined };
   }
   if (page !== 'home' && page !== 'favorites') return;

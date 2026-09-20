@@ -5,7 +5,7 @@ import { CaptureStore } from '@/ui/twitter/capture-store';
 import { CaptureQueuePanel } from '@/ui/twitter/CaptureQueuePanel';
 import { coordinator, type SourceStatus } from '@/host/chrome/protocol';
 import { biliIdentity } from '@/host/chrome/bilibili-protocol';
-import { findBilibiliCandidates, presentationAttributes, readBilibiliCandidate, type BilibiliCandidate } from './candidates';
+import { bilibiliPageReady, findBilibiliCandidates, presentationAttributes, readBilibiliCandidate, type BilibiliCandidate } from './candidates';
 import { CaptureAction } from './CaptureAction';
 import styles from '@/assets/tailwind.css?inline';
 import controlStyles from './controls.css?inline';
@@ -16,6 +16,22 @@ export function mountBilibiliControls() {
   const global = globalThis as typeof globalThis & { __locusBilibiliMounted?: boolean };
   if (global.__locusBilibiliMounted || biliIdentity(location.href)) return;
   global.__locusBilibiliMounted = true;
+  // document_idle does not establish that Bilibili's async application has
+  // initialized. Leave the SSR subtree untouched and defer extension UI until
+  // the native player exists and Vue has claimed the server-rendered app. The
+  // player shell alone can appear before that hydration boundary.
+  if (!bilibiliPageReady()) {
+    const waiting = new MutationObserver(ready);
+    function stopWaiting() {
+      waiting.disconnect(); removeEventListener('pagehide', stopWaiting); removeEventListener('popstate', ready);
+      chrome.runtime.onMessage.removeListener(revokeWaiting); global.__locusBilibiliMounted = false;
+    }
+    function ready() { if (bilibiliPageReady()) { stopWaiting(); mountBilibiliControls(); } }
+    function revokeWaiting(message: { target?: string; op?: string }) { if (message?.target === 'page' && message.op === 'revoke') stopWaiting(); }
+    waiting.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-server-rendered'] });
+    addEventListener('pagehide', stopWaiting, { once: true }); addEventListener('popstate', ready);
+    chrome.runtime.onMessage.addListener(revokeWaiting); ready(); return;
+  }
   const store = new CaptureStore(), mounts = new Map<HTMLElement, MountedAction>();
   let stopped = false, lookupBusy = false, lookupQueued = false, lastSources = '';
   let scanTimer: ReturnType<typeof setTimeout> | undefined, lookupTimer: ReturnType<typeof setTimeout> | undefined;
