@@ -24,6 +24,14 @@ const videoFile = path.join(work, 'video.mp4'), audioFile = path.join(work, 'aud
 cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30', '-vf', 'setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709', '-t', '3', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+faststart', videoFile]);
 cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-t', '3', '-c:a', 'aac', '-vn', '-movflags', '+faststart', audioFile]);
 const video = await readFile(videoFile), audio = await readFile(audioFile), cover = await readFile(path.join(member, 'testing/fixtures/black-frame.png'));
+const aspectMedia = new Map();
+for (const [part, size, sar] of [[7, '1920x1070', '1070/1071'], [10, '320x180', '1001/1000']]) {
+  const file = path.join(work, `aspect-${part}.mp4`);
+  cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', `testsrc2=size=${size}:rate=30`, '-vf', `setsar=${sar}:max=100000,setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709`, '-t', '3', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+faststart', file]);
+  const bytes = await readFile(file), avcc = bytes.indexOf(Buffer.from('avcC')); assert(avcc >= 0);
+  const [width, height] = size.split('x').map(Number);
+  aspectMedia.set(part, { file, bytes, width, height, sar: sar.replace('/', ':'), codec: 'avc1.' + bytes.subarray(avcc + 5, avcc + 8).toString('hex') });
+}
 let real;
 if(process.env.LOCUS_BILI_REAL_VIDEO&&process.env.LOCUS_BILI_REAL_AUDIO){
   const bytes=await readFile(process.env.LOCUS_BILI_REAL_VIDEO),sound=await readFile(process.env.LOCUS_BILI_REAL_AUDIO);assert(bytes.length<=64*1048576&&sound.length<=64*1048576);
@@ -38,13 +46,14 @@ const checks = []; const routing = []; const renderErrors = [];
 function fixture(p) {
   const toolbar = ['like', 'coin', 'fav', 'share'].map((name, i) => `<div data-v-abc123="" class="toolbar-left-item-wrap"><div data-v-abc123="" class="video-${name} video-toolbar-left-item"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M12 4h12v28H12Z"/></svg><span data-v-abc123="" class="video-toolbar-item-text">${i + 12}</span></div></div>`).join('');
   const cid = String(100000 + p), track = (id, codecs) => {
-    const suffix = p === 2 && codecs.startsWith('avc1.') ? '_t6' : '';
+    const suffix = p === 7 ? '_qe1' : p === 2 && codecs.startsWith('avc1.') ? '_t6' : '';
     const pathname = `/upgcxcode/1/2/${cid}/${cid}${suffix}-1-${id}.m4s`, approved = `https://synthetic.bilivideo.com${pathname}`;
     return { id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: p === 2 ? `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}` : approved,
       ...(p === 2 ? { backup_url: [`https://synthetic.edge.mountaintoys.cn:4483${pathname}`, approved] } : {}) };
   };
-  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 9 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
+  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 10 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
+  if (aspectMedia.has(p)) { const media = aspectMedia.get(p); Object.assign(play.data.dash.video[0], { width: media.width, height: media.height, codecs: media.codec }); }
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
   return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right">Native toolbar</div></div>${bilibiliNativeFixture(p)}<main>Independent page browsing</main></div>`;
 }
@@ -56,7 +65,7 @@ async function routeOwner() {
   cdp.on('Target.receivedMessageFromTarget', event => { if (event.sessionId !== sessionId) return; const msg = JSON.parse(event.message); if (msg.id) { const request = pending.get(msg.id); pending.delete(msg.id); if (msg.error) request?.reject(new Error('Fixture CDP command failed')); else request?.resolve(msg.result); return; } if (msg.method !== 'Fetch.requestPaused') return; void (async () => {
     const req = msg.params, url = new URL(req.request.url); if (hold) await hold(url);
     const isCover = url.hostname.endsWith('.hdslb.com'), p = Number(url.pathname.split('/')[4]) - 100000, isAudio = url.pathname.includes('-30280.');
-    let body = isCover ? cover : p===8&&real?(isAudio?real.audio:real.video):isAudio ? audio : video; if (p === 4 && !isAudio) body = body.subarray(0, Math.floor(body.length / 2));
+    let body = isCover ? cover : p===8&&real?(isAudio?real.audio:real.video):isAudio ? audio : aspectMedia.get(p)?.bytes ?? video; if (p === 4 && !isAudio) body = body.subarray(0, Math.floor(body.length / 2));
     const headers = [{ name: 'Content-Type', value: isCover ? 'image/png' : 'application/octet-stream' }, { name: 'Content-Length', value: String(p === 5 && !isAudio ? 65 * 1048576 : body.length) }];
     await send('Fetch.fulfillRequest', { requestId: req.requestId, responseCode: 200, responseHeaders: headers, body: body.toString('base64') });
   })().catch(() => {}); });
@@ -79,6 +88,7 @@ try {
   worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
   await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
   await context.route('https://www.bilibili.com/fixture-native.mp4*', route => route.fulfill({ contentType: 'video/mp4', body: video }));
+  for (const [part, media] of aspectMedia) await context.route(`https://www.bilibili.com/fixture-aspect-${part}.mp4`, route => route.fulfill({ contentType: 'video/mp4', body: media.bytes }));
   await context.route('https://space.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('favorites', base) }));
   await context.route('https://api.bilibili.com/x/web-interface/nav', route => { navRequests++; return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': 'https://www.bilibili.com', 'Access-Control-Allow-Credentials': 'true' }, body: JSON.stringify({ code: 0, data: { isLogin: sessionLogin, unrelatedAccount: 'not-selected' } }) }); });
   await until(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), values => values.some(value => value.id === 'locus-bilibili-main'), 'Bilibili source registration');
@@ -140,11 +150,55 @@ try {
   const item = await until(() => resultPage.evaluate(() => chrome.downloads.search({})), values => values.some(value => value.state === 'complete'), 'native Bilibili ZIP'); const zipPath = item.find(value => value.state === 'complete').filename;
   const zip = new ZipReader(new BlobReader(new Blob([await readFile(zipPath)]))), entries = await zip.getEntries(); const metadata = JSON.parse(await entries.find(entry => entry.filename === 'metadata.json').getData(new TextWriter())); const jsonl = JSON.parse((await entries.find(entry => entry.filename === 'records.jsonl').getData(new TextWriter())).trim());
   assert.equal(jsonl.record.assetIds.length, 2); const file = metadata.files.find(file => file.id === 'media-2'); const output = await entries.find(entry => entry.filename === file.path).getData(new Uint8ArrayWriter()); const outputFile = path.join(work, 'captured.mp4'); await writeFile(outputFile, output); await zip.close();
-  const packets = file => JSON.parse(cmd('ffprobe', ['-v', 'error', '-show_streams', '-show_packets', '-show_data_hash', 'sha256', '-show_entries', 'stream=index,codec_type,extradata_hash:packet=stream_index,data_hash,pts_time,duration_time', '-of', 'json', file])); const captured = packets(outputFile);
+  const packets = file => JSON.parse(cmd('ffprobe', ['-v', 'error', '-show_streams', '-show_packets', '-show_data_hash', 'sha256', '-show_entries', 'stream=index,codec_type,extradata_hash,width,height,sample_aspect_ratio,display_aspect_ratio:packet=stream_index,data_hash,pts_time,duration_time', '-of', 'json', file])); const captured = packets(outputFile);
   for (const [kind, source] of [['video', videoFile], ['audio', audioFile]]) { const before = packets(source), track = captured.streams.find(stream => stream.codec_type === kind), after = captured.packets.filter(packet => packet.stream_index === track.index); assert.equal(track.extradata_hash, before.streams[0].extradata_hash); assert.deepEqual(after.map(packet => packet.data_hash), before.packets.map(packet => packet.data_hash)); }
   cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', outputFile, '-f', 'null', '-']);
   checks.push('Production offscreen assembly/configuration and complete packet sets; closed-owner Blob reopen; native ZIP complete with video+cover and JSON/JSONL associations');
   await routeOwner();
+  const qeAttempt = await capture(7);
+  const qeRows = await until(rows, values => values.find(row => row.id === qeAttempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), 'qe video/audio assembly');
+  assert(qeRows.find(row => row.id === qeAttempt.id).assets.every(asset => asset.acquisition.state === 'acquired'), JSON.stringify(qeRows.find(row => row.id === qeAttempt.id)));
+  const qeRepresentation = qeRows.find(row => row.id === qeAttempt.id).records[0].payload.representation;
+  assert.equal(qeRepresentation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100007/100007_qe1-1-64.m4s');
+  assert.equal(qeRepresentation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100007/100007_qe1-1-30280.m4s');
+  await qeAttempt.page.close();
+  checks.push('qe1-marked video and audio pass source validation, exact CDN leases, byte acquisition, encoded assembly and retention');
+  const aspectProof = [];
+  for (const [part, media] of aspectMedia) {
+    const attempt = part === 7 ? qeAttempt : await capture(part);
+    if (part !== 7) { await attempt.page.close(); const saved = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `aspect P${part}`); assert(saved.find(row => row.id === attempt.id).assets.every(asset => asset.acquisition.state === 'acquired'), JSON.stringify(saved)); }
+    const sourcePage = await context.newPage(); await sourcePage.setContent(`<video src="https://www.bilibili.com/fixture-aspect-${part}.mp4" muted></video>`);
+    const dimensions = page => page.locator('video').evaluate(video => ({ ready: video.readyState, width: video.videoWidth, height: video.videoHeight }));
+    const sourceDisplay = await until(() => dimensions(sourcePage), value => value.ready >= 1, 'source aspect dimensions'); await sourcePage.close();
+    await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();
+    const display = await until(() => dimensions(resultPage), value => value.ready >= 1, 'retained aspect preview'); assert.equal(display.width, sourceDisplay.width); assert.equal(display.height, sourceDisplay.height);
+    const playback = [];
+    for (const position of [0, 1.5, 2.4]) {
+      const played = await resultPage.locator('video').evaluate(async (video, position) => {
+        video.muted = true;
+        if (position) await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Seek timed out')), 10000); video.addEventListener('seeked', () => { clearTimeout(timer); resolve(); }, { once: true }); video.currentTime = position; });
+        const before = video.getVideoPlaybackQuality().totalVideoFrames; await video.play(); await new Promise(resolve => setTimeout(resolve, 250)); video.pause(); return { time: video.currentTime, frames: video.getVideoPlaybackQuality().totalVideoFrames - before, error: video.error?.message };
+      }, position); assert(played.frames > 0 && !played.error, JSON.stringify(played)); playback.push(played);
+    }
+    const old = await resultPage.evaluate(async () => (await chrome.downloads.search({})).map(item => item.id));
+    await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).click();
+    const downloads = await until(() => resultPage.evaluate(() => chrome.downloads.search({})), items => items.some(item => !old.includes(item.id) && item.state === 'complete'), 'aspect archive');
+    const zip = new ZipReader(new BlobReader(new Blob([await readFile(downloads.find(item => !old.includes(item.id) && item.state === 'complete').filename)]))), entries = await zip.getEntries();
+    const metadata = JSON.parse(await entries.find(entry => entry.filename === 'metadata.json').getData(new TextWriter())), file = metadata.files.find(file => file.id === 'media-2');
+    const output = path.join(work, `aspect-${part}-captured.mp4`); await writeFile(output, await entries.find(entry => entry.filename === file.path).getData(new Uint8ArrayWriter())); await zip.close();
+    const actual = packets(output), original = packets(media.file), stream = actual.streams.find(stream => stream.codec_type === 'video');
+    assert.equal(original.streams[0].sample_aspect_ratio, media.sar);
+    for (const field of ['width', 'height', 'sample_aspect_ratio', 'display_aspect_ratio']) assert.equal(stream[field], original.streams[0][field], field);
+    for (const [kind, file] of [['video', media.file], ['audio', audioFile]]) {
+      const before = packets(file), track = actual.streams.find(stream => stream.codec_type === kind), after = actual.packets.filter(packet => packet.stream_index === track.index);
+      assert.equal(track.extradata_hash, before.streams[0].extradata_hash); assert.deepEqual(after.map(packet => packet.data_hash), before.packets.map(packet => packet.data_hash));
+      for (let index = 0; index < after.length; index++) for (const field of ['pts_time', 'duration_time']) assert(Math.abs(Number(after[index][field]) - Number(before.packets[index][field])) <= .002, `${kind} ${field}`);
+    }
+    cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', output, '-f', 'null', '-']);
+    aspectProof.push({ part, sourceSar: media.sar, outputSar: stream.sample_aspect_ratio, dar: stream.display_aspect_ratio, sourceDisplay, display, playback, configurationEqual: true, allPacketsEqual: true, timingEqual: true, fullDecode: true });
+  }
+  await writeFile(path.join(work, 'aspect-evidence.json'), JSON.stringify(aspectProof, null, 2));
+  checks.push('Non-square 1920x1070 SAR 1070:1071 and rounding-sensitive 320x180 SAR 1001:1000 preserve exact SAR/DAR, all encoded packets/configurations/timing, Chrome display dimensions, start/mid/end playback, full decode and ZIP bytes');
   if(real){
     const attempt=await capture(8);await attempt.page.close();const saved=await until(rows,list=>list.find(row=>row.id===attempt.id)?.assets.every(asset=>asset.acquisition.state!=='pending'),'real AVC terminal',120000);assert(saved.find(row=>row.id===attempt.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(saved));
     await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();

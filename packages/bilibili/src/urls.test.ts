@@ -6,12 +6,12 @@ const path = (suffix = '', directoryCid = cid, filenameCid = cid) => `/upgcxcode
 const resource = (pathname: string) => `https://synthetic.bilivideo.com${pathname}?sign=ephemeral`;
 
 describe('Bilibili track path identity', () => {
-  it.each(['', '_t6', '_t12'])('accepts the numeric filename suffix %j without changing CID or the signed address', suffix => {
+  it.each(['', '_t6', '_t12', '_qe1', '_nb2', '_x6', '_tagA9', '_variant'])('preserves the opaque filename marker %j without changing CID or the signed address', suffix => {
     const url = resource(path(suffix));
     expect(bilibiliResource(url, 'track', cid)).toBe(url);
   });
-  it('selects an approved suffixed mirror of the same MCDN representation', () => {
-    const pathname = path('_t6'), approved = resource(pathname);
+  it.each(['_t6', '_qe1'])('selects an approved %s mirror of the same MCDN representation', suffix => {
+    const pathname = path(suffix), approved = resource(pathname);
     expect(bilibiliTrackResource({ baseUrl: `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}`, backup_url: [approved] }, cid)).toBe(approved);
   });
   it.each([
@@ -28,10 +28,10 @@ describe('Bilibili track path identity', () => {
     expect(failure).toContain(`"filenameCid": "${value.filename}"`);
     expect(failure).not.toContain('sign=');
   });
-  it.each(['_t', '_tA', '_t6extra', '_x6'])('distinguishes unsupported suffix %j from a CID mismatch', suffix => {
+  it.each(['_', '_qe-1', '_qe/1', '_qe%31', '_qe.1', '_t6_qe1', '_' + 'a'.repeat(33)])('rejects malformed or unbounded filename markers %j', suffix => {
     expect(() => bilibiliResource(resource(path(suffix)), 'track', cid)).toThrow('BILI_TRACK_PATH_UNSUPPORTED');
   });
-  it('keeps the filename suffix in mirror identity instead of merging distinct representations', () => {
-    expect(() => bilibiliTrackResource({ baseUrl: resource(path('_t6')), backupUrl: [resource(path('_t7'))] }, cid)).toThrow('representation path');
+  it.each([['_t6', '_t7'], ['_qe1', '_qe2'], ['_t6', '_qe1']])('keeps %s and %s as distinct mirror identities', (first, second) => {
+    expect(() => bilibiliTrackResource({ baseUrl: resource(path(first)), backupUrl: [resource(path(second))] }, cid)).toThrow('representation path');
   });
 });

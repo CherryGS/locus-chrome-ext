@@ -134,7 +134,9 @@ audio track, unsupported source or metadata limitation remains partial; it does
 not remove an expected portion. The preview presents video before cover.
 
 The first media route supports complete AVC/AAC MP4 tracks with known BT.709
-limited-range color, no rotation, and square pixels. It chooses an actual supplied
+limited-range color and no rotation, flipping or clean-aperture cropping. Square
+and non-square pixels retain the exact MP4 sample-entry aspect ratio, with bounded
+integer display-aspect fields. It chooses an actual supplied
 AVC representation using agreeing source quality order and dimensions, then
 validates the downloaded configuration/dimensions. Advertised-only quality is not
 claimed; failed chosen media does not silently fall back. AV1/HEVC/HDR, unverified
@@ -145,6 +147,9 @@ isolated feasibility probe are deliberately excluded from production support.
 Mediabunny 1.58.1 copies encoded packets only in the offscreen owner. Detached
 configuration/color snapshots and a reopened output verify packet hashes/counts,
 presentation timestamps, duration and configuration before acquired success.
+An independent, bounded MP4 box reader compares the source and output `pasp`
+ratios exactly; the library's rounded display dimensions are not used as a
+substitute for the original ratio. Encoded AVC configuration remains unchanged.
 Measured quantization up to 2 ms and constant reconstructed decode origin are
 allowed; no transcoding or deliberately shortened file is produced. Its MPL-2.0
 license is shipped under `licenses/Mediabunny-MPL-2.0.txt`.
@@ -176,7 +181,8 @@ prefix is recognized solely for identity comparison. This does not widen host
 access, rewrite a signed address, substitute another quality, or retry failed
 network downloads through arbitrary mirrors.
 
-Track filenames may carry a numeric `_t` suffix, such as `CID_t6-1-30080.m4s`.
+Track filenames may carry one opaque suffix containing 1–32 ASCII letters or
+digits, such as `CID_t6-1-30080.m4s` or `CID_qe1-1-30080.m4s`.
 The directory CID and filename CID must both equal the selected part CID. The
 suffix stays in the exact request and retained source path, and mirrors with
 different suffixes remain different representations. Unsupported path grammar
@@ -367,7 +373,12 @@ extension and pre-grants hosts only in that test copy. Synthetic ordinary-video
 HTML removes its initial-state script, supplies distinct P1/P2 CIDs, and returns a
 bounded login response. Actual offscreen AVC/AAC assembly, closed-owner Blob
 reopening, playback, native ZIP completion and independent packet/configuration
-comparisons use locally generated fixtures. Missing audio, truncation, oversize,
+comparisons use locally generated fixtures. Non-square fixtures include
+1920x1070 at SAR 1070:1071 and 320x180 at SAR 1001:1000, which would disappear
+through integer-dimension rounding. Their ZIP files undergo independent FFprobe
+SAR/DAR, configuration and complete packet/timing comparison, Chrome display-size
+and start/middle/end playback checks, and full FFmpeg decoding.
+Missing audio, truncation, oversize,
 metadata partials, explicit clear, and simulated withdrawal/rapid regrant stay
 separate checks. The simulation does not claim native permission-prompt coverage.
 

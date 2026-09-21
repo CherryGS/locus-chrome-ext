@@ -4,6 +4,7 @@ import type { BilibiliMedia } from '@locus/bilibili/source';
 import { bilibiliResource } from '@locus/bilibili/urls';
 import { boundedBody, validateMedia } from './network';
 import { diagnosticError } from '@locus/capture-core/diagnostics';
+import { validateMp4, videoPixelAspectRatio, exactVideoDisplayConfig } from './bilibili-presentation';
 
 export const LIMITS = { inputBytes: 64 * 1024 * 1024, outputBytes: 160 * 1024 * 1024, seconds: 600, packets: 100_000, timeoutMs: 120_000 };
 type PacketProof = { hash: string; time: number; duration: number };
@@ -17,20 +18,6 @@ async function verifyPackets(track: InputTrack, expected: PacketProof[], signal:
   for await (const packet of new EncodedPacketSink(track).packets()) { signal.throwIfAborted(); const before = expected[index++], after = await packetProof(packet); if (!before || before.hash !== after.hash || Math.abs(before.time - after.time) > .002 || Math.abs(before.duration - after.duration) > .002) throw new Error('Assembled packet content or timing did not preserve the source'); }
   if (index !== expected.length) throw new Error('Assembled track is incomplete');
 }
-async function validateBoxes(blob: Blob) {
-  if (!blob.size || blob.size > LIMITS.inputBytes) throw new Error('Input byte limit exceeded');
-  const data = new DataView(await blob.arrayBuffer()); let offset = 0; let count = 0; const boxes=new Set<string>();
-  while (offset < data.byteLength) {
-    if (++count > 100_000 || offset + 8 > data.byteLength) throw new Error('Truncated MP4 box');
-    let size = data.getUint32(offset); let header = 8;
-    if (size === 1) { if (offset + 16 > data.byteLength) throw new Error('Truncated MP4 header'); size = Number(data.getBigUint64(offset + 8)); header = 16; }
-    if (size === 0) size = data.byteLength - offset;
-    if (!Number.isSafeInteger(size) || size < header || offset + size > data.byteLength) throw new Error('Truncated MP4 payload');
-    boxes.add(String.fromCharCode(...new Uint8Array(data.buffer,offset+4,4)));
-    offset += size;
-  }
-  if(!['ftyp','moov','mdat'].every(type=>boxes.has(type)))throw new Error('Complete MP4 initialization and media are required');
-}
 export async function remuxBilibili(video: Blob, audio: Blob | undefined, expectedDuration: number, signal: AbortSignal, expected: NonNullable<BilibiliMedia['tracks']>) {
   const facts: Record<string, unknown> = { videoBytes: video.size, audioBytes: audio?.size ?? null, expectedDurationSeconds: expectedDuration, selected: expected, limits: LIMITS };
   let stage = 'bilibili.video.mp4-validation';
@@ -40,7 +27,7 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
   try {
     if (!audio) throw new Error('Required audio is missing');
     if (!Number.isFinite(expectedDuration) || expectedDuration <= 0 || expectedDuration > LIMITS.seconds) throw new Error('Duration exceeds the 600-second Bilibili capability');
-    await Promise.all([validateBoxes(video), validateBoxes(audio)]); signal.throwIfAborted();
+    const [videoData] = await Promise.all([validateMp4(video, LIMITS.inputBytes), validateMp4(audio, LIMITS.inputBytes)]); signal.throwIfAborted();
     inputs.push(...[video, audio].map(blob => new Input({ source: new BlobSource(blob), formats: [MP4] })));
     stage = 'bilibili.video.track-inspection';
     const v = await inputs[0]!.getPrimaryVideoTrack(), a = await inputs[1]!.getPrimaryAudioTrack();
@@ -50,10 +37,12 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
     stage = 'bilibili.video.codec-validation';
     if (!vc || !ac || !vd || !ad || vc !== 'avc' || ac !== 'aac' || !vd.description || !ad.description) throw new Error('Only qualified AVC/AAC configuration is supported');
     if (vd.codec.toLowerCase() !== expected.video.codec.toLowerCase() || ad.codec.toLowerCase() !== expected.audio.codec.toLowerCase() || vd.codedWidth !== expected.video.width || vd.codedHeight !== expected.video.height) throw new Error('Downloaded tracks do not match the selected codec or dimensions');
-    const aspect = await v.getPixelAspectRatio(), color = structuredClone(await v.getColorSpace());
-    const rotation = await v.getRotation(); facts.presentation = { aspect, color, rotation };
     stage = 'bilibili.video.presentation-validation';
-    if (rotation !== 0 || aspect.num !== aspect.den || aspect.num <= 0) throw new Error('Rotated or non-square-pixel sources are not yet qualified');
+    const aspect = videoPixelAspectRatio(videoData), color = structuredClone(await v.getColorSpace());
+    const rotation = await v.getRotation(), flip = await v.getFlip();
+    facts.presentation = { aspect, roundedLibraryAspect: await v.getPixelAspectRatio(), color, rotation, flip };
+    if (rotation !== 0 || flip) throw new Error('Rotated or flipped sources are not yet qualified');
+    const muxVideoConfig = exactVideoDisplayConfig(vd, aspect);
     stage = 'bilibili.video.color-validation';
     facts.expectedColor = { primaries: 'bt709', transfer: 'bt709', matrix: 'bt709', fullRange: false };
     if (color.primaries !== 'bt709' || color.transfer !== 'bt709' || color.matrix !== 'bt709' || color.fullRange !== false) throw new Error('Source color is unknown, HDR, or outside qualified BT.709 limited-range support');
@@ -72,7 +61,7 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
     const copyVideo = async () => { try { for await (const packet of new EncodedPacketSink(v).packets()) {
       signal.throwIfAborted(); if (++progress.videoPackets > LIMITS.packets) throw new Error('Packet limit exceeded');
       progress.videoEnd = Math.max(progress.videoEnd, packet.timestamp + packet.duration);
-      videoPackets.push(await packetProof(packet)); await vs.add(packet, { decoderConfig: structuredClone(vd) });
+      videoPackets.push(await packetProof(packet)); await vs.add(packet, { decoderConfig: structuredClone(muxVideoConfig) });
     } } finally { vs.close(); } };
     const copyAudio = async () => { try { for await (const packet of new EncodedPacketSink(a).packets()) {
       signal.throwIfAborted(); if (++progress.audioPackets > LIMITS.packets) throw new Error('Packet limit exceeded');
@@ -89,10 +78,14 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
     const blob = new Blob([bytes], { type: 'video/mp4' }), reopened = new Input({ source: new BlobSource(blob), formats: [MP4] });
     try {
       stage = 'bilibili.video.output-verification';
+      const outputAspect = videoPixelAspectRatio(new DataView(bytes.buffer));
+      facts.outputAspect = outputAspect;
+      if (outputAspect.num !== aspect.num || outputAspect.den !== aspect.den) throw new Error('Assembled pixel aspect ratio changed');
       const rv = await reopened.getPrimaryVideoTrack(), ra = await reopened.getPrimaryAudioTrack();
       if (!rv || !ra || (await reopened.getTracks()).length !== 2 || await rv.getCodec() !== vc || await ra.getCodec() !== ac) throw new Error('Assembled tracks are incompatible');
       const rvd = await rv.getDecoderConfig(), rad = await ra.getDecoderConfig();
       if (!rvd || !rad || configProof(rvd) !== videoConfig || configProof(rad) !== audioConfig || JSON.stringify(await rv.getColorSpace()) !== JSON.stringify(color)) throw new Error('Assembled configuration or color changed');
+      if (await rv.getRotation() !== rotation || await rv.getFlip() !== flip) throw new Error('Assembled orientation changed');
       await verifyPackets(rv, videoPackets, signal); await verifyPackets(ra, audioPackets, signal);
       return blob;
     } finally { reopened.dispose(); }

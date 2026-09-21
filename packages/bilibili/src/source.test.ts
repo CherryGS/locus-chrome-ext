@@ -21,6 +21,15 @@ describe('Bilibili initial current-part source', () => {
     const retained = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
     expect(retained).toContain('_t6-1-64.m4s'); expect(retained).not.toContain('private=');
   });
+  it('selects and retains qe-marked video and audio under the same part CID', () => {
+    const f = fixture();
+    for (const track of [...f.play.data.dash.video, ...f.play.data.dash.audio]) track.baseUrl = track.baseUrl.replace('-1-', '_qe1-1-');
+    const candidate = f.candidate(), tracks = candidate.media[1]!.tracks;
+    expect(tracks?.video.quality).toBe(64); expect(tracks?.audio.quality).toBe(30280);
+    const retained = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
+    expect(retained).toContain('_qe1-1-64.m4s'); expect(retained).toContain('_qe1-1-30280.m4s');
+    expect(retained).not.toContain('private=');
+  });
   it('captures removed script text as bounded JSON without evaluating trailing page code', () => { expect(assignment('window.__INITIAL_STATE__={"p":2};document.currentScript.remove()', '__INITIAL_STATE__')).toEqual({ p: 2 }); expect(() => assignment('window.__playinfo__={"p":(()=>2)()}', '__playinfo__')).toThrow(); });
   it('requires explicit login and exact root/selected-part binding', () => { const f = fixture(); expect(() => projectBilibili(f.initial, f.play, url, false)).toThrow('Sign in'); f.initial.cid = '36508468243'; expect(f.candidate).toThrow('CID'); f.initial.cid = '36531930223'; f.initial.p = 1; expect(f.candidate).toThrow('selected part'); });
   it('rejects unsafe numeric IDs before attribution', () => { const f = fixture(); Object.assign(f.initial, { aid: 9007199254740992 }); expect(f.candidate).toThrow('identifier'); });

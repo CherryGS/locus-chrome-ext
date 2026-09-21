@@ -36,9 +36,10 @@ export function bilibiliResource(input: string, role: 'cover' | 'track', cid?: s
   return url.href;
 }
 function boundTrackPath(pathname: string, cid?: string) {
-  // A numeric _t suffix belongs to the representation filename, not its CID.
-  // Keep the complete path for mirror comparison and the exact signed request.
-  const path = /^\/upgcxcode\/\d+\/\d+\/(\d+)\/(\d+)(?:_t\d+)?-1-\d+\.m4s$/.exec(pathname);
+  // Markers such as _t6 and _qe1 are opaque filename tokens, not part of the CID.
+  // Bound their grammar, without enumerating names or erasing them from the
+  // exact signed request and per-representation mirror comparison.
+  const path = /^\/upgcxcode\/\d+\/\d+\/(\d+)\/(\d+)(?:_[A-Za-z0-9]{1,32})?-1-\d+\.m4s$/.exec(pathname);
   if (!path) throw diagnosticError('BILI_TRACK_PATH_UNSUPPORTED', 'bilibili.source.track-path', 'Unsupported Bilibili track path format', { pathname, expectedCid: cid ?? null });
   if (path[1] !== path[2] || (cid !== undefined && path[1] !== cid)) throw diagnosticError('BILI_TRACK_CID_MISMATCH', 'bilibili.source.track-path', 'Track does not bind the selected Bilibili CID', { pathname, expectedCid: cid ?? null, directoryCid: path[1], filenameCid: path[2] });
   return pathname;
