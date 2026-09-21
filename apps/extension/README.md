@@ -176,6 +176,12 @@ prefix is recognized solely for identity comparison. This does not widen host
 access, rewrite a signed address, substitute another quality, or retry failed
 network downloads through arbitrary mirrors.
 
+Track filenames may carry a numeric `_t` suffix, such as `CID_t6-1-30080.m4s`.
+The directory CID and filename CID must both equal the selected part CID. The
+suffix stays in the exact request and retained source path, and mirrors with
+different suffixes remain different representations. Unsupported path grammar
+and mismatched CIDs have distinct diagnostic codes with the relevant path and IDs.
+
 Withdrawing one site's permission interrupts its old work even after rapid regrant,
 without cancelling the other site or waiting behind its source inspection. Regrant
 never resumes old downloads. Clear and retained-result semantics stay common.

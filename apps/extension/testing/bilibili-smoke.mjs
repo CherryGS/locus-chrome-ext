@@ -38,7 +38,8 @@ const checks = []; const routing = []; const renderErrors = [];
 function fixture(p) {
   const toolbar = ['like', 'coin', 'fav', 'share'].map((name, i) => `<div data-v-abc123="" class="toolbar-left-item-wrap"><div data-v-abc123="" class="video-${name} video-toolbar-left-item"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M12 4h12v28H12Z"/></svg><span data-v-abc123="" class="video-toolbar-item-text">${i + 12}</span></div></div>`).join('');
   const cid = String(100000 + p), track = (id, codecs) => {
-    const pathname = `/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s`, approved = `https://synthetic.bilivideo.com${pathname}`;
+    const suffix = p === 2 && codecs.startsWith('avc1.') ? '_t6' : '';
+    const pathname = `/upgcxcode/1/2/${cid}/${cid}${suffix}-1-${id}.m4s`, approved = `https://synthetic.bilivideo.com${pathname}`;
     return { id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: p === 2 ? `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}` : approved,
       ...(p === 2 ? { backup_url: [`https://synthetic.edge.mountaintoys.cn:4483${pathname}`, approved] } : {}) };
   };
@@ -96,9 +97,9 @@ try {
   checks.push('Revocation before native bootstrap cancels deferred controls; explicit reactivation mounts once');
   const success = await capture(2); const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\nSecond line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
-  assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-64.m4s');
+  assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002_t6-1-64.m4s');
   assert.equal(selected.records[0].payload.representation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-30280.m4s');
-  checks.push('Unsupported MCDN primary uses source-supplied same-track approved CDN backups without widening host permissions');
+  checks.push('Suffixed video and unsuffixed audio preserve selected CID and exact mirror paths through source binding, approved CDN leases and byte acquisition');
   assert.equal(await success.page.evaluate(() => !!document.querySelector('script')?.textContent?.includes('__INITIAL_STATE__')), false);
   // Native toolbar presentation may arrive after hydration. Reuse its actual
   // icon geometry and label font without duplicating a second status badge.
