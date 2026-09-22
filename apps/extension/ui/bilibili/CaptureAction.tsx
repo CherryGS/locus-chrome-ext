@@ -19,7 +19,7 @@ export function CaptureAction({ candidate, state, message, progress, queueId, ex
   const description = `${captureStates[state].label}. ${progressLabel} ${message} Capture only P${source.p}: metadata, cover and AVC/AAC video; up to 600 seconds and 64 MiB per track.`;
   // Keep native placement/typography while sharing Twitter's status glyphs.
   return <button type="button" {...presentationAttributes(reference)}
-    className={kind === 'toolbar' ? 'video-toolbar-right-item' : reference?.className}
+    className={kind === 'toolbar' ? 'video-toolbar-right-item' : undefined}
     data-locus-bilibili-action={kind} data-state={state} data-tone={captureStates[state].tone}
     data-locus-percent={glyph.visible ? glyph.percent === null ? 'indeterminate' : glyph.percent : undefined}
     aria-label={kind === 'toolbar' ? `Locus capture P${source.p}` : `Locus capture P${source.p}: ${title}`}

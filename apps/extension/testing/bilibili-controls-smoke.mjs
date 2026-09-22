@@ -19,6 +19,18 @@ export async function verifyBilibiliControls({ context, worker, work, rows, unti
     await page.goto(url);
     const buttons = page.locator('[data-locus-bilibili-action="cover"]'); await until(() => buttons.count(), count => count === 2, `${kind} two ordinary candidates`);
     assert.equal(await buttons.locator('svg').count(), 2); assert.equal(await buttons.evaluateAll(values => values.some(button => button.closest('a'))), false);
+    assert.equal(await buttons.evaluateAll(values => values.some(button => button.className)), false, 'Cover controls do not borrow native watch-later classes');
+    const backgrounds = () => buttons.evaluateAll(values => values.map(button => getComputedStyle(button).backgroundColor));
+    assert((await backgrounds()).every(color => color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent'), 'Every cover has its own background');
+    // Reproduce the observed Dark Reader rewrite before it has created the
+    // mapped custom property. The production fallback must remain visible.
+    await page.evaluate(() => {
+      const source = [...document.querySelectorAll('style')].find(style => style.textContent.includes('--locus-cover-background'));
+      const rewritten = document.createElement('style');rewritten.dataset.fixtureTheme = 'true';
+      rewritten.textContent = source.textContent.replace(/var\((--locus-(?:native|cover)-background)/g, 'var(--darkreader-bg$1');document.documentElement.append(rewritten);
+    });
+    assert((await backgrounds()).every(color => color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent'), 'Missing rewritten theme variables cannot erase cover backgrounds');
+    await page.locator('[data-fixture-theme]').evaluate(style => style.remove());
     const first = buttons.nth(0), second = buttons.nth(1);
     const before = (await rows()).map(row => row.id), tabs = context.pages().length;
     await second.evaluate(button => button.click()); await page.waitForTimeout(250); assert.equal((await rows()).length, before.length);

@@ -32,8 +32,7 @@ export function readBilibiliCandidate(owner: HTMLElement): BilibiliCandidate | u
   try {
     const source = partUrl(link.href);
     const title = link.title || link.querySelector('img')?.alt || link.getAttribute('aria-label') || source.bvid;
-    const reference = [...link.parentElement.querySelectorAll<HTMLElement>('.bili-watch-later,.bili-card-watch-later__btn')].find(element => !element.closest('[data-locus-bilibili]'));
-    return { owner, target: link.parentElement, kind: 'cover', source, title, reference };
+    return { owner, target: link.parentElement, kind: 'cover', source, title };
   } catch { return; }
 }
 

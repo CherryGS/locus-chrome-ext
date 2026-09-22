@@ -87,8 +87,10 @@ export function mountBilibiliControls() {
     for (const tone of ['info', 'success', 'warning', 'destructive']) slot.style.setProperty(`--locus-${tone}`, theme.getPropertyValue(`--${tone}`));
     const look = native ? getComputedStyle(native) : getComputedStyle(candidate.target);
     slot.style.setProperty('--locus-native-color', candidate.kind === 'toolbar' ? look.getPropertyValue('--text2').trim() || look.color : look.color);
-    slot.style.setProperty('--locus-native-background', native ? look.backgroundColor : theme.getPropertyValue('--card'));
-    slot.style.setProperty('--locus-native-radius', look.borderRadius);
+    // Cover controls own their appearance on every listing. Native watch-later
+    // classes and computed colors differ between surfaces and theme extensions.
+    slot.style.setProperty('--locus-cover-background', theme.getPropertyValue('--card'));
+    slot.style.setProperty('--locus-cover-foreground', theme.getPropertyValue('--card-foreground'));
     slot.style.setProperty('--locus-native-size', candidate.kind === 'toolbar' ? native?.querySelector('svg') ? getComputedStyle(native.querySelector('svg')!).width : '24px' : '20px');
     const nativeLabel = native?.querySelector('.video-toolbar-item-text');
     if (nativeLabel) slot.style.setProperty('--locus-native-font', getComputedStyle(nativeLabel).font);

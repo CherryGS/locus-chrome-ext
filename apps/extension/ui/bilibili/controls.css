@@ -30,7 +30,9 @@
 [data-locus-bilibili="toolbar"] { display: flex; align-items: center; flex: 0 0 auto; margin-inline-end: 20px; }
 [data-locus-bilibili-action="toolbar"] { display: flex; height: var(--locus-native-size, 24px); min-width: max-content; justify-content: flex-start; white-space: nowrap; border-radius: 6px; }
 [data-locus-bilibili-action="toolbar"] > span { font: var(--locus-native-font, inherit); }
-[data-locus-bilibili-action="cover"] { width: 28px; height: 28px; border-radius: var(--locus-native-radius, 6px); background: var(--locus-native-background); }
+/* Literal fallbacks also survive theme-extension rewrites to missing variables.
+   Keep these shared by all covers, independent of a site's watch-later classes. */
+[data-locus-bilibili-action="cover"] { width: 28px; height: 28px; border-radius: 6px; color: var(--locus-cover-foreground, #fff); background-color: var(--locus-cover-background, #212121); }
 [data-locus-bilibili-action] > svg { width: var(--locus-native-size, 20px); height: var(--locus-native-size, 20px); flex-shrink: 0; pointer-events: none; }
 [data-locus-bilibili-action][data-tone="info"] { color: var(--locus-info); }
 [data-locus-bilibili-action][data-tone="success"] { color: var(--locus-success); }
