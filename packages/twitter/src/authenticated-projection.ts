@@ -1,5 +1,6 @@
 import type { Data, DataObject } from './relay-parser';
 import { postUrl } from './urls';
+import { noteTweetId } from './note-tweet';
 
 export const AUTHENTICATED_SOURCE_LIMIT = 262_144;
 export interface AuthenticatedTweetSource { schema: 'twitter-session/1'; requestedId: string; textContext: { notesRequested: boolean; articlesRequested: boolean }; tweet: DataObject }
@@ -37,6 +38,18 @@ function bounded<T>(value: T): T {
   if (json === undefined) throw new Error('Signed-in source envelope is unavailable');
   if (json.length > AUTHENTICATED_SOURCE_LIMIT || new TextEncoder().encode(json).length > AUTHENTICATED_SOURCE_LIMIT) throw new Error('Signed-in source exceeds the 256 KiB capability limit');
   return value;
+}
+
+function projectNoteTweet(value: unknown): Data {
+  if (value == null) return null;
+  const note = object(object(object(value).note_tweet_results).result);
+  const noteId = noteTweetId(note.id);
+  if (!noteId || (note.rest_id != null && note.rest_id !== noteId) || typeof note.text !== 'string' || (note.truncated !== undefined && note.truncated !== false)) return { unsupported: true };
+  const sourceEntities = object(note.entity_set);
+  return { note_tweet_results: { result: {
+    id: text(note.id, 128), rest_id: noteId, text: text(note.text),
+    entity_set: { user_mentions: entities(sourceEntities.user_mentions, ['id_str', 'screen_name', 'name']), urls: entities(sourceEntities.urls, ['url', 'expanded_url', 'display_url']), hashtags: entities(sourceEntities.hashtags, ['text']) },
+  } } };
 }
 
 /** Project only the selected ordinary Tweet; never copy viewer or session state. */
@@ -84,8 +97,8 @@ function projectTweet(raw: unknown, requestedId: string): DataObject {
   return {
     __typename: 'Tweet', rest_id: requestedId,
     core: { user_results: { result: { __typename: 'User', rest_id: authorId, core: { screen_name: text(userCore.screen_name, 128), name: text(userCore.name, 1024) } } } },
-    // Presence of any unverified note/article forbids using the legacy excerpt.
-    note_tweet: tweet.note_tweet == null ? null : { unsupported: true }, article: tweet.article == null ? null : { unsupported: true },
+    // Only the bound note body and its entities cross the page boundary.
+    note_tweet: projectNoteTweet(tweet.note_tweet), article: tweet.article == null ? null : { unsupported: true },
     legacy: {
       id_str: requestedId, user_id_str: id(legacy.user_id_str), full_text: text(legacy.full_text), truncated: legacy.truncated === true,
       created_at: text(legacy.created_at, 128), display_text_range: indices(legacy.display_text_range),

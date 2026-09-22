@@ -23,12 +23,16 @@ export function normalizeAuthenticatedTwitter(input: unknown, requestedUrl: stri
     return key;
   });
   const timestamp = typeof legacy.created_at === 'string' ? Date.parse(legacy.created_at) : NaN;
+  const note = object(object(object(tweet.note_tweet).note_tweet_results).result);
+  const noteRef = typeof note.rest_id === 'string' ? put('note-data', 'NoteTweetData', {
+    note_tweet_results: put('note-results', 'NoteTweetResults', { result: put('note', 'NoteTweet', { ...note, entity_set: put('note-entities', 'EntitySet', object(note.entity_set)) }) }),
+  }) : tweet.note_tweet;
   const relationship = (kind: string, value: unknown): Data => value === null ? null : id(value) ? put(kind, 'TweetResults', { rest_id: id(value), result: null }) : undefined;
   put('root', 'TweetResults', { rest_id: requested.id, result: put('tweet', 'Tweet', {
     rest_id: requested.id, core: put('core', 'TweetCore', { user_results: put('user-results', 'UserResults', { result: author }) }),
     legacy: put('legacy', 'LegacyTweet', { retweeted_status_results: null }),
     details: put('details', 'TBirdData', { full_text: legacy.full_text as Data, truncated: legacy.truncated as Data, created_at_ms: Number.isFinite(timestamp) ? timestamp : null, display_text_range: legacy.display_text_range as Data, hashtag_entities: sourceEntities.hashtags as Data }),
-    note_tweet: tweet.note_tweet, article: tweet.article, media_entities2: { __refs: media },
+    note_tweet: noteRef, article: tweet.article, media_entities2: { __refs: media },
     reply_to_results: relationship('reply', legacy.in_reply_to_status_id_str), quoted_tweet_results: relationship('quote', legacy.quoted_status_id_str),
     mention_entities: sourceEntities.user_mentions as Data, url_entities: sourceEntities.urls as Data,
   }) });

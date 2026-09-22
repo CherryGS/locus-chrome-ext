@@ -39,6 +39,26 @@ function response(...entries: unknown[]): any { return { data: { threaded_conver
 function project(value = tweet()) { return selectAuthenticatedTweetDetail(response(entry(value)), url)!; }
 
 describe('authenticated TweetDetail source binding', () => {
+  it('projects and validates a bound NoteTweet body separately from the legacy excerpt', () => {
+    const target = tweet();target.legacy.full_text = 'Legacy excerpt';target.legacy.truncated = true;
+    target.note_tweet = { is_expandable: true, note_tweet_results: { result: { id: btoa('NoteTweet:77'), text: 'Synthetic long post\nFull final paragraph 😀', entity_set: { user_mentions: [], hashtags: [], urls: [{ url: 'https://t.co/note', expanded_url: 'https://example.com/note', display_url: 'example.com/note', indices: [0, 5] }] }, viewer_metadata: { private: 'not projected' } } } };
+    const projected = project(target), candidate = normalizeAuthenticatedTwitter(projected, url);
+    expect(JSON.stringify(projected)).not.toContain('viewer_metadata');
+    expect(candidate.text).toBe(target.note_tweet.note_tweet_results.result.text);expect(candidate.textFailure).toBeNull();
+    expect(candidate.payload).toMatchObject({ noteId: '77', entities: { mentions: [], links: [{ expanded_url: 'https://example.com/note' }], displayTextRange: { state: 'unknown' } } });
+    expect(candidate.media[0]!.url).toContain('high.mp4');expect(selectTwitter(candidate, [], 'local').records[0]!.acquisition.state).toBe('acquired');
+    const noNoteFeature = selectDetail(response(entry(target)), url, signedRequest(sourceId, false));
+    expect(normalizeAuthenticatedTwitter(noNoteFeature, url).text).toBeNull();
+  });
+  it.each(['identity', 'truncated', 'missing-text', 'malformed-id'])('keeps incomplete signed-in long posts unavailable: %s', fault => {
+    const target = tweet();const note: any = { id: btoa('NoteTweet:77'), text: 'Full text' };
+    if (fault === 'identity') note.rest_id = '88';
+    if (fault === 'truncated') note.truncated = true;
+    if (fault === 'missing-text') delete note.text;
+    if (fault === 'malformed-id') note.id = btoa('Tweet:77');
+    target.note_tweet = { note_tweet_results: { result: note } };
+    const candidate = normalizeAuthenticatedTwitter(project(target), url);expect(candidate.text).toBeNull();expect(candidate.textFailure).toContain('long-post');expect(candidate.media).toHaveLength(1);
+  });
   it('selects only the exact focal entry and drops unrelated/private state', () => {
     const target = tweet(); target.quoted_status_result = { result: tweet('22') };
     const selected = selectAuthenticatedTweetDetail(response(entry(tweet('21')), entry(target), entry(tweet('23'))), url)!;

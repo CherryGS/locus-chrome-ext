@@ -1,6 +1,7 @@
 import type { CaptureResult, Json } from '@locus/capture-core/model';
 import { object, type Data, type DataObject } from './relay-parser';
 import { mediaUrl, postUrl } from './urls';
+import { readNoteTweet } from './note-tweet';
 
 export interface MediaCandidate { id: string; sourceId: string | null; kind: string; url: string | null; previewUrl?: string | null; reason: string | null; bitrate: number | null; sourceDimensions: { width: number; height: number } | null; representationDimensions: null; sourceOrder: null; quality: string; altText: string | null }
 export interface TwitterCandidate { sourceId: string; sourceUrl: string; label: string; text: string | null; textFailure: string | null; payload: Json; media: MediaCandidate[] }
@@ -49,11 +50,14 @@ export function normalizeTwitter(records: Record<string, DataObject>, requestedU
   const rawUsername = string(authorCore?.screen_name);
   const username = rawUsername && /^[A-Za-z0-9_]{1,30}$/.test(rawUsername) ? rawUsername : null;
   const sourceUrl = username && /^[A-Za-z0-9_]{1,30}$/.test(username) ? `https://x.com/${username}/status/${sourceId}` : `https://x.com/i/status/${sourceId}`;
-  // Only the observed ordinary TBirdData binding establishes complete text. A note
-  // or article requires a separately verified binding, never an excerpt fallback.
+  // A long post's NoteTweet contains its complete message. TBirdData remains
+  // the excerpt, with its own unrelated entity offsets, even when not truncated.
+  const note = tweet.note_tweet === null ? null : readNoteTweet(tweet.note_tweet, deref);
   let textFailure: string | null = null;
-  if (tweet.note_tweet !== null || tweet.article !== null || details?.__typename !== 'TBirdData' || typeof details.full_text !== 'string' || details.truncated === true) textFailure = 'Full text unavailable: unsupported long-form/article or incomplete source binding';
-  const text = textFailure ? null : details!.full_text as string;
+  if (tweet.article !== null) textFailure = 'Full text unavailable: unsupported X Article or incomplete article binding';
+  else if (tweet.note_tweet !== null && !note) textFailure = 'Full text unavailable: incomplete or unsupported long-post binding';
+  else if (!note && (details?.__typename !== 'TBirdData' || typeof details.full_text !== 'string' || details.truncated === true)) textFailure = 'Full text unavailable: incomplete ordinary-post source binding';
+  const text = textFailure ? null : note ? note.text : details!.full_text as string;
   const refs = object(tweet.media_entities2).__refs;
   if (!Array.isArray(refs) || refs.length > 16) throw new Error('Media discovery unavailable or exceeds the 16 attachment capability limit');
   const media = refs.map((ref, index): MediaCandidate => {
@@ -101,7 +105,7 @@ export function normalizeTwitter(records: Record<string, DataObject>, requestedU
     return Object.fromEntries(Object.entries(value).filter(([key]) => key !== '__id' && key !== '__typename').map(([key, v]) => [key, expand(v, depth + 1, seen)]));
   }
   const timestamp = numeric(details?.created_at_ms);
-  const payload: Json = { schema: 'twitter-post/1', sourceId, sourceUrl, requestedUrl: requested.url, fullText: text, author: { accountId: idString(author?.rest_id), username, displayName: string(authorCore?.name) }, publishedAt: timestamp !== null && Math.abs(timestamp) < 8.64e15 ? new Date(timestamp).toISOString() : null, observedAt, relationships: { repost, replyTo: relationship(tweet.reply_to_results), quote: relationship(tweet.quoted_tweet_results), conversationRoot: { state: 'unknown' } }, entities: { mentions: expand(tweet.mention_entities), links: expand(tweet.url_entities), hashtags: expand(details?.hashtag_entities), displayTextRange: expand(details?.display_text_range) }, selectedMedia: [] };
+  const payload: Json = { schema: 'twitter-post/1', sourceId, sourceUrl, requestedUrl: requested.url, fullText: text, ...(note ? { noteId: note.id } : {}), author: { accountId: idString(author?.rest_id), username, displayName: string(authorCore?.name) }, publishedAt: timestamp !== null && Math.abs(timestamp) < 8.64e15 ? new Date(timestamp).toISOString() : null, observedAt, relationships: { repost, replyTo: relationship(tweet.reply_to_results), quote: relationship(tweet.quoted_tweet_results), conversationRoot: { state: 'unknown' } }, entities: { mentions: expand(note ? note.entities?.user_mentions : tweet.mention_entities), links: expand(note ? note.entities?.urls : tweet.url_entities), hashtags: expand(note ? note.entities?.hashtags : details?.hashtag_entities), displayTextRange: expand(note ? undefined : details?.display_text_range) }, selectedMedia: [] };
   return { sourceId, sourceUrl, label: `${username ? '@' + username : 'Twitter'} · ${sourceId}`, text, textFailure, payload, media };
 }
 export function selectTwitter(candidate: TwitterCandidate, selectedIds: string[], id: string): CaptureResult {

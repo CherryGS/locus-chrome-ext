@@ -24,6 +24,16 @@ function addMedia(records: Record<string, DataObject>, type = 'photo') {
   records.dimensions = { __id: 'dimensions', __typename: 'ApiMediaEntityOriginalInfo', width: 640, height: 360 };
   records.tweet!.media_entities2 = { __refs: ['media'] };
 }
+// Structural equivalent of the bound public NoteTweet observed 2026-09-22.
+function addNote(records: Record<string, DataObject>) {
+  records.tweet!.note_tweet = { __ref: 'note-data' };
+  records['note-data'] = { __typename: 'NoteTweetData', is_expandable: true, note_tweet_results: { __ref: 'note-results' } };
+  records['note-results'] = { __typename: 'NoteTweetResults', result: { __ref: 'note' } };
+  records.note = { __typename: 'NoteTweet', rest_id: '77', id: btoa('NoteTweet:77'), text: 'Synthetic full long post\nwith a final paragraph 😀', entity_set: { __ref: 'note-entities' } };
+  records['note-entities'] = { __typename: 'EntitySet', user_mentions: { __refs: [] }, urls: { __refs: ['note-url'] }, hashtags: { __refs: [] } };
+  records['note-url'] = { __typename: 'UrlEntity', expanded_url: 'https://example.com/full-note', indices: [10, 20] };
+  records.details!.full_text = 'Synthetic excerpt';records.details!.truncated = true;
+}
 const url = 'https://x.com/OldUsername/status/9007199254740993123';
 describe('restricted Relay data grammar', () => {
   it('reads data assignments and reuse without running surrounding code', () => {
@@ -40,6 +50,29 @@ describe('restricted Relay data grammar', () => {
   });
 });
 describe('Twitter selection and ownership', () => {
+  it('reads the bound long-post text and note entities, never the ordinary excerpt or another note', () => {
+    const records = syntheticRecords();addMedia(records);addNote(records);
+    records.otherNote = { ...records.note!, rest_id: '88', id: btoa('NoteTweet:88'), text: 'Unrelated longer note'.repeat(20) };
+    const candidate = normalizeTwitter(records, url), result = selectTwitter(candidate, [], 'local');
+    expect(candidate.textFailure).toBeNull();expect(candidate.text).toBe(records.note!.text);expect(candidate.sourceId).toBe('9007199254740993123');expect(candidate.media).toHaveLength(1);
+    expect(result.records[0]!.payload).toMatchObject({ noteId: '77', fullText: records.note!.text, entities: { links: [{ expanded_url: 'https://example.com/full-note', indices: [10, 20] }], mentions: [], hashtags: [], displayTextRange: { state: 'unknown' } } });
+    expect(availability(result).complete).toBe(true);
+  });
+  it.each(['missing', 'wrong-type', 'id-mismatch', 'truncated', 'missing-text', 'article'])('does not promote an excerpt when the note binding is %s', fault => {
+    const records = syntheticRecords();addMedia(records);addNote(records);
+    if (fault === 'missing') delete records.note;
+    if (fault === 'wrong-type') records['note-results']!.__typename = 'UnknownNoteResults';
+    if (fault === 'id-mismatch') records.note!.rest_id = '88';
+    if (fault === 'truncated') records.note!.truncated = true;
+    if (fault === 'missing-text') delete records.note!.text;
+    if (fault === 'article') records.tweet!.article = { __ref: 'article' };
+    const candidate = normalizeTwitter(records, url);expect(candidate.text).toBeNull();expect(candidate.textFailure).toBeTruthy();expect(candidate.media).toHaveLength(1);
+  });
+  it('preserves known-empty note text and unknown auxiliary entities', () => {
+    const records = syntheticRecords();addNote(records);records.note!.text = '';delete records['note-entities'];
+    const candidate = normalizeTwitter(records, url);expect(candidate.text).toBe('');expect(candidate.textFailure).toBeNull();
+    expect((candidate.payload as any).entities.links).toEqual({ state: 'unknown' });
+  });
   it('reports a bound login tombstone without substituting a nearby accessible post', () => {
     const records = syntheticRecords();
     records.root!.result = { __ref: 'withheld' };
