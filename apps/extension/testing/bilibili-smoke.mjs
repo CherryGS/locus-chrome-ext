@@ -22,6 +22,16 @@ await installBilibiliProgressFixture(extension);
 // Event injection is restricted to the disposable worker copy; effective-grant checks stay real.
 const backgroundPath = path.join(extension, 'background.js'); await writeFile(backgroundPath, `{const add=chrome.permissions.onRemoved.addListener.bind(chrome.permissions.onRemoved);globalThis.fixtureRemoval=[];chrome.permissions.onRemoved.addListener=f=>{fixtureRemoval.push(f);add(f);};}\n` + await readFile(backgroundPath, 'utf8'));
 const cmd = (name, args) => execFileSync(name, args, { encoding: 'utf8', windowsHide: true, timeout: 120000, maxBuffer: 64 * 1048576, stdio: ['ignore', 'pipe', 'pipe'] });
+function assertPresentationTiming(before, after, kind) {
+  assert.equal(after.length, before.length);
+  for (let i = 0; i < before.length; i++) {
+    assert(Math.abs(Number(after[i].pts_time) - Number(before[i].pts_time)) <= .002, `${kind} packet ${i} PTS`);
+    if (kind === 'audio') assert(Math.abs(Number(after[i].duration_time) - Number(before[i].duration_time)) <= .002, `audio packet ${i} duration`);
+  }
+  const last = packets => packets.reduce((last, packet) => Number(packet.pts_time) > Number(last.pts_time) ? packet : last);
+  assert(Math.abs(Number(last(after).duration_time) - Number(last(before).duration_time)) <= .002, `${kind} final presentation duration`);
+}
+const frameHashes = file => cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', file, '-map', '0:v:0', '-fps_mode', 'passthrough', '-f', 'framehash', '-']).split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => line.split(',').at(-1).trim());
 const videoFile = path.join(work, 'video.mp4'), audioFile = path.join(work, 'audio.mp4');
 cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30', '-vf', 'setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709', '-t', '3', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+faststart', videoFile]);
 cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000', '-t', '3', '-c:a', 'aac', '-vn', '-movflags', '+faststart', audioFile]);
@@ -34,6 +44,12 @@ for (const [part, size, sar] of [[7, '1920x1070', '1070/1071'], [10, '320x180', 
   const [width, height] = size.split('x').map(Number);
   aspectMedia.set(part, { file, bytes, width, height, sar: sar.replace('/', ':'), codec: 'avc1.' + bytes.subarray(avcc + 5, avcc + 8).toString('hex') });
 }
+// A shortened interval at a fragment boundary reproduces the demuxer's local
+// versus whole-track presentation-duration mismatch without private media.
+const vfrFile = path.join(work, 'vfr.mp4');
+cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30', '-vf', 'settb=1/15360,setpts=PTS-if(gte(N\\,60)\\,256\\,0),setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709', '-frames:v', '90', '-fps_mode', 'passthrough', '-enc_time_base', '1/15360', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+frag_keyframe+delay_moov+default_base_moof', vfrFile]);
+const vfrBytes = await readFile(vfrFile), vfrAvcc = vfrBytes.indexOf(Buffer.from('avcC')); assert(vfrAvcc >= 0);
+aspectMedia.set(11, { file: vfrFile, bytes: vfrBytes, width: 320, height: 180, sar: '1:1', codec: 'avc1.' + vfrBytes.subarray(vfrAvcc + 5, vfrAvcc + 8).toString('hex') });
 let real;
 if(process.env.LOCUS_BILI_REAL_VIDEO&&process.env.LOCUS_BILI_REAL_AUDIO){
   const bytes=await readFile(process.env.LOCUS_BILI_REAL_VIDEO),sound=await readFile(process.env.LOCUS_BILI_REAL_AUDIO);assert(bytes.length<=64*1048576&&sound.length<=64*1048576);
@@ -53,7 +69,7 @@ function fixture(p) {
     return { id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: p === 2 ? `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}` : approved,
       ...(p === 2 ? { backup_url: [`https://synthetic.edge.mountaintoys.cn:4483${pathname}`, approved] } : {}) };
   };
-  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 10 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
+  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\nSecond line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 11 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
   if (aspectMedia.has(p)) { const media = aspectMedia.get(p); Object.assign(play.data.dash.video[0], { width: media.width, height: media.height, codecs: media.codec }); }
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
@@ -208,20 +224,30 @@ try {
     for (const [kind, file] of [['video', media.file], ['audio', audioFile]]) {
       const before = packets(file), track = actual.streams.find(stream => stream.codec_type === kind), after = actual.packets.filter(packet => packet.stream_index === track.index);
       assert.equal(track.extradata_hash, before.streams[0].extradata_hash); assert.deepEqual(after.map(packet => packet.data_hash), before.packets.map(packet => packet.data_hash));
-      for (let index = 0; index < after.length; index++) for (const field of ['pts_time', 'duration_time']) assert(Math.abs(Number(after[index][field]) - Number(before.packets[index][field])) <= .002, `${kind} ${field}`);
+      assertPresentationTiming(before.packets, after, kind);
+      if (part !== 11) for (let index = 0; index < after.length; index++) assert(Math.abs(Number(after[index].duration_time) - Number(before.packets[index].duration_time)) <= .002, `${kind} duration`);
+    }
+    if (part === 11) {
+      const times = original.packets.map(packet => Number(packet.pts_time));
+      assert(times.some((time, i) => i && time < times[i - 1]), 'Fixture contains reordered frames');
+      const sorted = [...times].sort((a, b) => a - b);
+      assert(sorted.some((time, i) => i && time - sorted[i - 1] < .02), 'Fixture contains a shortened presentation interval');
+      const beforeFrames = frameHashes(media.file); assert.equal(beforeFrames.length, 90);
+      assert.deepEqual(frameHashes(output), beforeFrames, 'VFR decoded frames in presentation order');
     }
     cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', output, '-f', 'null', '-']);
     aspectProof.push({ part, sourceSar: media.sar, outputSar: stream.sample_aspect_ratio, dar: stream.display_aspect_ratio, sourceDisplay, display, playback, configurationEqual: true, allPacketsEqual: true, timingEqual: true, fullDecode: true });
   }
   await writeFile(path.join(work, 'aspect-evidence.json'), JSON.stringify(aspectProof, null, 2));
   checks.push('Non-square 1920x1070 SAR 1070:1071 and rounding-sensitive 320x180 SAR 1001:1000 preserve exact SAR/DAR, all encoded packets/configurations/timing, Chrome display dimensions, start/mid/end playback, full decode and ZIP bytes');
+  checks.push('Fragmented VFR + B-frames preserve every packet, presentation timestamp, final-frame duration, decoded frame hash and browser playback through flat MP4 assembly');
   if(real){
     const attempt=await capture(8);await attempt.page.close();const saved=await until(rows,list=>list.find(row=>row.id===attempt.id)?.assets.every(asset=>asset.acquisition.state!=='pending'),'real AVC terminal',120000);assert(saved.find(row=>row.id===attempt.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(saved));
     await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
     const playback=[];for(const position of [0,real.duration/2,real.duration-.6]){const state=await resultPage.locator('video').evaluate(async(video,position)=>{video.muted=true;if(position)await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Seek timed out')),10000);video.addEventListener('seeked',()=>{clearTimeout(timer);resolve();},{once:true});video.currentTime=position;});const before=video.getVideoPlaybackQuality().totalVideoFrames;await video.play();await new Promise(resolve=>setTimeout(resolve,300));video.pause();return{width:video.videoWidth,height:video.videoHeight,time:video.currentTime,frames:video.getVideoPlaybackQuality().totalVideoFrames-before};},position);assert(state.frames>0&&state.width===real.width);playback.push(state);}
     const old=await resultPage.evaluate(async()=>new Set((await chrome.downloads.search({})).map(item=>item.id)).values().toArray());await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).click();const downloaded=await until(()=>resultPage.evaluate(()=>chrome.downloads.search({})),items=>items.some(item=>!old.includes(item.id)&&item.state==='complete'),'real native archive',60000);
     const z=new ZipReader(new BlobReader(new Blob([await readFile(downloaded.find(item=>!old.includes(item.id)&&item.state==='complete').filename)]))),entries=await z.getEntries(),metadata=JSON.parse(await entries.find(entry=>entry.filename==='metadata.json').getData(new TextWriter()));const file=metadata.files.find(file=>file.id==='media-2');const encoded=await entries.find(entry=>entry.filename===file.path).getData(new Uint8ArrayWriter());const output=path.join(work,'real-captured.mp4');await writeFile(output,encoded);await z.close();
-    const after=packets(output),proof=[];for(const[kind,file]of[['video',process.env.LOCUS_BILI_REAL_VIDEO],['audio',process.env.LOCUS_BILI_REAL_AUDIO]]){const original=packets(file),stream=after.streams.find(stream=>stream.codec_type===kind),actual=after.packets.filter(packet=>packet.stream_index===stream.index);assert.equal(stream.extradata_hash,original.streams[0].extradata_hash);assert.deepEqual(actual.map(packet=>packet.data_hash),original.packets.map(packet=>packet.data_hash));proof.push({kind,packets:actual.length,configurationEqual:true,encodedPacketsEqual:true});}
+    const after=packets(output),proof=[];for(const[kind,file]of[['video',process.env.LOCUS_BILI_REAL_VIDEO],['audio',process.env.LOCUS_BILI_REAL_AUDIO]]){const original=packets(file),stream=after.streams.find(stream=>stream.codec_type===kind),actual=after.packets.filter(packet=>packet.stream_index===stream.index);assert.equal(stream.extradata_hash,original.streams[0].extradata_hash);assert.deepEqual(actual.map(packet=>packet.data_hash),original.packets.map(packet=>packet.data_hash));assertPresentationTiming(original.packets,actual,kind);proof.push({kind,packets:actual.length,configurationEqual:true,encodedPacketsEqual:true,presentationTimingEqual:true});}
     cmd('ffmpeg',['-v','error','-xerror','-i',output,'-f','null','-']);await writeFile(path.join(work,'real-media-evidence.json'),JSON.stringify({proof,playback,fullDecode:true},null,2));checks.push('Optional real AVC/AAC through production source fixture/byte path: complete packet+configuration preservation, source page closed, start/mid/end playback, full decode and native ZIP');
   }
   for (const p of [3, 4, 5, 6]) {

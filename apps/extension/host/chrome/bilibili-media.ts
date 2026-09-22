@@ -14,9 +14,23 @@ const configProof = (config: VideoDecoderConfig | AudioDecoderConfig) => {
   const { description, ...fields } = config; const bytes = description ? ArrayBuffer.isView(description) ? new Uint8Array(description.buffer, description.byteOffset, description.byteLength) : new Uint8Array(description) : null;
   return JSON.stringify({ ...fields, description: bytes ? [...bytes] : null });
 };
-async function verifyPackets(track: InputTrack, expected: PacketProof[], signal: AbortSignal) {
+async function verifyPackets(track: InputTrack, expected: PacketProof[], signal: AbortSignal, kind: 'video' | 'audio') {
+  if (kind === 'video') {
+    // The demuxer derives presentation intervals within each fragment, but
+    // leaves its final presented sample's decode duration unchanged. Flat MP4
+    // derives intervals across the whole track. Compare in that same domain,
+    // retaining decode order for hashes and the final frame's source duration.
+    // Otherwise a short VFR interval at a fragment boundary is a false failure.
+    const presentation = expected.map((packet, index) => ({ ...packet, index })).sort((a, b) => a.time - b.time);
+    const normalized = [...expected];
+    for (let i = 0; i + 1 < presentation.length; i++) {
+      const packet = presentation[i]!;
+      normalized[packet.index] = { ...expected[packet.index]!, duration: presentation[i + 1]!.time - packet.time };
+    }
+    expected = normalized;
+  }
   let index = 0;
-  for await (const packet of new EncodedPacketSink(track).packets()) { signal.throwIfAborted(); const before = expected[index++], after = await packetProof(packet); if (!before || before.hash !== after.hash || Math.abs(before.time - after.time) > .002 || Math.abs(before.duration - after.duration) > .002) throw new Error('Assembled packet content or timing did not preserve the source'); }
+  for await (const packet of new EncodedPacketSink(track).packets()) { signal.throwIfAborted(); const before = expected[index++], after = await packetProof(packet); if (!before || before.hash !== after.hash || Math.abs(before.time - after.time) > .002 || Math.abs(before.duration - after.duration) > .002) throw diagnosticError('BILI_PACKET_MISMATCH', 'bilibili.video.output-verification', 'Assembled packet content or timing did not preserve the source', { track: kind, packetIndex: index - 1, expectedPackets: expected.length, before: before ?? null, after, timestampDeltaSeconds: before ? after.time - before.time : null, durationDeltaSeconds: before ? after.duration - before.duration : null }); }
   if (index !== expected.length) throw new Error('Assembled track is incomplete');
 }
 export async function remuxBilibili(video: Blob, audio: Blob | undefined, expectedDuration: number, signal: AbortSignal, expected: NonNullable<BilibiliMedia['tracks']>) {
@@ -87,7 +101,7 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
       const rvd = await rv.getDecoderConfig(), rad = await ra.getDecoderConfig();
       if (!rvd || !rad || configProof(rvd) !== videoConfig || configProof(rad) !== audioConfig || JSON.stringify(await rv.getColorSpace()) !== JSON.stringify(color)) throw new Error('Assembled configuration or color changed');
       if (await rv.getRotation() !== rotation || await rv.getFlip() !== flip) throw new Error('Assembled orientation changed');
-      await verifyPackets(rv, videoPackets, signal); await verifyPackets(ra, audioPackets, signal);
+      await verifyPackets(rv, videoPackets, signal, 'video'); await verifyPackets(ra, audioPackets, signal, 'audio');
       return blob;
     } finally { reopened.dispose(); }
   } catch (error) { throw diagnosticError('BILI_VIDEO_ASSEMBLY_FAILED', stage, error instanceof Error ? error.message.split('\n')[0]! : String(error), { ...facts, ...progress, outputBytes: length, writtenBytes, aborted: signal.aborted }, error); }
