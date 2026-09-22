@@ -7,6 +7,7 @@ export interface BilibiliCandidate {
   source: ReturnType<typeof partUrl>;
   title: string;
   reference?: HTMLElement;
+  before?: HTMLElement;
 }
 
 /** The async native app must own/hydrate the SSR toolbar before we add a child. */
@@ -19,25 +20,26 @@ export function bilibiliPageReady() {
 export function readBilibiliCandidate(owner: HTMLElement): BilibiliCandidate | undefined {
   if (!owner.isConnected) return;
   const page = bilibiliPage(location.href);
-  if (page === 'video' && owner.matches('#arc_toolbar_report .video-toolbar-left-main')) {
+  if (page === 'video' && owner.matches('#arc_toolbar_report .video-complaint')) {
     if (!bilibiliPageReady()) return;
-    return { owner, target: owner, kind: 'toolbar', source: partUrl(location.href), title: document.querySelector('h1')?.textContent?.trim() ?? '', reference: owner.querySelector<HTMLElement>('.video-fav') ?? undefined };
+    if (!owner.parentElement) return;
+    return { owner, target: owner.parentElement, before: owner, kind: 'toolbar', source: partUrl(location.href), title: document.querySelector('h1')?.textContent?.trim() ?? '', reference: owner };
   }
-  if (page !== 'home' && page !== 'favorites') return;
-  if (!owner.matches('.bili-video-card') || owner.querySelector('.bili-card-checkbox--visible')) return;
-  const link = owner.querySelector<HTMLAnchorElement>(page === 'home' ? 'a.bili-video-card__image--link' : 'a.bili-cover-card');
-  if (!link || link.closest('.bili-video-card') !== owner || !link.parentElement) return;
+  if (!page || !owner.matches('a[href]') || !owner.querySelector('img,picture,video,canvas') || owner.closest('[data-locus-bilibili],#bilibili-player')) return;
+  const link = owner as HTMLAnchorElement;
+  if (!link.parentElement || link.parentElement.closest('a,button,[role="button"]')) return;
+  if (link.closest('.bili-video-card')?.querySelector('.bili-card-checkbox--visible')) return;
   try {
     const source = partUrl(link.href);
-    const title = owner.querySelector<HTMLElement>('.bili-video-card__info--tit,.bili-video-card__title')?.textContent?.trim() || link.querySelector('img')?.alt || source.bvid;
-    const reference = [...owner.querySelectorAll<HTMLElement>('.bili-watch-later,.bili-card-watch-later__btn')].find(element => !element.closest('[data-locus-bilibili]'));
+    const title = link.title || link.querySelector('img')?.alt || link.getAttribute('aria-label') || source.bvid;
+    const reference = [...link.parentElement.querySelectorAll<HTMLElement>('.bili-watch-later,.bili-card-watch-later__btn')].find(element => !element.closest('[data-locus-bilibili]'));
     return { owner, target: link.parentElement, kind: 'cover', source, title, reference };
   } catch { return; }
 }
 
 export function findBilibiliCandidates() {
-  const page = bilibiliPage(location.href);
-  const owners = page === 'video' ? document.querySelectorAll<HTMLElement>('#arc_toolbar_report .video-toolbar-left-main') : page === 'home' || page === 'favorites' ? document.querySelectorAll<HTMLElement>('.bili-video-card') : [];
+  if (!bilibiliPage(location.href) || !bilibiliPageReady()) return [];
+  const owners = document.querySelectorAll<HTMLElement>('#arc_toolbar_report .video-complaint,a[href*="/video/"]');
   return [...owners].map(readBilibiliCandidate).filter((value): value is BilibiliCandidate => !!value);
 }
 

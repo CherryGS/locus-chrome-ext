@@ -22,4 +22,10 @@ describe('capture progress', () => {
     result.assets[0]!.acquisition = { state: 'acquired' };result.retention.state = 'failed';
     expect(captureProgress(result).percent).not.toBe(100);
   });
+  it('includes multi-track progress without treating merge completion as saved', () => {
+    const result = syntheticSnapshot().result;result.assets[0]!.acquisition = { state: 'pending' };
+    expect(captureProgress(result, { fraction: .625 }).percent).toBe(62);
+    expect(captureProgress(result, { fraction: null }).percent).toBeNull();
+    expect(captureProgress(result, { fraction: 1 }).percent).toBe(99);
+  });
 });

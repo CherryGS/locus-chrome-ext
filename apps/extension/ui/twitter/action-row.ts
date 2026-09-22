@@ -1,6 +1,7 @@
 import { postUrl } from '@locus/twitter/urls';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
-import { createProgressRing, progressRingStyles, renderProgressRing } from './progress-ring';
+import { createProgressRing, progressRingStyles, renderProgressRing } from '@/ui/shared/progress-ring';
+import { captureGlyphPaths, captureGlyphProgress } from '@/ui/shared/capture-glyph';
 
 export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; share: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }
 
@@ -72,21 +73,14 @@ export function createCaptureAction() {
 }
 
 export function setActionStatus(action: ReturnType<typeof createCaptureAction>, state: CaptureState, theme: HTMLElement, percent: number | null = null) {
-  const paths: Record<CaptureState,string> = {
-    uncaptured:'M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5',
-    queued:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l3 2',
-    checking:'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6', importing:'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6', saving:'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6',
-    saved:'M20 6 9 17l-5-5',partial:'M12 3 2 21h20L12 3zm0 6v5m0 3v.1',failed:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm-3 6 6 6m0-6-6 6',unknown:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm-3 5a3 3 0 0 1 6 1c0 2-3 2-3 5m0 3v.1',
-  };
   const tone=captureStates[state].tone;
   const color=tone==='neutral'?'':getComputedStyle(theme).getPropertyValue(`--${tone}`).trim();
-  const showProgress = state === 'importing' || state === 'saving';
-  const bounded = percent === null || !Number.isFinite(percent) ? null : Math.max(0, Math.min(99, Math.floor(percent)));
+  const { visible: showProgress, percent: bounded } = captureGlyphProgress(state, percent);
   const progressKey = `${showProgress}:${bounded}`;
   if(action.button.dataset.locusState===state&&action.stateColor===color&&action.progressKey===progressKey)return;
   action.progressKey = progressKey;renderProgressRing(action.progressRing, bounded, showProgress);
   action.svg.style.overflow = showProgress ? 'visible' : '';
-  const path = action.svg.querySelector('path')!;path.setAttribute('d',paths[state]);path.style.display = showProgress ? 'none' : '';
+  const path = action.svg.querySelector('path')!;path.setAttribute('d',captureGlyphPaths[state]);path.style.display = showProgress ? 'none' : '';
   if(showProgress)action.button.dataset.locusPercent = bounded === null ? 'indeterminate' : String(bounded);else delete action.button.dataset.locusPercent;
   action.button.dataset.locusState=state;
   action.stateColor=color;

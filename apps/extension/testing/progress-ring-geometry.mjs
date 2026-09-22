@@ -12,7 +12,7 @@ export async function verifyProgressRingGeometry(context, work) {
   try {
     await page.setViewportSize({ width: 640, height: 220 });
     await page.setContent('<style>body{background:#000;color:#1d9bf0;font:14px Arial;display:flex;gap:24px;padding:28px}svg{overflow:visible;stroke:currentColor;stroke-linecap:round}</style>');
-    const source = await readFile(new URL('../ui/twitter/progress-ring.ts', import.meta.url), 'utf8');
+    const source = await readFile(new URL('../ui/shared/progress-ring.ts', import.meta.url), 'utf8');
     const script = ts.transpileModule(source.replace(/^export /gm, ''), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
     await page.addScriptTag({ content: script });
     await page.evaluate(() => {

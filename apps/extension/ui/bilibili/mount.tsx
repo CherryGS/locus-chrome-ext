@@ -9,6 +9,7 @@ import { bilibiliPageReady, findBilibiliCandidates, presentationAttributes, read
 import { CaptureAction } from './CaptureAction';
 import styles from '@/assets/tailwind.css?inline';
 import controlStyles from './controls.css?inline';
+import { progressRingStyles } from '@/ui/shared/progress-ring';
 
 interface MountedAction { candidate: BilibiliCandidate; slot: HTMLDivElement; key: string; activationSource?: string }
 
@@ -35,7 +36,7 @@ export function mountBilibiliControls() {
   const store = new CaptureStore(), mounts = new Map<HTMLElement, MountedAction>();
   let stopped = false, lookupBusy = false, lookupQueued = false, lastSources = '';
   let scanTimer: ReturnType<typeof setTimeout> | undefined, lookupTimer: ReturnType<typeof setTimeout> | undefined;
-  const sheet = document.createElement('style'); sheet.textContent = controlStyles; document.documentElement.append(sheet);
+  const sheet = document.createElement('style'); sheet.textContent = controlStyles + progressRingStyles; document.documentElement.append(sheet);
   const host = document.createElement('div'); host.dataset.locusBilibiliQueue = 'true'; host.id = `locus-bilibili-queue-${crypto.randomUUID()}`;
   host.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;pointer-events:none';
   const shadow = host.attachShadow({ mode: 'open' }), style = document.createElement('style'); style.textContent = styles.replaceAll(':root', ':host'); shadow.append(style);
@@ -67,24 +68,28 @@ export function mountBilibiliControls() {
   }
   function remove(mounted: MountedAction) {
     mounted.slot.remove();
-    if (mounted.candidate.kind === 'cover') delete mounted.candidate.target.dataset.locusBilibiliCover;
     mounts.delete(mounted.candidate.owner);
+    if (mounted.candidate.kind === 'cover' && ![...mounts.values()].some(other => other.candidate.target === mounted.candidate.target)) delete mounted.candidate.target.dataset.locusBilibiliCover;
   }
   function present(mounted: MountedAction) {
     const { candidate, slot } = mounted, native = candidate.reference;
-    if (slot.parentElement !== candidate.target) candidate.target.append(slot);
-    if (candidate.kind === 'cover') candidate.target.dataset.locusBilibiliCover = 'true';
-    const className = candidate.kind === 'toolbar' ? 'toolbar-left-item-wrap' : '';
+    if (candidate.before) { if (slot.nextElementSibling !== candidate.before) candidate.before.before(slot); }
+    else if (slot.parentElement !== candidate.target) candidate.target.append(slot);
+    if (candidate.kind === 'cover') {
+      candidate.target.dataset.locusBilibiliCover = 'true';
+      // The image link is the anchor even when several cards share a container.
+      slot.style.left = `${candidate.owner.offsetLeft + 8}px`;slot.style.top = `${candidate.owner.offsetTop + 8}px`;
+    }
+    const className = candidate.kind === 'toolbar' ? 'locus-toolbar-slot' : '';
     if (slot.className !== className) slot.className = className;
     for (const [key, value] of Object.entries(presentationAttributes(native?.parentElement))) if (slot.getAttribute(key) !== value) slot.setAttribute(key, value);
     const theme = getComputedStyle(queue);
     for (const tone of ['info', 'success', 'warning', 'destructive']) slot.style.setProperty(`--locus-${tone}`, theme.getPropertyValue(`--${tone}`));
-    slot.style.setProperty('--locus-marker-ink', theme.getPropertyValue('--background'));
     const look = native ? getComputedStyle(native) : getComputedStyle(candidate.target);
     slot.style.setProperty('--locus-native-color', candidate.kind === 'toolbar' ? look.getPropertyValue('--text2').trim() || look.color : look.color);
     slot.style.setProperty('--locus-native-background', native ? look.backgroundColor : theme.getPropertyValue('--card'));
     slot.style.setProperty('--locus-native-radius', look.borderRadius);
-    slot.style.setProperty('--locus-native-size', candidate.kind === 'toolbar' ? native?.querySelector('svg') ? getComputedStyle(native.querySelector('svg')!).width : '36px' : '20px');
+    slot.style.setProperty('--locus-native-size', candidate.kind === 'toolbar' ? native?.querySelector('svg') ? getComputedStyle(native.querySelector('svg')!).width : '24px' : '20px');
     const nativeLabel = native?.querySelector('.video-toolbar-item-text');
     if (nativeLabel) slot.style.setProperty('--locus-native-font', getComputedStyle(nativeLabel).font);
   }
@@ -127,7 +132,7 @@ export function mountBilibiliControls() {
     if (records.every(record => record.target instanceof Element && !!record.target.closest('[data-locus-bilibili],[data-locus-bilibili-queue]'))) return;
     if (!scanTimer) scanTimer = setTimeout(() => { scanTimer = undefined; scan(); }, 150);
   });
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['href', 'class'] });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['href', 'class', 'src', 'data-server-rendered'] });
   const timer = setInterval(() => { scan(); void lookup(); }, 15000);
   function revoke(message: { target?: string; op?: string }) { if (message?.target === 'page' && message.op === 'revoke') stop(); }
   function stop() {

@@ -4,14 +4,15 @@ export const BILIBILI_PAGE_ORIGINS = ['https://www.bilibili.com/*', 'https://spa
 export const BILIBILI_ORIGINS = [...BILIBILI_PAGE_ORIGINS, 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'];
 
 /** Page entry surfaces do not broaden the ordinary-video source selection. */
-export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | undefined {
+export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | 'listing' | undefined {
   try {
     const url = new URL(input);
     if (url.protocol !== 'https:' || url.port || url.username || url.password) return;
-    if (url.hostname === 'space.bilibili.com' && /^\/\d+\/favlist\/?$/.test(url.pathname)) return 'favorites';
+    if (url.hostname === 'space.bilibili.com') return /^\/\d+\/favlist\/?$/.test(url.pathname) ? 'favorites' : 'listing';
     if (url.hostname !== 'www.bilibili.com') return;
     if (url.pathname === '/') return 'home';
-    partUrl(input); return 'video';
+    if (url.pathname.startsWith('/video/')) { partUrl(input); return 'video'; }
+    return 'listing';
   } catch { return; }
 }
 export function partUrl(input: string) {

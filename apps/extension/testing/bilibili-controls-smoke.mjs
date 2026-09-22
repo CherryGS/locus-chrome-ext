@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 
 export function bilibiliListingFixture(kind, base) {
-  const card = (title, href) => `<div class="bili-video-card"><div class="bili-video-card__wrap"><div class="${kind === 'home' ? 'home-cover' : 'bili-video-card__cover'}"><a class="${kind === 'home' ? 'bili-video-card__image--link' : 'bili-cover-card'}" href="${href}" target="_blank"><div class="thumbnail">${title}</div></a><div class="${kind === 'home' ? 'bili-watch-later--wrap' : 'bili-card-watch-later'}"><button class="${kind === 'home' ? 'bili-watch-later' : 'bili-card-watch-later__btn'}" aria-label="Watch later" onclick="window.nativeLater=(window.nativeLater||0)+1">▷</button></div><div class="bili-card-checkbox"></div></div><h3 class="${kind === 'home' ? 'bili-video-card__info--tit' : 'bili-video-card__title'}">${title}</h3></div></div>`;
+  const card = (title, href) => `<div data-fixture-card class="${kind === 'generic' ? 'unrelated-result-layout' : 'bili-video-card'}"><div class="bili-video-card__wrap"><div class="${kind === 'home' ? 'home-cover' : 'bili-video-card__cover'}"><a class="${kind === 'home' ? 'bili-video-card__image--link' : 'bili-cover-card'}" href="${href}" target="_blank"><div class="thumbnail"><img alt="${title}" width="320" height="180" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3C/svg%3E"></div></a><div class="${kind === 'home' ? 'bili-watch-later--wrap' : 'bili-card-watch-later'}"><button class="${kind === 'home' ? 'bili-watch-later' : 'bili-card-watch-later__btn'}" aria-label="Watch later" onclick="window.nativeLater=(window.nativeLater||0)+1">▷</button></div><div class="bili-card-checkbox"></div></div><h3 class="${kind === 'home' ? 'bili-video-card__info--tit' : 'bili-video-card__title'}">${title}</h3></div></div>`;
   return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili ${kind}</title><style>
-    body{background:#141617;color:#bbb;font:16px system-ui;margin:40px}main{display:flex;gap:24px;flex-wrap:wrap;max-width:1100px}.bili-video-card{width:320px}.home-cover,.bili-video-card__cover{position:relative}.thumbnail{height:180px;background:linear-gradient(140deg,#1b4545,#447368);border-radius:8px;display:grid;place-items:center}a{color:inherit;text-decoration:none}h3{font-size:16px}.bili-watch-later--wrap,.bili-card-watch-later{position:absolute;top:8px;right:8px}.bili-watch-later,.bili-card-watch-later__btn{width:28px;height:28px;border:0;border-radius:6px;background:rgba(25,27,28,.8);color:white}.bili-card-checkbox--visible{position:absolute;top:8px;left:8px;width:24px;height:24px;background:#aaa}input{margin-bottom:24px}section{height:1200px}
+    body{background:#141617;color:#bbb;font:16px system-ui;margin:40px}main{display:flex;gap:24px;flex-wrap:wrap;max-width:1100px}[data-fixture-card]{width:320px}a:has(img){display:block}.home-cover,.bili-video-card__cover{position:relative}.thumbnail{height:180px;background:linear-gradient(140deg,#1b4545,#447368);border-radius:8px;display:grid;place-items:center}a{color:inherit;text-decoration:none}h3{font-size:16px}.bili-watch-later--wrap,.bili-card-watch-later{position:absolute;top:8px;right:8px}.bili-watch-later,.bili-card-watch-later__btn{width:28px;height:28px;border:0;border-radius:6px;background:rgba(25,27,28,.8);color:white}.bili-card-checkbox--visible{position:absolute;top:8px;left:8px;width:24px;height:24px;background:#aaa}input{margin-bottom:24px}section{height:1200px}
     </style><h1>Continue browsing ${kind}</h1><input aria-label="Outside browsing input"><main>
     ${card('Current part', `${base}?p=2&spm_id_from=fixture`)}${card('Default part', base)}${card('Programme excluded', 'https://www.bilibili.com/bangumi/play/ep123')}${card('Unverified selection excluded', `${base}?list=all`)}
     </main><section>Independent page content</section>`;
@@ -13,9 +13,9 @@ export function bilibiliListingFixture(kind, base) {
 
 export async function verifyBilibiliControls({ context, worker, work, rows, until, base }) {
   const checks = [];
-  for (const kind of ['home', 'favorites']) {
+  for (const kind of ['home', 'favorites', 'generic']) {
     const page = await context.newPage(); await page.setViewportSize({ width: 1280, height: 900 });
-    const url = kind === 'home' ? 'https://www.bilibili.com/' : 'https://space.bilibili.com/123/favlist?fid=456';
+    const url = kind === 'home' ? 'https://www.bilibili.com/' : kind === 'generic' ? 'https://www.bilibili.com/v/popular/all' : 'https://space.bilibili.com/123/favlist?fid=456';
     await page.goto(url);
     const buttons = page.locator('[data-locus-bilibili-action="cover"]'); await until(() => buttons.count(), count => count === 2, `${kind} two ordinary candidates`);
     assert.equal(await buttons.locator('svg').count(), 2); assert.equal(await buttons.evaluateAll(values => values.some(button => button.closest('a'))), false);
@@ -49,11 +49,11 @@ export async function verifyBilibiliControls({ context, worker, work, rows, unti
       await page.locator('.bili-card-checkbox').first().evaluate(node => node.classList.remove('bili-card-checkbox--visible'));
       await until(() => buttons.count(), count => count === 2, 'leaving batch mode restores capture');
       await page.evaluate(() => { history.pushState({}, '', '/123/settings'); document.body.append(document.createElement('span')); });
-      await until(() => buttons.count(), count => count === 0, 'unsupported SPA surface has no controls');
+      await until(() => buttons.count(), count => count === 2, 'same cover cards survive a different SPA section');
       await page.evaluate(() => { history.pushState({}, '', '/123/favlist?fid=456'); document.body.append(document.createElement('span')); });
       await until(() => buttons.count(), count => count === 2, 'favorites SPA remount');
     }
-    await page.locator('.bili-video-card').first().evaluate(node => node.remove());
+    await page.locator('[data-fixture-card]').first().evaluate(node => node.remove());
     await until(() => buttons.count(), count => count === 1, 'removed cards release controls');
     await worker.evaluate(tabId => chrome.scripting.executeScript({ target: { tabId }, files: ['content-scripts/bilibili.js'] }), (await worker.evaluate(url => chrome.tabs.query({ url }), page.url()))[0].id);
     assert.equal(await buttons.count(), 1);

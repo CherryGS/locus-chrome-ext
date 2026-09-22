@@ -10,6 +10,7 @@ import { chromium } from 'playwright-core';
 import { BlobReader, ZipReader, TextWriter, Uint8ArrayWriter } from '@zip.js/zip.js';
 import { bilibiliListingFixture, verifyBilibiliControls } from './bilibili-controls-smoke.mjs';
 import { bilibiliNativeFixture } from './bilibili-native-fixture.mjs';
+import { installBilibiliProgressFixture, verifyBilibiliProgress } from './bilibili-progress-smoke.mjs';
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executablePath = process.env.LOCUS_CHROME_PATH; if (!executablePath) throw new Error('Set LOCUS_CHROME_PATH');
 const work = await mkdtemp(path.join(tmpdir(), 'locus-bilibili-capture-')), extension = path.join(work, 'extension'), downloads = path.join(work, 'downloads');
@@ -17,6 +18,7 @@ await cp(path.join(member, '.output/chrome-mv3'), extension, { recursive: true }
 const manifestPath = path.join(extension, 'manifest.json'), manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 assert.equal(manifest.host_permissions, undefined); assert.equal(manifest.content_scripts, undefined);
 manifest.host_permissions = manifest.optional_host_permissions; await writeFile(manifestPath, JSON.stringify(manifest));
+await installBilibiliProgressFixture(extension);
 // Event injection is restricted to the disposable worker copy; effective-grant checks stay real.
 const backgroundPath = path.join(extension, 'background.js'); await writeFile(backgroundPath, `{const add=chrome.permissions.onRemoved.addListener.bind(chrome.permissions.onRemoved);globalThis.fixtureRemoval=[];chrome.permissions.onRemoved.addListener=f=>{fixtureRemoval.push(f);add(f);};}\n` + await readFile(backgroundPath, 'utf8'));
 const cmd = (name, args) => execFileSync(name, args, { encoding: 'utf8', windowsHide: true, timeout: 120000, maxBuffer: 64 * 1048576, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -55,7 +57,7 @@ function fixture(p) {
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
   if (aspectMedia.has(p)) { const media = aspectMedia.get(p); Object.assign(play.data.dash.video[0], { width: media.width, height: media.height, codecs: media.codec }); }
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
-  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right">Native toolbar</div></div>${bilibiliNativeFixture(p)}<main>Independent page browsing</main></div>`;
+  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-right{display:flex;align-items:center;margin-left:auto}.video-toolbar-right-item{display:flex;align-items:center;gap:6px;height:24px}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right"><div data-v-abc123="" class="video-complaint video-toolbar-right-item"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3 2 21h20Z"/></svg><span class="video-toolbar-item-text">稿件举报</span></div></div></div>${bilibiliNativeFixture(p)}<main>Independent page browsing</main></div>`;
 }
 async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1', 1); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
 async function routeOwner() {
@@ -86,7 +88,7 @@ try {
   context = await chromium.launchPersistentContext(path.join(work, 'profile'), { executablePath, headless: true, acceptDownloads: true, downloadsPath: downloads, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
   context.on('page', page => page.on('pageerror', error => { if (/NotFoundError|removeChild/.test(String(error))) renderErrors.push(String(error)); }));
   worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
-  await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : new URL(route.request().url()).pathname === '/v/popular/all' ? bilibiliListingFixture('generic', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
   await context.route('https://www.bilibili.com/fixture-native.mp4*', route => route.fulfill({ contentType: 'video/mp4', body: video }));
   for (const [part, media] of aspectMedia) await context.route(`https://www.bilibili.com/fixture-aspect-${part}.mp4`, route => route.fulfill({ contentType: 'video/mp4', body: media.bytes }));
   await context.route('https://space.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('favorites', base) }));
@@ -105,7 +107,10 @@ try {
   await bootRevoked.getByRole('button', { name: 'Locus capture P8', exact: true }).waitFor();
   assert.equal(await bootRevoked.locator('[data-locus-bilibili-action]').count(), 1); await bootRevoked.close();
   checks.push('Revocation before native bootstrap cancels deferred controls; explicit reactivation mounts once');
-  const success = await capture(2); const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
+  const success = await capture(2);await verifyBilibiliProgress(success.page,until,work);const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
+  await until(()=>success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'),state=>state==='saved','successful merge restores the check');
+  assert.equal(await success.page.locator('[data-locus-bilibili-action="toolbar"] svg > path').getAttribute('d'),'M20 6 9 17l-5-5');
+  checks.push('Bilibili video/audio byte progress uses the shared Twitter ring and centered percentage, then restores the check only after saving');
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\nSecond line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
   assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002_t6-1-64.m4s');
   assert.equal(selected.records[0].payload.representation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-30280.m4s');
@@ -113,14 +118,25 @@ try {
   assert.equal(await success.page.evaluate(() => !!document.querySelector('script')?.textContent?.includes('__INITIAL_STATE__')), false);
   // Native toolbar presentation may arrive after hydration. Reuse its actual
   // icon geometry and label font without duplicating a second status badge.
-  await success.page.locator('.video-fav').evaluate(native => { native.innerHTML='<svg width="36" height="36" viewBox="0 0 24 24"><path d="M12 3v18"/></svg><span class="video-toolbar-item-text" style="font:500 14px/28px sans-serif">Favorite</span>'; });
-  await until(()=>success.page.evaluate(()=>{const button=document.querySelector('[data-locus-bilibili-action="toolbar"]'),native=document.querySelector('.video-fav');return !!button&&button.querySelectorAll('svg').length===1&&getComputedStyle(button.querySelector('span')).font===getComputedStyle(native.querySelector('span')).font&&getComputedStyle(button.querySelector('svg')).width===getComputedStyle(native.querySelector('svg')).width;}),Boolean,'native toolbar typography and single matching icon');
+  await success.page.locator('.video-complaint').evaluate(native => { native.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3v18"/></svg><span class="video-toolbar-item-text" style="font:500 14px/28px sans-serif">Favorite</span>'; });
+  await until(()=>success.page.evaluate(()=>{const button=document.querySelector('[data-locus-bilibili-action="toolbar"]'),native=document.querySelector('.video-complaint');return !!button&&button.querySelectorAll('svg').length===1&&getComputedStyle(button.querySelector('span')).font===getComputedStyle(native.querySelector('span')).font&&getComputedStyle(button.querySelector('svg')).width===getComputedStyle(native.querySelector('svg')).width;}),Boolean,'native toolbar typography and single matching icon');
   const nativeSlots=await success.page.locator('.video-toolbar-left-main > div').evaluateAll(items=>items.map(item=>{const r=item.getBoundingClientRect();return {height:r.height,top:r.top,width:r.width};}));
-  assert.equal(nativeSlots.length,5);assert(nativeSlots.every(slot=>slot.height===36&&slot.top===nativeSlots[0].top&&slot.width===nativeSlots[0].width),JSON.stringify(nativeSlots));
-  assert.equal(await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).textContent(),'导入');
-  await success.page.locator('.video-toolbar-left-main').evaluate(row=>{const replacement=row.cloneNode(true);replacement.querySelectorAll('[data-locus-bilibili]').forEach(slot=>slot.remove());row.replaceWith(replacement);});
+  assert.equal(nativeSlots.length,4);assert(nativeSlots.every(slot=>slot.height===36&&slot.top===nativeSlots[0].top&&slot.width===nativeSlots[0].width),JSON.stringify(nativeSlots));
+  assert.equal(await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).locator('.video-toolbar-item-text').textContent(),'导入');
+  await success.page.locator('.video-toolbar-right').evaluate(row=>{const replacement=row.cloneNode(true);replacement.querySelectorAll('[data-locus-bilibili]').forEach(slot=>slot.remove());row.replaceWith(replacement);});
   await success.page.getByRole('button',{name:'Locus capture P2',exact:true}).waitFor();
   assert.equal(await success.page.locator('[data-locus-bilibili-action="toolbar"]').count(),1);
+  const placement=await success.page.locator('[data-locus-bilibili="toolbar"]').evaluate(slot=>{const report=slot.nextElementSibling,a=slot.querySelector('svg').getBoundingClientRect(),b=report.querySelector('svg').getBoundingClientRect();return {beforeReport:report.classList.contains('video-complaint'),offset:a.y+a.height/2-b.y-b.height/2};});assert.equal(placement.beforeReport,true);assert.ok(Math.abs(placement.offset)<.5);
+  await success.page.evaluate(base=>{
+    const recommendation=document.createElement('aside');recommendation.id='fixture-recommendation';
+    recommendation.innerHTML=`<div class="framepreview-box" style="width:160px;height:90px"><a href="${base}?p=2" style="display:block"><img alt="Same part recommendation" width="160" height="90" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"></a></div><a href="${base}?p=2">Title-only link</a>`;document.body.append(recommendation);
+  },base);
+  const recommended=success.page.locator('[data-locus-bilibili-action="cover"]');await until(()=>recommended.count(),count=>count===1,'video recommendation uses generic cover binding');
+  await until(()=>recommended.getAttribute('data-state'),state=>state==='saved','toolbar and preview of the same part share saved state');
+  await success.page.locator('#fixture-recommendation .framepreview-box a').evaluate(link=>{link.href=link.href.replace('p=2','p=1');});
+  await until(()=>recommended.getAttribute('data-state'),state=>state==='uncaptured','recommended different part has independent state');
+  await success.page.locator('#fixture-recommendation').evaluate(node=>node.remove());await until(()=>recommended.count(),count=>count===0,'removed recommendation releases its control');
+  checks.push('Toolbar is centered immediately before Report; video-page cover links use the same discovery as listings and share exact-part state without treating title links as cards');
   await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
   const playback = () => success.page.locator('#bilibili-player video').evaluate(video => ({ ready: video.readyState, frames: video.getVideoPlaybackQuality().totalVideoFrames, part: video.dataset.part, error: video.error?.message }));
   const beforeFrames = (await playback()).frames;
@@ -140,7 +156,7 @@ try {
   await until(()=>success.page.locator('[data-locus-bilibili-action]').count(),count=>count===0,'toolbar teardown');
   await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},files:['content-scripts/bilibili.js']});},success.page.url());
   await success.page.getByRole('button',{name:'Locus capture P1',exact:true}).waitFor();
-  checks.push('Native five-slot geometry and typography; stable action label; toolbar replacement, teardown and remount preserve React-owned nodes');
+  checks.push('Four native left actions remain unchanged; capture matches the right-side Report typography and center line; toolbar replacement, teardown and remount preserve React-owned nodes');
   checks.push('Trusted immediate P2 capture; removed initial script; authenticated nav; exact CID; nonmodal browsing; SPA next selection preserves accepted P2');
   await success.page.close(); await worker.evaluate(() => chrome.offscreen.closeDocument());
   await resultPage.goto(`chrome-extension://${extensionId}/results.html#${success.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();

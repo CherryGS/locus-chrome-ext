@@ -10,14 +10,14 @@ import { acquireMedia, loadTwitter } from './network';
 import { createArchive } from './archive';
 import { CHANNEL, coordinator, type Inspection } from './protocol';
 import { diagnosticError } from '@locus/capture-core/diagnostics';
-import { captureProgress, type TransferProgress } from './capture-progress';
+import { captureProgress, type AcquisitionProgress } from './capture-progress';
 
 type Candidate=TwitterCandidate|BilibiliCandidate;
 export function startOffscreen() {
   const database = new ResultDatabase();
   const live = new Map<string, Snapshot>();
   const active = new Map<string, AbortController>();
-  const transfers = new Map<string, TransferProgress>();
+  const transfers = new Map<string, AcquisitionProgress>();
   type Job = { id: string; candidate: Candidate; controller: AbortController; initial: Promise<void> };
   const jobs=new Map<string,Job>();
   const waiting:string[]=[];
@@ -137,7 +137,8 @@ export function startOffscreen() {
 
           const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(site==='bilibili'?120_000:180_000)]);
           transfers.set(id,{receivedBytes:0,totalBytes:null});
-          const blob = 'site' in candidate ? await acquireBilibili(candidate.media.find(m=>m.id===asset.id)!,signal,async(url,role,cid)=>{const token=crypto.randomUUID();leases.set(token,id);try{await coordinator('cdn-acquire',{token,jobId:id,url,role,cid});}catch(error){leases.delete(token);throw error;}return async()=>{try{await coordinator('cdn-release',{token});}finally{leases.delete(token);}};}) : await acquireMedia(candidate.media.find(m=>m.id===asset.id)!, signal,progress=>{if(!disposed&&!controller.signal.aborted&&live.has(id))transfers.set(id,progress);});
+          const progress = (value: AcquisitionProgress) => { if(!disposed&&!controller.signal.aborted&&live.has(id))transfers.set(id,value); };
+          const blob = 'site' in candidate ? await acquireBilibili(candidate.media.find(m=>m.id===asset.id)!,signal,async(url,role,cid)=>{const token=crypto.randomUUID();leases.set(token,id);try{await coordinator('cdn-acquire',{token,jobId:id,url,role,cid});}catch(error){leases.delete(token);throw error;}return async()=>{try{await coordinator('cdn-release',{token});}finally{leases.delete(token);}};},progress) : await acquireMedia(candidate.media.find(m=>m.id===asset.id)!, signal,progress);
           await coordinator('access',{site});
           if(disposed)return;
           if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
