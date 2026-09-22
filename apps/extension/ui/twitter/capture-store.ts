@@ -37,7 +37,8 @@ export class CaptureStore {
     const existing = this.value.drafts[sourceId];if (existing) this.publish({ drafts: { ...this.value.drafts, [sourceId]: { ...existing, ...patch } } });
   }
   start() { if (!this.alive || this.timer) return;void this.refresh();this.timer = setInterval(() => void this.refresh(), 3000); }
-  stop() { this.alive = false;clearInterval(this.timer);this.listeners.clear(); }
+  pause() { clearInterval(this.timer);this.timer = undefined; }
+  stop() { this.alive = false;this.pause();this.listeners.clear(); }
   minimize = () => this.publish({ expanded: false, selected: undefined });
   showQueue = () => { this.publish({ visible: true, expanded: true, selected: undefined });void this.refresh(); };
   private prepareDraft(url: string) {

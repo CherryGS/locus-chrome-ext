@@ -11,6 +11,7 @@ import { verifyPageStatus } from './page-status-smoke.mjs';
 import { verifyBrowserQueue } from './queue-smoke.mjs';
 import { verifyQuickCapture } from './quick-capture-smoke.mjs';
 import { verifyFocalActions } from './focal-action-smoke.mjs';
+import { verifyShareActions } from './share-action-smoke.mjs';
 import { authenticatedFixtureIds, authenticatedPage, authenticatedResponse, verifyAuthenticatedProbe } from './authenticated-probe-smoke.mjs';
 
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -218,17 +219,22 @@ try {
   // Capture the native event listener only in this disposable worker copy so
   // revocation ordering can be exercised without automating a permission prompt.
   const backgroundPath=path.join(extension,'background.js');await writeFile(backgroundPath,`{const event=chrome.permissions.onRemoved,add=event.addListener.bind(event);globalThis.fixturePermissionRemovalListeners=[];event.addListener=listener=>{fixturePermissionRemovalListeners.push(listener);add(listener);};}\n`+await readFile(backgroundPath,'utf8'));
+  const twitterPath=path.join(extension,'content-scripts/twitter.js');
+  await writeFile(twitterPath,`if(location.pathname==='/synthetic/status/505'){const send=chrome.runtime.sendMessage.bind(chrome.runtime);let attempts=0;chrome.runtime.sendMessage=(message,...args)=>{if(message?.op==='access'){document.documentElement.dataset.fixtureAccessAttempts=String(++attempts);if(attempts<3)return Promise.reject(new Error('Synthetic worker startup failure'));}return send(message,...args);};}\n`+await readFile(twitterPath,'utf8'));
   await launch('fixture-profile'); await routeFixtures(700);
   resultPage=await results(); await resultPage.getByRole('button',{name:'Twitter enabled'}).waitFor();
   await routeOffscreen(700);
   await verifyLoggedInAction();
   await verifyFocalActions({context,until,checks,work,loggedInFixture});
+  await verifyShareActions({context,until,checks,loggedInFixture});
   await verifyFloatingPanel();
   let source=await capture('100');
   let rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.length===1,'text-only retention');
   const textId=rows[0].id; assert.equal(rows[0].assets.length,0); assert.equal(rows[0].records[0].payload.fullText,'Synthetic post 100\nFull message');
   await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','saved exact source restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.locator('[data-locus-action] button').click({modifiers:['Shift']});
-  await source.getByRole('button',{name:'Open result'}).click();await resultPage.waitForURL(`**/results.html#${textId}`);
+  await source.getByRole('button',{name:'Open result'}).click();
+  resultPage=await until(async()=>context.pages().find(page=>page.url()===`chrome-extension://${extensionId}/results.html#${textId}`),Boolean,'explicit result opens in an existing or new tab');
+  await resultPage.waitForLoadState();
   checks.push('Actual article control + initial-source loader + text-only capture; script clicks rejected, trusted keyboard start and explicit result opening work');
   checks.push('Compact action groups between Bookmark and Share without increasing row/article height; close/reopen and row/article/source replacement preserve the correct state and stop enclosing link navigation');
   await source.close();

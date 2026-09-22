@@ -1,24 +1,15 @@
 import { postUrl } from '@locus/twitter/urls';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
 
-export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; reply: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }
+export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; share: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }
 
-function directSlot(row: HTMLElement, element: HTMLElement): HTMLElement | null {
-  let slot = element;
-  while (slot.parentElement !== row) { if (!slot.parentElement || slot === row) return null;slot = slot.parentElement; }
-  return slot;
-}
+// Observed on X's logged-in Share control, which has no test ID. Using the
+// glyph avoids depending on translated labels or guessing the last menu button.
+const sharePath = 'M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.3 3.3-1.41-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z';
 
-function bookmarkSlot(row: HTMLElement): HTMLElement | null {
-  const marker = row.querySelector('button[data-testid="bookmark"],button[data-testid="removeBookmark"],svg[data-icon="icon-bookmark-stroke"],svg[data-icon="icon-bookmark-fill"]');
-  const bookmark = marker?.closest('button');
-  if (!bookmark) return null;
-  let slot: HTMLElement = bookmark;
-  // Public pages nest Bookmark and Share in a trailing group; logged-in pages
-  // give Bookmark its own non-growing slot. Stop at either shared action parent.
-  while (slot.parentElement && slot.parentElement !== row &&
-    [...slot.parentElement.querySelectorAll('button,a[href]')].every(control => control === bookmark)) slot = slot.parentElement;
-  return slot;
+function isShare(button: HTMLElement) {
+  return button.dataset.testid === 'share' || !!button.querySelector('svg[data-icon="icon-share-stroke"]') ||
+    (button.getAttribute('aria-haspopup') === 'menu' && [...button.querySelectorAll('svg path')].some(path => path.getAttribute('d') === sharePath));
 }
 
 function presentationPath(reply: HTMLElement, icon: SVGElement): HTMLElement[] | null {
@@ -27,7 +18,7 @@ function presentationPath(reply: HTMLElement, icon: SVGElement): HTMLElement[] |
     if (!['SPAN', 'DIV'].includes(parent.tagName) || path.length >= 4) return null;
     path.unshift(parent);
   }
-  return path.length && reply.contains(icon) ? path : null;
+  return reply.contains(icon) ? path : null;
 }
 
 function sourceLink(link: HTMLAnchorElement, analytics = false) {
@@ -39,42 +30,26 @@ function insideQuotedLink(element: Element, article: HTMLElement): boolean {
   return false;
 }
 
-/** Logged-in React Native Web uses test IDs, localized labels and opaque CSS. */
-function findLoggedInRow(article: HTMLElement): TwitterActionRow | null {
-  const replies = [...article.querySelectorAll<HTMLButtonElement>('button[data-testid="reply"]')].filter(reply => reply.closest('article') === article && !insideQuotedLink(reply, article));
-  if (replies.length !== 1) return null;
-  const reply = replies[0]!;const row = reply.closest<HTMLElement>('[role="group"]');
-  if (!row || row.closest('article') !== article || !['flex', 'inline-flex'].includes(getComputedStyle(row).display)) return null;
-  const likes = [...row.querySelectorAll<HTMLButtonElement>('button[data-testid="like"],button[data-testid="unlike"]')].filter(like => like.closest('[role="group"]') === row);
-  const ownLinks = [...article.querySelectorAll<HTMLAnchorElement>('a[href]')].filter(link => link.closest('article') === article && !insideQuotedLink(link, article));
-  const timestamps = ownLinks.filter(link => !!link.querySelector('time[datetime]')).map(link => sourceLink(link)).filter((value): value is NonNullable<typeof value> => !!value);
-  const analytics = ownLinks.map(link => sourceLink(link, true)).filter((value): value is NonNullable<typeof value> => !!value);
-  // Focal detail analytics lives beside its timestamp above the action row;
-  // timeline analytics lives in the row. Both must belong to this article and
-  // corroborate one numeric identity, excluding quoted/nested article links.
-  if (likes.length !== 1 || !timestamps.length || !analytics.length || new Set([...timestamps, ...analytics].map(value => value.id)).size !== 1) return null;
-  const likeSlot = directSlot(row, likes[0]!);const replySlot = directSlot(row, reply);const icon = reply.querySelector<SVGElement>('svg');
-  if (!likeSlot || !replySlot || likeSlot === replySlot || !icon) return null;
-  const presentation = presentationPath(reply, icon);if (!presentation) return null;
-  return { article, row, anchorSlot: bookmarkSlot(row) ?? likeSlot, reply, icon, presentation, shape: 'logged-in', url: timestamps[0]!.url };
-}
-
-/** Bind the observed Reply/Like sibling slots, never a nested quoted article. */
+/** Share owns placement and presentation; the article owns source identity. */
 export function findActionRow(article: HTMLElement): TwitterActionRow | null {
-  if ([...article.querySelectorAll('button[data-testid="reply"]')].some(reply => reply.closest('article') === article && !insideQuotedLink(reply, article))) return findLoggedInRow(article);
-  const replies = [...article.querySelectorAll<SVGElement>('svg[data-icon="icon-reply-stroke"]')].filter(icon => icon.closest('article') === article).map(icon => icon.closest('a')).filter((link): link is HTMLAnchorElement => !!link);
-  const hearts = [...article.querySelectorAll<SVGElement>('svg[data-icon="icon-heart-stroke"],svg[data-icon="icon-heart-fill"]')].filter(icon => icon.closest('article') === article);
-  if (replies.length !== 1 || hearts.length !== 1) return null;
-  const reply = replies[0]!;
-  const like = hearts[0]!.closest('button');
-  const icon = reply.querySelector<SVGElement>('svg');
-  if (!like || !icon) return null;
-  let row = like.parentElement;
-  while (row && row !== article && !row.contains(reply)) row = row.parentElement;
-  if (!row || row === article || !row.classList.contains('flex')) return null;
-  const likeSlot = directSlot(row, like);const presentation = presentationPath(reply, icon);const source = sourceLink(reply);
-  if (!likeSlot || likeSlot.contains(reply) || !presentation || !source) return null;
-  return { article, row, anchorSlot: bookmarkSlot(row) ?? likeSlot, reply, icon, presentation, shape: 'public', url: source.url };
+  const shares = [...article.querySelectorAll<HTMLElement>('button,[role="button"]')].filter(button => !button.closest('[data-locus-action]') && button.closest('article') === article && !insideQuotedLink(button, article) && isShare(button));
+  if (shares.length !== 1) return null;
+  const share = shares[0]!;const icon = share.querySelector<SVGElement>('svg');
+  if (!icon) return null;
+  // Climb Share-only wrappers, including X's animated grid wrapper, stopping
+  // where other native actions become siblings. Ignore our own inserted slot.
+  let anchorSlot: HTMLElement = share;
+  while (anchorSlot.parentElement && anchorSlot.parentElement !== article && anchorSlot.parentElement.getAttribute('role') !== 'group' &&
+    [...anchorSlot.parentElement.querySelectorAll('button,[role="button"],a[href]')].every(control => control === share || control.closest('[data-locus-action]'))) anchorSlot = anchorSlot.parentElement;
+  const row = anchorSlot.parentElement;
+  if (!row || row === article) return null;
+  const ownLinks = [...article.querySelectorAll<HTMLAnchorElement>('a[href]')].filter(link => link.closest('article') === article && !insideQuotedLink(link, article));
+  const permalinks = ownLinks.filter(link => !!link.querySelector('time,svg[data-icon="icon-reply-stroke"]')).map(link => sourceLink(link)).filter((value): value is NonNullable<typeof value> => !!value);
+  const analytics = ownLinks.map(link => sourceLink(link, true)).filter((value): value is NonNullable<typeof value> => !!value);
+  // Analytics is optional, but contradictory own links still make binding unsafe.
+  if (!permalinks.length || new Set([...permalinks, ...analytics].map(value => value.id)).size !== 1) return null;
+  const presentation = presentationPath(share, icon);if (!presentation) return null;
+  return { article, row, anchorSlot, share, icon, presentation, shape: icon.hasAttribute('data-icon') ? 'public' : 'logged-in', url: permalinks[0]!.url };
 }
 
 export function createCaptureAction() {
@@ -114,14 +89,16 @@ export function matchActionPresentation(action: ReturnType<typeof createCaptureA
   // containing counts/overlays or native IDs, test IDs, listeners and menu state.
   const slotClasses = ['BUTTON', 'A'].includes(source.anchorSlot.tagName) ? '' : source.anchorSlot.className;
   if (action.slot.className !== slotClasses) action.slot.className = slotClasses;
-  if (action.button.className !== source.reply.className) action.button.className = source.reply.className;
+  if (action.button.className !== source.share.className) action.button.className = source.share.className;
+  const slotStyle = `display:inline-flex;align-items:center;flex:0 0 auto;margin-inline-end:${source.shape === 'logged-in' ? '8px' : '0'};`;
+  if (action.slot.getAttribute('style') !== slotStyle) action.slot.setAttribute('style', slotStyle);
   const path = source.presentation.map(element => ({ tag: element.tagName.toLowerCase(), classes: element.className }));
   const rect = source.icon.getBoundingClientRect();
   const iconClasses = source.icon.getAttribute('class') ?? '';
-  // RNW may recolor Reply through JavaScript while it is hovered. Prefer an
+  // RNW may recolor Share through JavaScript while it is hovered. Prefer an
   // unhovered neutral action, then our last neutral observation, never Like's
   // pressed color. The extension supplies its own scoped hover/focus treatment.
-  const neutral = [source.reply, ...source.row.querySelectorAll<HTMLElement>('button[data-testid="retweet"]')].find(button => !button.matches(':hover,:focus-visible'))?.querySelector('svg');
+  const neutral = [source.share, ...source.article.querySelectorAll<HTMLElement>('button[data-testid="reply"],button[data-testid="retweet"]')].find(button => !insideQuotedLink(button, source.article) && button.closest('article') === source.article && !button.matches(':hover,:focus-visible'))?.querySelector('svg');
   const color = source.shape === 'logged-in' ? neutral ? getComputedStyle(neutral).color : action.neutralColor || getComputedStyle(source.icon).color : '';
   action.neutralColor = color;
   const geometry = source.shape === 'logged-in' && rect.width > 0 && rect.height > 0 ? { width: `${rect.width}px`, height: `${rect.height}px` } : null;
@@ -129,7 +106,7 @@ export function matchActionPresentation(action: ReturnType<typeof createCaptureA
   action.presentationKey = key;
   action.button.dataset.locusLayout = source.shape;
   action.button.style.color = action.stateColor || color;
-  const ancestors = path.map(item => { const element = document.createElement(item.tag);element.className = item.classes;return element; });
+  const ancestors = (path.length ? path : [{ tag: 'span', classes: '' }]).map(item => { const element = document.createElement(item.tag);element.className = item.classes;return element; });
   for (let index = 1; index < ancestors.length; index++) ancestors[index - 1]!.append(ancestors[index]!);
   action.inner = ancestors[0]!;action.inner.style.color = action.stateColor || color;
   action.svg.setAttribute('class', iconClasses);action.svg.style.fill = 'none';

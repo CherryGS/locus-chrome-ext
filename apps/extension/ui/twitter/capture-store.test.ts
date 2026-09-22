@@ -9,9 +9,21 @@ const inspection = (id: string): Inspection => ({ token: `token-${id}`, expiresA
 const result = (id: string, source: string, queuePosition?: number): ResultSummary => ({ id, label: `Post ${source}`, sourceUrl: `https://x.com/synthetic/status/${source}`, createdAt: new Date().toISOString(), revision: 1, acquisition: 'pending', retention: { state: 'retained', revision: 1 }, ...(queuePosition === undefined ? {} : { queuePosition }) });
 const stores: CaptureStore[] = [];
 const create = () => { const store = new CaptureStore();stores.push(store);return store; };
-afterEach(() => { stores.splice(0).forEach(store => store.stop());request.mockReset(); });
+afterEach(() => { stores.splice(0).forEach(store => store.stop());request.mockReset();vi.useRealTimers(); });
 
 describe('page capture queue observer', () => {
+  it('suspends polling during an access outage and resumes with the existing draft', async () => {
+    vi.useFakeTimers();
+    request.mockImplementation((op: string) => Promise.resolve(op === 'inspect' ? inspection('100') : []));
+    const store = create();store.select('https://x.com/synthetic/status/100');store.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const draft = store.snapshot().drafts['100'];store.pause();request.mockClear();
+    await vi.advanceTimersByTimeAsync(9000);expect(request).not.toHaveBeenCalled();
+    store.start();await vi.advanceTimersByTimeAsync(3000);
+    expect(request.mock.calls.map(([op]) => op)).toEqual(['capture-tasks', 'capture-tasks']);
+    expect(store.snapshot().drafts['100']).toBe(draft);
+  });
+
   it('starts a fresh full-scope capture directly and stays compact', async () => {
     const complete = { ...inspection('100'), media: [{ id: 'media-0', kind: 'photo', sourceId: 'photo', reason: null, quality: 'known' }, { id: 'media-1', kind: 'video', sourceId: 'video', reason: 'Unsupported representation', quality: 'unknown' }] };
     request.mockImplementation((op: string) => op === 'inspect' ? Promise.resolve(complete) : op === 'capture' ? Promise.resolve(result('direct', '100')) : op === 'capture-tasks' ? Promise.resolve([]) : new Promise(() => {}));

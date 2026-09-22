@@ -22,7 +22,25 @@ export function mountTwitterControls() {
   const shadow = host.attachShadow({ mode: 'open' });const style = document.createElement('style');style.textContent = styles.replaceAll(':root', ':host');shadow.append(style);
   const container = document.createElement('div');container.className = 'dark';container.style.colorScheme = 'dark';shadow.append(container);
   document.documentElement.append(host);const root = createRoot(container);root.render(<CaptureQueuePanel store={store} />);
-  let enabled = true;let lookupInFlight = false;let lookupQueued = false;let lookupTimer: ReturnType<typeof setTimeout> | undefined;
+  let enabled = true;let authorized = false;let accessInFlight = false;let retryDelay = 500;
+  let accessTimer: ReturnType<typeof setTimeout> | undefined;let scanTimer: ReturnType<typeof setTimeout> | undefined;
+  let lookupInFlight = false;let lookupQueued = false;let lookupTimer: ReturnType<typeof setTimeout> | undefined;
+  host.hidden = true;
+  async function checkAccess() {
+    if (!enabled || accessInFlight) return;accessInFlight = true;clearTimeout(accessTimer);
+    try {
+      await coordinator('access');
+      if (!enabled) return;
+      authorized = true;retryDelay = 500;host.hidden = false;scan();store.start();scheduleLookup();
+    } catch {
+      if (!enabled) return;
+      // A worker/message startup failure is not a revocation. Suspend controls
+      // until authorization succeeds again; only an explicit revoke tears down.
+      authorized = false;host.hidden = true;store.pause();
+      for (const mounted of mounts) mounted.action.slot.remove();mounts.clear();
+      accessTimer = setTimeout(() => void checkAccess(), retryDelay);retryDelay = Math.min(retryDelay * 2, 15_000);
+    } finally { accessInFlight = false; }
+  }
   function feedback(mounted: MountedAction) {
     const { state, message } = store.sourceStatus(postUrl(mounted.url).id);
     const label = `Locus capture. ${captureStates[state].label}. ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
@@ -32,9 +50,9 @@ export function mountTwitterControls() {
     setActionStatus(mounted.action, state, container);
   }
   const unsubscribe = store.subscribe(() => { for (const mounted of mounts) feedback(mounted); });
-  function scheduleLookup() { if (!enabled || lookupTimer) return;lookupTimer = setTimeout(() => { lookupTimer = undefined;void lookup(); }, 200); }
+  function scheduleLookup() { if (!enabled || !authorized || lookupTimer) return;lookupTimer = setTimeout(() => { lookupTimer = undefined;void lookup(); }, 200); }
   async function lookup() {
-    if (!enabled) return;if (lookupInFlight) { lookupQueued = true;return; }
+    if (!enabled || !authorized) return;if (lookupInFlight) { lookupQueued = true;return; }
     const urls = [...new Set([...mounts].map(mounted => mounted.url))];if (!urls.length) return;lookupInFlight = true;
     try {
       for (let offset = 0;offset < urls.length;offset += 50) {
@@ -46,14 +64,14 @@ export function mountTwitterControls() {
   }
   function attach(mounted: MountedAction, source: TwitterActionRow) {
     matchActionPresentation(mounted.action, source);
-    if (mounted.action.slot.previousElementSibling !== source.anchorSlot || mounted.action.slot.parentElement !== source.anchorSlot.parentElement) source.anchorSlot.after(mounted.action.slot);
+    if (mounted.action.slot.nextElementSibling !== source.anchorSlot || mounted.action.slot.parentElement !== source.anchorSlot.parentElement) source.anchorSlot.before(mounted.action.slot);
     feedback(mounted);
   }
   function create(source: TwitterActionRow) {
     const action = createCaptureAction();const mounted: MountedAction = { article: source.article, url: source.url, action };
     action.button.setAttribute('aria-controls', host.id);
     action.button.addEventListener('click', event => {
-      event.preventDefault();event.stopPropagation();if (!event.isTrusted) return;
+      event.preventDefault();event.stopPropagation();if (!event.isTrusted || !authorized) return;
       // X may recycle a post between observer scans. A direct start must use
       // the source actually bound to the visible action at activation time.
       const current = mounted.article.isConnected && findActionRow(mounted.article);
@@ -70,7 +88,7 @@ export function mountTwitterControls() {
     mounts.add(mounted);attach(mounted, source);scheduleLookup();
   }
   function scan() {
-    if (!enabled) return;
+    if (!enabled || !authorized) return;
     if (!host.isConnected) document.documentElement.append(host);
     const rows = [...document.querySelectorAll<HTMLElement>('article')].map(findActionRow).filter((row): row is TwitterActionRow => !!row);
     for (const mounted of mounts) {
@@ -84,10 +102,10 @@ export function mountTwitterControls() {
   // document-level focus, Escape, pointer, or scrolling interception is used.
   for (const type of ['click','dblclick','pointerdown','keydown','keyup']) host.addEventListener(type, event => event.stopPropagation());
   function revoke(message: { target?: string; op?: string }) { if (message?.target === 'page' && message.op === 'revoke') stop(); }
-  function stop() { if (!enabled) return;enabled = false;observer.disconnect();clearInterval(timer);clearTimeout(lookupTimer);unsubscribe();store.stop();root.unmount();host.remove();chrome.runtime.onMessage.removeListener(revoke);for (const mounted of mounts) mounted.action.slot.remove();scope.__locusCaptureMounted = false; }
+  function stop() { if (!enabled) return;enabled = false;observer.disconnect();clearInterval(timer);clearTimeout(lookupTimer);clearTimeout(accessTimer);clearTimeout(scanTimer);unsubscribe();store.stop();root.unmount();host.remove();chrome.runtime.onMessage.removeListener(revoke);for (const mounted of mounts) mounted.action.slot.remove();mounts.clear();scope.__locusCaptureMounted = false; }
   let scheduled = false;
-  const observer = new MutationObserver(() => { if (scheduled) return;scheduled = true;setTimeout(() => { scheduled = false;scan(); }, 100); });
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['href','class','style','data-icon','data-testid','role'] });
-  const timer = setInterval(() => { scan();void coordinator('access').catch(stop);void lookup(); }, 15_000);
-  chrome.runtime.onMessage.addListener(revoke);void coordinator('access').then(() => { if (enabled) { scan();store.start(); } }).catch(stop);
+  const observer = new MutationObserver(() => { if (scheduled) return;scheduled = true;scanTimer = setTimeout(() => { scheduled = false;scan(); }, 100); });
+  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['href','class','style','data-icon','data-testid','role','aria-haspopup','d'] });
+  const timer = setInterval(() => { scan();void checkAccess();void lookup(); }, 15_000);
+  chrome.runtime.onMessage.addListener(revoke);void checkAccess();
 }
