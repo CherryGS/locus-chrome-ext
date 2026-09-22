@@ -1,6 +1,6 @@
 import { postUrl } from '@locus/twitter/urls';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
-import { createProgressRing, renderProgressRing } from './progress-ring';
+import { createProgressRing, progressRingStyles, renderProgressRing } from './progress-ring';
 
 export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; share: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }
 
@@ -67,7 +67,7 @@ export function createCaptureAction() {
   style.textContent = '[data-locus-action] button[data-locus-layout="logged-in"] [data-locus-glyph]{position:relative}[data-locus-action] button[data-locus-layout="logged-in"] [data-locus-glyph]::before{content:"";position:absolute;inset:-8px;border-radius:50%;background:currentColor;opacity:0;pointer-events:none;transition:opacity 140ms}[data-locus-action] button[data-locus-layout="logged-in"]:is(:hover,:focus-visible) [data-locus-glyph]::before{opacity:.14}@media(prefers-reduced-motion:reduce){[data-locus-action] [data-locus-glyph]::before{transition:none}}';slot.append(style);
   button.addEventListener('focus', () => { if (button.matches(':focus-visible')) { button.style.outline = '2px solid currentColor';button.style.outlineOffset = '2px'; } });
   button.addEventListener('blur', () => { button.style.removeProperty('outline');button.style.removeProperty('outline-offset'); });
-  style.textContent += '[data-locus-progress][data-indeterminate="true"] circle:last-of-type{transform-origin:12px 12px;animation:locus-progress-spin 1.2s linear infinite}@keyframes locus-progress-spin{to{transform:rotate(270deg)}}@media(prefers-reduced-motion:reduce){[data-locus-progress] circle{animation:none!important}}';
+  style.textContent += progressRingStyles;
   return { slot, button, inner, svg, status, progressRing: createProgressRing(svg), progressKey: '', presentationKey: '', neutralColor: '', stateColor: '' };
 }
 

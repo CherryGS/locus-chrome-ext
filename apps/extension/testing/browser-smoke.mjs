@@ -13,6 +13,7 @@ import { verifyQuickCapture } from './quick-capture-smoke.mjs';
 import { verifyFocalActions } from './focal-action-smoke.mjs';
 import { verifyShareActions } from './share-action-smoke.mjs';
 import { installProgressFixture, verifyProgressRing } from './progress-ring-smoke.mjs';
+import { verifyProgressRingGeometry } from './progress-ring-geometry.mjs';
 import { authenticatedFixtureIds, authenticatedPage, authenticatedResponse, verifyAuthenticatedProbe } from './authenticated-probe-smoke.mjs';
 
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -307,6 +308,7 @@ try {
   await routeFixtures();await routeOffscreen();await verifyBrowserQueue({context,extensionId,until,checks,work,fixture,setGate:gate=>{captureGate=gate;}});await verifyPageStatus({context,extensionId,until,checks});await verifyQuickCapture({context,extensionId,until,checks,work,resultPage:reopened,databaseRows,setGate:gate=>{captureGate=gate;}});
   await verifyAuthenticatedProbe({context,extensionId,resultPage:reopened,databaseRows,until,checks,work});
   await verifyProgressRing({context,until,checks,work});
+  const ringGeometry=await verifyProgressRingGeometry(context,work);checks.push(`Progress ring: ${ringGeometry.glyphChecks} center/radius checks across animation phases, reduced motion, native sizes and zoom; maximum center error ${ringGeometry.maxCenterError}px`);
   if(process.env.LOCUS_LIVE_ACTION_PROBE==='1') {
     const live=await context.newPage();
     try {
