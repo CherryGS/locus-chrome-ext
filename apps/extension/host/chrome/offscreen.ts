@@ -10,12 +10,14 @@ import { acquireMedia, loadTwitter } from './network';
 import { createArchive } from './archive';
 import { CHANNEL, coordinator, type Inspection } from './protocol';
 import { diagnosticError } from '@locus/capture-core/diagnostics';
+import { captureProgress, type TransferProgress } from './capture-progress';
 
 type Candidate=TwitterCandidate|BilibiliCandidate;
 export function startOffscreen() {
   const database = new ResultDatabase();
   const live = new Map<string, Snapshot>();
   const active = new Map<string, AbortController>();
+  const transfers = new Map<string, TransferProgress>();
   type Job = { id: string; candidate: Candidate; controller: AbortController; initial: Promise<void> };
   const jobs=new Map<string,Job>();
   const waiting:string[]=[];
@@ -36,7 +38,7 @@ export function startOffscreen() {
   let closing = false;
   let lastUse = Date.now();
   const changed = () => { if(disposed)return;lastUse = Date.now(); channel.postMessage({ changed: true }); };
-  const summary = (result:CaptureResult) => {const value=summarizeResult(result),position=waiting.indexOf(result.id);return position<0?value:{...value,queuePosition:position+1};};
+  const summary = (result:CaptureResult) => {const value={...summarizeResult(result),progress:captureProgress(result,transfers.get(result.id))},position=waiting.indexOf(result.id);return position<0?value:{...value,queuePosition:position+1};};
   const liveBytes=()=>[...live.values()].reduce((total,item)=>total+Object.values(item.blobs).reduce((sum,blob)=>sum+blob.size,0),0);
   const removeWaiting=(id:string)=>{const index=waiting.indexOf(id);if(index>=0)waiting.splice(index,1);};
   function pump() {
@@ -134,7 +136,8 @@ export function startOffscreen() {
           if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
 
           const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(site==='bilibili'?120_000:180_000)]);
-          const blob = 'site' in candidate ? await acquireBilibili(candidate.media.find(m=>m.id===asset.id)!,signal,async(url,role,cid)=>{const token=crypto.randomUUID();leases.set(token,id);try{await coordinator('cdn-acquire',{token,jobId:id,url,role,cid});}catch(error){leases.delete(token);throw error;}return async()=>{try{await coordinator('cdn-release',{token});}finally{leases.delete(token);}};}) : await acquireMedia(candidate.media.find(m=>m.id===asset.id)!, signal);
+          transfers.set(id,{receivedBytes:0,totalBytes:null});
+          const blob = 'site' in candidate ? await acquireBilibili(candidate.media.find(m=>m.id===asset.id)!,signal,async(url,role,cid)=>{const token=crypto.randomUUID();leases.set(token,id);try{await coordinator('cdn-acquire',{token,jobId:id,url,role,cid});}catch(error){leases.delete(token);throw error;}return async()=>{try{await coordinator('cdn-release',{token});}finally{leases.delete(token);}};}) : await acquireMedia(candidate.media.find(m=>m.id===asset.id)!, signal,progress=>{if(!disposed&&!controller.signal.aborted&&live.has(id))transfers.set(id,progress);});
           await coordinator('access',{site});
           if(disposed)return;
           if(controller.signal.aborted||!live.has(id))throw new Error('Site access removed or capture cleared');
@@ -143,6 +146,7 @@ export function startOffscreen() {
           size += blob.size; snapshot.blobs[asset.id] = blob;
           asset.mime = blob.type; asset.size = blob.size; asset.acquisition = { state: 'acquired' };
         } catch (error) { asset.acquisition = { state: 'unavailable', reason: diagnosticError('CAPTURE_ASSET_FAILED', 'capture.acquire', 'Selected asset could not be acquired', { resultId: id, site, sourceUrl: candidate.sourceUrl, assetId: asset.id, aborted: controller.signal.aborted }, error).message }; }
+        finally { transfers.delete(id); }
         if(disposed)return;
         snapshot.result.revision++; await retain(snapshot);
       }

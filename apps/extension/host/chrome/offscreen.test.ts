@@ -34,6 +34,20 @@ async function consume<T>(operation: string, id?: string): Promise<T> {
 }
 async function begin() { const inspection = await command('inspect',{url:candidate.sourceUrl, owner:'tab:doc'}); return command('capture',{token:inspection.token, selected:['media-1','media-2'], owner:'tab:doc'}); }
 describe('offscreen producer lifetime', () => {
+  it('publishes live byte progress without committing stream chunks', async () => {
+    let release!: (blob: Blob) => void;
+    let progress!: (value: { receivedBytes: number; totalBytes: number | null }) => void;
+    mocks.acquire.mockImplementationOnce((_media, _signal, observe) => { progress = observe;return new Promise<Blob>(resolve => { release = resolve; }); });
+    const accepted = await begin();await vi.waitFor(() => expect(progress).toBeTypeOf('function'));
+    const commit = vi.spyOn(ResultDatabase.prototype, 'commit');
+    progress({ receivedBytes: 40, totalBytes: 100 });
+    expect((await command('capture-tasks'))[0].progress.percent).toBe(20);
+    progress({ receivedBytes: 80, totalBytes: 100 });
+    expect((await command('status', { id: accepted.id })).progress.percent).toBe(40);
+    expect(commit).not.toHaveBeenCalled();
+    release(new Blob(['media'], { type: 'image/jpeg' }));
+    await vi.waitFor(async () => expect((await command('status', { id: accepted.id })).progress.percent).toBe(100));
+  });
   it('interrupts only the withdrawn site and cannot retain late Bilibili bytes after rapid regrant',async()=>{
     const sourceUrl='https://www.bilibili.com/video/BV145PxzCEoE/?p=2',cid='123';
     const track=(id:number,codecs:string)=>({id,codecs,bandwidth:100,width:320,height:180,baseUrl:`https://synthetic.bilivideo.com/upgcxcode/1/2/${cid}/${cid}-1-${id}.m4s`});

@@ -36,7 +36,13 @@ export class CaptureStore {
   private draft(sourceId: string, patch: Partial<CaptureDraft>) {
     const existing = this.value.drafts[sourceId];if (existing) this.publish({ drafts: { ...this.value.drafts, [sourceId]: { ...existing, ...patch } } });
   }
-  start() { if (!this.alive || this.timer) return;void this.refresh();this.timer = setInterval(() => void this.refresh(), 3000); }
+  start() {
+    if (!this.alive || this.timer) return;void this.refresh();let idleTicks = 0;
+    this.timer = setInterval(() => {
+      const acquiring = this.value.tasks.some(task => task.summary.acquisition === 'pending' && task.summary.queuePosition === undefined);
+      if (++idleTicks >= 6 || acquiring) { idleTicks = 0;void this.refresh(); }
+    }, 500);
+  }
   pause() { clearInterval(this.timer);this.timer = undefined; }
   stop() { this.alive = false;this.pause();this.listeners.clear(); }
   minimize = () => this.publish({ expanded: false, selected: undefined });
@@ -152,22 +158,23 @@ export class CaptureStore {
     } catch (error) { this.publish({ error: errorMessage(error) }); }
     finally { this.refreshing = false; }
   }
-  sourceStatus(sourceId: string): { state: CaptureState; message: string } {
+  sourceStatus(sourceId: string): { state: CaptureState; message: string; progress?: ResultSummary['progress'] } {
     const draft = this.value.drafts[sourceId];
     if (draft?.autoStart && draft.busy === 'inspect') return { state: 'checking', message: 'Inspecting the selected content before capturing its metadata and files.' };
     if (draft?.busy === 'enqueue') return { state: 'importing', message: 'Submitting the selected scope to the task queue.' };
     if (draft?.enqueueFailed) return { state: 'failed', message: draft.error };
-    const task = this.value.tasks.find(item => item.summary.id === this.latest.get(sourceId));
     const passive = this.passive.get(sourceId);
+    const taskId = this.latest.get(sourceId) ?? passive?.summary?.id;
+    const task = this.value.tasks.find(item => item.summary.id === taskId);
     const summary = task?.summary ?? (passive?.summary && !this.removed.has(passive.summary.id) ? passive.summary : undefined);
     const error = task ? task.error || this.value.error : passive?.error;
     if (error) return { state: 'unknown', message: error };
-    if (summary) return { state: getCaptureStatus(summary), message: `${summary.label}: acquisition ${summary.acquisition}; retention ${summary.retention.state}${summary.queuePosition ? `; queue position ${summary.queuePosition}` : ''}${summary.retention.reason ? ` — ${summary.retention.reason}` : ''}` };
+    if (summary) return { state: getCaptureStatus(summary), progress: summary.progress, message: `${summary.label}: acquisition ${summary.acquisition}; retention ${summary.retention.state}${summary.queuePosition ? `; queue position ${summary.queuePosition}` : ''}${summary.retention.reason ? ` — ${summary.retention.reason}` : ''}` };
     const state = passive ? 'uncaptured' : 'checking';return { state, message: captureStates[state].description };
   }
   sourceResult(sourceId: string): ResultSummary | undefined {
-    const current = this.value.tasks.find(task => task.summary.id === this.latest.get(sourceId))?.summary;
     const passive = this.passive.get(sourceId)?.summary;
+    const current = this.value.tasks.find(task => task.summary.id === (this.latest.get(sourceId) ?? passive?.id))?.summary;
     const result = current ?? passive;return result && !this.removed.has(result.id) ? result : undefined;
   }
   sourceResults(urls: string[], values?: SourceStatus[], error?: string) {

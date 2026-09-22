@@ -42,12 +42,13 @@ export function mountTwitterControls() {
     } finally { accessInFlight = false; }
   }
   function feedback(mounted: MountedAction) {
-    const { state, message } = store.sourceStatus(postUrl(mounted.url).id);
-    const label = `Locus capture. ${captureStates[state].label}. ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
+    const { state, message, progress } = store.sourceStatus(postUrl(mounted.url).id);
+    const progressMessage = (state === 'importing' || state === 'saving') && progress ? progress.percent === null ? `File size unknown; ${progress.completedFiles} of ${progress.totalFiles} files processed.` : `${progress.percent}% of selected files processed. Each file has equal weight; completion requires local saving.` : '';
+    const label = `Locus capture. ${captureStates[state].label}. ${progressMessage} ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
     mounted.action.button.setAttribute('aria-label', label);mounted.action.button.title = label;
     mounted.action.button.setAttribute('aria-expanded', String(store.snapshot().expanded && store.snapshot().selected === postUrl(mounted.url).id));
     if (mounted.action.status.textContent !== message) mounted.action.status.textContent = message;
-    setActionStatus(mounted.action, state, container);
+    setActionStatus(mounted.action, state, container, progress?.percent ?? null);
   }
   const unsubscribe = store.subscribe(() => { for (const mounted of mounts) feedback(mounted); });
   function scheduleLookup() { if (!enabled || !authorized || lookupTimer) return;lookupTimer = setTimeout(() => { lookupTimer = undefined;void lookup(); }, 200); }

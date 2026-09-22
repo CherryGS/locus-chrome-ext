@@ -12,6 +12,15 @@ const create = () => { const store = new CaptureStore();stores.push(store);retur
 afterEach(() => { stores.splice(0).forEach(store => store.stop());request.mockReset();vi.useRealTimers(); });
 
 describe('page capture queue observer', () => {
+  it('updates a reopened page from the matching active task instead of stale passive progress', async () => {
+    const first = { ...result('active', '100'), progress: { percent: 10, completedFiles: 0, totalFiles: 1 } };
+    const latest = { ...first, progress: { ...first.progress, percent: 70 } };
+    const store = create();store.sourceResults([first.sourceUrl], [{ sourceId: '100', summary: first }]);
+    request.mockResolvedValue([latest]);await store.refresh();
+    expect(store.sourceStatus('100').progress?.percent).toBe(70);
+    expect(store.sourceResult('100')?.progress?.percent).toBe(70);
+  });
+
   it('suspends polling during an access outage and resumes with the existing draft', async () => {
     vi.useFakeTimers();
     request.mockImplementation((op: string) => Promise.resolve(op === 'inspect' ? inspection('100') : []));

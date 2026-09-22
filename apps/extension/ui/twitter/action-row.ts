@@ -1,5 +1,6 @@
 import { postUrl } from '@locus/twitter/urls';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
+import { createProgressRing, renderProgressRing } from './progress-ring';
 
 export interface TwitterActionRow { article: HTMLElement; row: HTMLElement; anchorSlot: HTMLElement; share: HTMLElement; icon: SVGElement; presentation: HTMLElement[]; shape: 'public' | 'logged-in'; url: string }
 
@@ -66,10 +67,11 @@ export function createCaptureAction() {
   style.textContent = '[data-locus-action] button[data-locus-layout="logged-in"] [data-locus-glyph]{position:relative}[data-locus-action] button[data-locus-layout="logged-in"] [data-locus-glyph]::before{content:"";position:absolute;inset:-8px;border-radius:50%;background:currentColor;opacity:0;pointer-events:none;transition:opacity 140ms}[data-locus-action] button[data-locus-layout="logged-in"]:is(:hover,:focus-visible) [data-locus-glyph]::before{opacity:.14}@media(prefers-reduced-motion:reduce){[data-locus-action] [data-locus-glyph]::before{transition:none}}';slot.append(style);
   button.addEventListener('focus', () => { if (button.matches(':focus-visible')) { button.style.outline = '2px solid currentColor';button.style.outlineOffset = '2px'; } });
   button.addEventListener('blur', () => { button.style.removeProperty('outline');button.style.removeProperty('outline-offset'); });
-  return { slot, button, inner, svg, status, presentationKey: '', neutralColor: '', stateColor: '' };
+  style.textContent += '[data-locus-progress][data-indeterminate="true"] circle:last-of-type{transform-origin:12px 12px;animation:locus-progress-spin 1.2s linear infinite}@keyframes locus-progress-spin{to{transform:rotate(270deg)}}@media(prefers-reduced-motion:reduce){[data-locus-progress] circle{animation:none!important}}';
+  return { slot, button, inner, svg, status, progressRing: createProgressRing(svg), progressKey: '', presentationKey: '', neutralColor: '', stateColor: '' };
 }
 
-export function setActionStatus(action: ReturnType<typeof createCaptureAction>, state: CaptureState, theme: HTMLElement) {
+export function setActionStatus(action: ReturnType<typeof createCaptureAction>, state: CaptureState, theme: HTMLElement, percent: number | null = null) {
   const paths: Record<CaptureState,string> = {
     uncaptured:'M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5',
     queued:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l3 2',
@@ -78,8 +80,15 @@ export function setActionStatus(action: ReturnType<typeof createCaptureAction>, 
   };
   const tone=captureStates[state].tone;
   const color=tone==='neutral'?'':getComputedStyle(theme).getPropertyValue(`--${tone}`).trim();
-  if(action.button.dataset.locusState===state&&action.stateColor===color)return;
-  action.svg.querySelector('path')!.setAttribute('d',paths[state]);action.button.dataset.locusState=state;
+  const showProgress = state === 'importing' || state === 'saving';
+  const bounded = percent === null || !Number.isFinite(percent) ? null : Math.max(0, Math.min(99, Math.floor(percent)));
+  const progressKey = `${showProgress}:${bounded}`;
+  if(action.button.dataset.locusState===state&&action.stateColor===color&&action.progressKey===progressKey)return;
+  action.progressKey = progressKey;renderProgressRing(action.progressRing, bounded, showProgress);
+  action.svg.style.overflow = showProgress ? 'visible' : '';
+  const path = action.svg.querySelector('path')!;path.setAttribute('d',paths[state]);path.style.display = showProgress ? 'none' : '';
+  if(showProgress)action.button.dataset.locusPercent = bounded === null ? 'indeterminate' : String(bounded);else delete action.button.dataset.locusPercent;
+  action.button.dataset.locusState=state;
   action.stateColor=color;
   action.button.style.color=action.stateColor||action.neutralColor;action.inner.style.color=action.stateColor||action.neutralColor;
 }

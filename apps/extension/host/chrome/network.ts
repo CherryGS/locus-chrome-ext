@@ -3,16 +3,20 @@ import { parseRelay } from '@locus/twitter/relay-parser';
 import { normalizeTwitter, PublicTwitterSourceUnavailableError, type TwitterCandidate } from '@locus/twitter/source';
 import { mediaUrl, postUrl } from '@locus/twitter/urls';
 import { diagnosticError } from '@locus/capture-core/diagnostics';
+import type { TransferObserver } from './capture-progress';
 
-export async function boundedBody(response: Response, limit: number): Promise<Blob> {
+export async function boundedBody(response: Response, limit: number, onProgress?: TransferObserver): Promise<Blob> {
   const context = { status: response.status, contentLength: response.headers.get('content-length'), contentType: response.headers.get('content-type'), contentRange: response.headers.get('content-range'), limitBytes: limit };
   if (!response.ok || response.status !== 200 || response.headers.has('content-range')) throw diagnosticError('HTTP_INCOMPLETE_RESPONSE', 'http.headers', `Incomplete or failed HTTP response (${response.status})`, context);
   const announced = Number(response.headers.get('content-length'));
   if (announced > limit) throw diagnosticError('HTTP_SIZE_LIMIT', 'http.headers', `Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`, { ...context, announcedBytes: announced });
   if (!response.body) throw diagnosticError('HTTP_BODY_MISSING', 'http.body', 'Response body unavailable', context);
   const reader = response.body.getReader(); const chunks: Uint8Array<ArrayBuffer>[] = []; let size = 0;
+  // Encoded Content-Length is not comparable to the decoded stream's bytes.
+  const totalBytes = Number.isSafeInteger(announced) && announced > 0 && !response.headers.get('content-encoding') ? announced : null;
+  onProgress?.({ receivedBytes: 0, totalBytes });
   try {
-    while (true) { const next = await reader.read(); if (next.done) break; size += next.value.length; if (size > limit) throw diagnosticError('HTTP_SIZE_LIMIT', 'http.body', `Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`, { ...context, receivedBytes: size }); chunks.push(next.value); }
+    while (true) { const next = await reader.read(); if (next.done) break; size += next.value.length; if (size > limit) throw diagnosticError('HTTP_SIZE_LIMIT', 'http.body', `Resource exceeds the ${Math.floor(limit / 1048576)} MiB capability limit`, { ...context, receivedBytes: size }); chunks.push(next.value);onProgress?.({ receivedBytes: size, totalBytes }); }
   } catch (error) { await reader.cancel().catch(() => {}); throw error; }
   if (!size) throw diagnosticError('HTTP_BODY_EMPTY', 'http.body', 'Empty resource response', context);
   if (announced && !response.headers.get('content-encoding') && size !== announced) throw diagnosticError('HTTP_BODY_TRUNCATED', 'http.body', 'Truncated resource response', { ...context, receivedBytes: size, expectedBytes: announced });
@@ -60,11 +64,11 @@ export async function validateMedia(blob: Blob, motion: boolean): Promise<void> 
   if (!valid) throw new Error('Incomplete or unsupported media encoding; HTML, previews and playlists are not files');
   if (!motion && typeof createImageBitmap === 'function') { const bitmap = await createImageBitmap(blob); bitmap.close(); }
 }
-export async function acquireMedia(candidate: MediaCandidate, signal: AbortSignal) {
+export async function acquireMedia(candidate: MediaCandidate, signal: AbortSignal, onProgress?: TransferObserver) {
   if (!candidate.url) throw new Error(candidate.reason ?? 'No supported complete representation');
   const motion = candidate.kind === 'video' || candidate.kind === 'animated_gif';
   const url = mediaUrl(candidate.url, motion);
   const response = await fetch(url, { credentials: 'omit', redirect: 'error', signal });
-  const blob = await boundedBody(response, 256 * 1048576);
+  const blob = await boundedBody(response, 256 * 1048576, onProgress);
   await validateMedia(blob, motion); return blob;
 }

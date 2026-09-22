@@ -12,6 +12,7 @@ import { verifyBrowserQueue } from './queue-smoke.mjs';
 import { verifyQuickCapture } from './quick-capture-smoke.mjs';
 import { verifyFocalActions } from './focal-action-smoke.mjs';
 import { verifyShareActions } from './share-action-smoke.mjs';
+import { installProgressFixture, verifyProgressRing } from './progress-ring-smoke.mjs';
 import { authenticatedFixtureIds, authenticatedPage, authenticatedResponse, verifyAuthenticatedProbe } from './authenticated-probe-smoke.mjs';
 
 const member = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -221,6 +222,7 @@ try {
   const backgroundPath=path.join(extension,'background.js');await writeFile(backgroundPath,`{const event=chrome.permissions.onRemoved,add=event.addListener.bind(event);globalThis.fixturePermissionRemovalListeners=[];event.addListener=listener=>{fixturePermissionRemovalListeners.push(listener);add(listener);};}\n`+await readFile(backgroundPath,'utf8'));
   const twitterPath=path.join(extension,'content-scripts/twitter.js');
   await writeFile(twitterPath,`if(location.pathname==='/synthetic/status/505'){const send=chrome.runtime.sendMessage.bind(chrome.runtime);let attempts=0;chrome.runtime.sendMessage=(message,...args)=>{if(message?.op==='access'){document.documentElement.dataset.fixtureAccessAttempts=String(++attempts);if(attempts<3)return Promise.reject(new Error('Synthetic worker startup failure'));}return send(message,...args);};}\n`+await readFile(twitterPath,'utf8'));
+  await installProgressFixture(extension);
   await launch('fixture-profile'); await routeFixtures(700);
   resultPage=await results(); await resultPage.getByRole('button',{name:'Twitter enabled'}).waitFor();
   await routeOffscreen(700);
@@ -304,6 +306,7 @@ try {
   checks.push(await verifyLibraryUi({context,extensionId,work}));
   await routeFixtures();await routeOffscreen();await verifyBrowserQueue({context,extensionId,until,checks,work,fixture,setGate:gate=>{captureGate=gate;}});await verifyPageStatus({context,extensionId,until,checks});await verifyQuickCapture({context,extensionId,until,checks,work,resultPage:reopened,databaseRows,setGate:gate=>{captureGate=gate;}});
   await verifyAuthenticatedProbe({context,extensionId,resultPage:reopened,databaseRows,until,checks,work});
+  await verifyProgressRing({context,until,checks,work});
   if(process.env.LOCUS_LIVE_ACTION_PROBE==='1') {
     const live=await context.newPage();
     try {

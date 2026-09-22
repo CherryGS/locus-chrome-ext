@@ -1,7 +1,8 @@
 import type { CaptureResult, Delivery, Snapshot } from '@locus/capture-core/model';
+import type { CaptureProgress } from './capture-progress';
 
 export const CHANNEL = 'locus-results-v1';
-export interface ResultSummary { id: string; label: string; sourceUrl: string; createdAt: string; revision: number; acquisition: string; retention: CaptureResult['retention']; unresolvedReason?: string; queuePosition?: number; issues?: { target: string; reason: string }[] }
+export interface ResultSummary { id: string; label: string; sourceUrl: string; createdAt: string; revision: number; acquisition: string; retention: CaptureResult['retention']; unresolvedReason?: string; queuePosition?: number; progress?: CaptureProgress; issues?: { target: string; reason: string }[] }
 export interface SourceStatus { sourceId: string; summary: ResultSummary | null; unresolvedReason?: string }
 export interface Inspection { token: string; expiresAt: number; sourceUrl: string; label: string; textPreview: string | null; textFailure: string | null; media: { id: string; kind: string; sourceId: string | null; previewUrl?: string | null; reason: string | null; quality: string }[] }
 export interface Collection { items: ResultSummary[]; deliveries: Delivery[]; storageError?: string }
