@@ -90,7 +90,9 @@ export function matchActionPresentation(action: ReturnType<typeof createCaptureA
   const slotClasses = ['BUTTON', 'A'].includes(source.anchorSlot.tagName) ? '' : source.anchorSlot.className;
   if (action.slot.className !== slotClasses) action.slot.className = slotClasses;
   if (action.button.className !== source.share.className) action.button.className = source.share.className;
-  const slotStyle = `display:inline-flex;align-items:center;flex:0 0 auto;margin-inline-end:${source.shape === 'logged-in' ? '8px' : '0'};`;
+  // RNW base classes can impose a column on the copied grid wrapper. Own both
+  // flex axes so a stretched detail row centers the glyph just like Share.
+  const slotStyle = `display:inline-flex;flex-direction:row;align-items:center;justify-content:center;flex:0 0 auto;margin-inline-end:${source.shape === 'logged-in' ? '8px' : '0'};`;
   if (action.slot.getAttribute('style') !== slotStyle) action.slot.setAttribute('style', slotStyle);
   const path = source.presentation.map(element => ({ tag: element.tagName.toLowerCase(), classes: element.className }));
   const rect = source.icon.getBoundingClientRect();
