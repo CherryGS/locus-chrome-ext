@@ -20,7 +20,20 @@ function normalizeSource(input: unknown, requested: string, observedAt: string):
   const flagged = (value: unknown) => value !== null && value !== undefined && value !== false && value !== 0;
   const accessFailure = ![false, 0].includes(rights.ugc_pay_preview as boolean | number) || ![false, 0].includes(rights.is_stein_gate as boolean | number) || [rights.ugc_pay, video.is_upower_exclusive, video.is_upower_play, video.is_upower_preview, play.is_preview, play.preview].some(flagged) || (typeof video.state === 'number' && video.state < 0) ? 'Paid preview, interactive, or unverified complete-source access' : null;
   let description: string | null = null;
-  if (Array.isArray(video.desc_v2) && video.desc_v2.length && video.desc_v2.every(segment => object(segment).type === 1 && typeof object(segment).raw_text === 'string')) description = video.desc_v2.map(segment => object(segment).raw_text).join('');
+  if (Array.isArray(video.desc_v2) && video.desc_v2.length) {
+    const segments = video.desc_v2.map(value => {
+      const segment = object(value), raw = text(segment.raw_text);
+      if (raw === null) return null;
+      if (segment.type === 1) return raw;
+      if (segment.type === 2 && raw.length) {
+        try { identity(segment.biz_id); } catch { return null; }
+        // Native mention links render both the @ prefix and a trailing space.
+        return `@${raw} `;
+      }
+      return null;
+    });
+    if (segments.every(segment => segment !== null)) description = segments.join('');
+  }
   else if (video.desc === '' && (video.desc_v2 === null || Array.isArray(video.desc_v2) && !video.desc_v2.length)) description = '';
   const title = text(video.title), duration = positive(play.timelength) ? Number(play.timelength) / 1000 : null;
   const metadataFailure = title === null || description === null ? 'Complete title/description unavailable; unsupported description source' : null;

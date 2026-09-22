@@ -34,6 +34,37 @@ describe('Bilibili initial current-part source', () => {
   it('requires explicit login and exact root/selected-part binding', () => { const f = fixture(); expect(() => projectBilibili(f.initial, f.play, url, false)).toThrow('Sign in'); f.initial.cid = '36508468243'; expect(f.candidate).toThrow('CID'); f.initial.cid = '36531930223'; f.initial.p = 1; expect(f.candidate).toThrow('selected part'); });
   it('rejects unsafe numeric IDs before attribution', () => { const f = fixture(); Object.assign(f.initial, { aid: 9007199254740992 }); expect(f.candidate).toThrow('identifier'); });
   it('preserves explicit empty text and does not reinterpret absent/unknown description as empty', () => { const f = fixture(); Object.assign(f.initial.videoData, { desc: '', desc_v2: null }); expect(f.candidate().text).toBe('Synthetic title\n\n'); Object.assign(f.initial.videoData, { desc: 'excerpt', desc_v2: [{ type: 2, raw_text: 'unknown' }] }); const c = f.candidate(); expect(c.payload).toBeNull(); expect(c.media[1]!.tracks).toBeDefined(); });
+  it('preserves mixed text and mentions through projection, normalization and retained metadata', () => {
+    const f = fixture();
+    Object.assign(f.initial.videoData, { desc: 'collapsed excerpt', desc_v2: [
+      { type: 1, raw_text: 'Thanks & credits\nWith ' },
+      { type: 2, raw_text: 'Synthetic collaborator', biz_id: 102595443, unrelated: 'not-projected' },
+      { type: 1, raw_text: ' for the edit.\nhttps://example.com/?a=1&b=2' },
+      { type: 2, raw_text: 'Another collaborator', biz_id: '123' },
+    ] });
+    const projected = projectBilibili(f.initial, f.play, url, true);
+    expect(JSON.stringify(projected)).not.toContain('not-projected');
+    const candidate = normalizeBilibili(projected, url);
+    const description = 'Thanks & credits\nWith @Synthetic collaborator  for the edit.\nhttps://example.com/?a=1&b=2@Another collaborator ';
+    expect(candidate.textFailure).toBeNull();
+    expect(candidate.text).toBe(`Synthetic title\n\n${description}`);
+    const retained = selectBilibili(candidate, ['media-1', 'media-2'], 'mentions');
+    expect(retained.records[0]).toMatchObject({ acquisition: { state: 'acquired' }, payload: { description } });
+  });
+  it.each([
+    { type: 99, raw_text: 'unsupported', biz_id: 123 },
+    { type: 2, raw_text: 'missing identity' },
+    { type: 2, raw_text: 'invalid identity', biz_id: 0 },
+    { type: 2, raw_text: '', biz_id: 123 },
+    { type: 2, raw_text: null, biz_id: 123 },
+  ])('does not silently drop an unsupported or malformed description segment: %j', segment => {
+    const f = fixture();
+    Object.assign(f.initial.videoData, { desc: 'excerpt', desc_v2: [{ type: 1, raw_text: 'Valid prefix' }, segment] });
+    const candidate = f.candidate();
+    expect(candidate.payload).toBeNull(); expect(candidate.text).toBeNull();
+    expect(candidate.textFailure).toContain('BILI_METADATA_INCOMPLETE');
+    expect(candidate.media[1]!.tracks).toBeDefined();
+  });
   it('keeps independently complete metadata when video access/completeness fails', () => { const f = fixture(); f.initial.videoData.rights.ugc_pay_preview = 1; const c = f.candidate(); expect(c.payload).not.toBeNull(); expect(c.media[1]!.reason).toContain('preview'); });
   it.each([true, 1, 'unknown'])('rejects an upower preview flag %s as video-only limitation', flag => { const f = fixture(); Object.assign(f.initial.videoData, { is_upower_preview: flag }); const c = f.candidate(); expect(c.payload).not.toBeNull(); expect(c.media[1]!.tracks).toBeUndefined(); });
   it('does not attribute stale precise duration or throw on invalid auxiliary publication dates', () => { const f = fixture(); f.play.data.timelength = 10000; f.initial.videoData.pubdate = Number.MAX_VALUE; const c = f.candidate(); expect(c.media[1]!.reason).toContain('duration'); expect(c.payload).toMatchObject({ part: { duration: 27, durationPrecision: 'coarse-seconds' }, publishedAt: null }); });
