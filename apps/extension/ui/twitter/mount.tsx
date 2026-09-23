@@ -43,7 +43,7 @@ export function mountTwitterControls() {
   }
   function feedback(mounted: MountedAction) {
     const { state, message, progress } = store.sourceStatus(postUrl(mounted.url).id);
-    const progressMessage = (state === 'importing' || state === 'saving') && progress ? progress.percent === null ? `File size unknown; ${progress.completedFiles} of ${progress.totalFiles} files processed.` : `${progress.percent}% of selected files processed. Each file has equal weight; completion requires local saving.` : '';
+    const progressMessage = (state === 'importing' || state === 'saving') && progress ? progress.percent === null ? `File size unknown; ${progress.completedFiles} of ${progress.totalFiles} files processed.` : `${progress.percent}% of selected files acquired. Locus saving follows complete acquisition.` : '';
     const label = `Locus capture. ${captureStates[state].label}. ${progressMessage} ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
     mounted.action.button.setAttribute('aria-label', label);mounted.action.button.title = label;
     mounted.action.button.setAttribute('aria-expanded', String(store.snapshot().expanded && store.snapshot().selected === postUrl(mounted.url).id));

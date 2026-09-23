@@ -1,4 +1,5 @@
 import type { CaptureResult, Delivery, Snapshot } from '@locus/capture-core/model';
+import type { LocusConnection, LocusTransfer } from '../locus/model';
 
 export class ClearedError extends Error { constructor() { super('This result was cleared'); } }
 const done = (tx: IDBTransaction) => {
@@ -15,9 +16,9 @@ export class ResultDatabase {
   constructor(private name = 'locus-results-v1') {}
   private open() {
     return this.connection ??= new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open(this.name, 1); let blocked = false;
+      const req = indexedDB.open(this.name, 2); let blocked = false;
       req.onupgradeneeded = () => {
-        for (const name of ['results', 'blobs', 'guards', 'deliveries']) req.result.createObjectStore(name);
+        for (const name of ['results', 'blobs', 'guards', 'deliveries', 'locus-transfers', 'settings']) if (!req.result.objectStoreNames.contains(name)) req.result.createObjectStore(name);
       };
       req.onsuccess = () => { if (blocked) { req.result.close(); return; } req.result.onversionchange = () => { req.result.close(); this.connection = undefined; }; resolve(req.result); };
       req.onerror = () => { this.connection = undefined; reject(req.error); };
@@ -60,10 +61,11 @@ export class ResultDatabase {
     } catch (error) { try { tx.abort(); } catch {} await end.catch(() => {}); throw error; }
   }
   async clear(id: string) {
-    const db = await this.open(); const tx = db.transaction(['results', 'blobs', 'guards'], 'readwrite'); const end = done(tx);
+    const db = await this.open(); const tx = db.transaction(['results', 'blobs', 'guards', 'locus-transfers'], 'readwrite'); const end = done(tx);
     const result = await request<CaptureResult | undefined>(tx.objectStore('results').get(id));
     tx.objectStore('guards').put(true, id);
     tx.objectStore('results').delete(id);
+    tx.objectStore('locus-transfers').delete(id);
     for (const asset of result?.assets ?? []) tx.objectStore('blobs').delete([id, asset.id]);
     await end;
   }
@@ -76,6 +78,24 @@ export class ResultDatabase {
     // late offscreen response or an older worker reconciliation.
     const current = previous?.state === 'complete' ? previous : delivery;
     tx.objectStore('deliveries').put(current, current.id); await end; return current;
+  }
+  async locusTransfers(): Promise<LocusTransfer[]> {
+    const db = await this.open(), tx = db.transaction('locus-transfers'), end = done(tx);
+    const values = await request<LocusTransfer[]>(tx.objectStore('locus-transfers').getAll()); await end; return values;
+  }
+  async saveLocusTransfer(value: LocusTransfer) {
+    const db = await this.open(), tx = db.transaction(['locus-transfers', 'guards'], 'readwrite'), end = done(tx);
+    if (await request(tx.objectStore('guards').get(value.resultId))) { await end; throw new ClearedError(); }
+    tx.objectStore('locus-transfers').put(value, value.resultId); await end;
+  }
+  async locusConnection(): Promise<LocusConnection | undefined> {
+    const db = await this.open(), tx = db.transaction('settings'), end = done(tx);
+    const value = await request<LocusConnection | undefined>(tx.objectStore('settings').get('locus')); await end; return value;
+  }
+  async saveLocusConnection(value: LocusConnection) {
+    // Extension-origin IndexedDB is not exposed through content-script storage.
+    const db = await this.open(), tx = db.transaction('settings', 'readwrite'), end = done(tx);
+    tx.objectStore('settings').put(value, 'locus'); await end;
   }
   async close() { (await this.connection)?.close(); this.connection = undefined; }
 }

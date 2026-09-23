@@ -3,6 +3,7 @@ import { errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/
 import { CHANNEL, coordinator, ownerRequest, type Collection, type ReadResponse } from '@/host/chrome/protocol';
 import { TWITTER_ORIGINS } from '@locus/twitter/urls';
 import { BILIBILI_ORIGINS } from '@locus/bilibili/urls';
+import type { LocusTransfer } from '@/host/locus/model';
 export function useResultsState() {
   const [collection, setCollection] = useState<Collection>();
   const [collectionError, setCollectionError] = useState('');
@@ -10,6 +11,7 @@ export function useResultsState() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>();
   const [readError, setReadError] = useState('');
   const [delivery, setDelivery] = useState<Delivery[]>([]);
+  const [locus,setLocus]=useState<LocusTransfer>();
   const [access, setAccess] = useState<boolean>(); const [bilibiliAccess,setBilibiliAccess]=useState<boolean>();
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState('');
@@ -30,9 +32,9 @@ export function useResultsState() {
       setDelivery(value.deliveries.filter(d => d.resultId === id));
       if (id) {
         const row = value.items.find(item => item.id === id);
-        const revision = `${id}:${row?.revision}:${row?.retention.state}`;
+        const revision = `${id}:${row?.revision}:${row?.retention.state}:${row?.locus?.state}:${row?.locus?.message}`;
         if (force || revision !== lastRevision.current) {
-          try { const read = await ownerRequest<ReadResponse>('read', id); if (currentId.current !== id || generation !== readGeneration.current) return; setSnapshot(read.snapshot); setDelivery(read.deliveries); setReadError(''); lastRevision.current = revision; }
+          try { const read = await ownerRequest<ReadResponse>('read', id); if (currentId.current !== id || generation !== readGeneration.current) return; setSnapshot(read.snapshot); setDelivery(read.deliveries);setLocus(read.locus); setReadError(''); lastRevision.current = revision; }
           catch (error) { if (currentId.current === id && generation === readGeneration.current) setReadError(errorMessage(error)); }
         }
       }
@@ -66,5 +68,6 @@ export function useResultsState() {
     try { await ownerRequest('clear', target.id); ++readGeneration.current; setClearTarget(undefined); setNotice(`Cleared ${target.label}. Exported files were not removed.`); if (currentId.current === target.id) { setSnapshot(null); lastRevision.current = ''; } await refresh(true); }
     catch (error) { setClearError(`Clear failed: ${errorMessage(error)}`); } finally { setBusy(''); }
   }
-  return { collection, collectionError, selected, snapshot, readError, delivery, access, bilibiliAccess, notice, setNotice, busy, clearTarget, setClearTarget, clearError, setClearError, refresh, enable, exportResult, clear };
+  async function continueLocus(){if(!snapshot)return;setBusy('locus');try{await ownerRequest('locus-continue',snapshot.result.id);await refresh(true);}catch(error){setNotice(errorMessage(error));}finally{setBusy('');}}
+  return { collection, collectionError, selected, snapshot, readError, delivery, locus, continueLocus, access, bilibiliAccess, notice, setNotice, busy, clearTarget, setClearTarget, clearError, setClearError, refresh, enable, exportResult, clear };
 }

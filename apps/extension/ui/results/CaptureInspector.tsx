@@ -15,6 +15,8 @@ import { twitterPresentation } from '@locus/twitter/presentation';
 import { CaptureStatusBadge } from '@/ui/shared/CaptureStatusBadge';
 import { TechnicalFailure } from '@/ui/shared/TechnicalFailure';
 import { getResultCaptureStatus } from '@/ui/shared/capture-status';
+import type { LocusTransfer } from '@/host/locus/model';
+import { LocusSaveStatus } from './LocusSaveStatus';
 import { acquisitionLabel, deliveryLabels, exactTime, fileSize, retentionLabel, safeSource, sourceName } from './presentation';
 
 export function Failure({ title, message, context }: { title: string; message: string; context?: Record<string, unknown> }) { return <TechnicalFailure title={title} message={message} context={context} />; }
@@ -73,9 +75,10 @@ function DetailTabs({ snapshot, deliveries, onNotice, tab, onTab }: { snapshot: 
   </Tabs>;
 }
 
-export function CaptureInspector({ selected, snapshot, queuePosition, readError, collectionError, delivery, busy, onExport, onClear, onRetry, onNotice }: { selected:string; snapshot?:Snapshot|null; queuePosition?:number; readError:string; collectionError:string; delivery:Delivery[]; busy:string; onExport:()=>void; onClear:()=>void; onRetry:()=>void; onNotice:(message:string)=>void }) {
+export function CaptureInspector({ selected, snapshot, queuePosition, readError, collectionError, delivery, locus, onContinueLocus, busy, onExport, onClear, onRetry, onNotice }: { selected:string; snapshot?:Snapshot|null; queuePosition?:number; readError:string; collectionError:string; delivery:Delivery[]; locus?:LocusTransfer; onContinueLocus:()=>void; busy:string; onExport:()=>void; onClear:()=>void; onRetry:()=>void; onNotice:(message:string)=>void }) {
   const result=snapshot?.result;const state=result && availability(result);
-  const captureStatus=result && (queuePosition !== undefined ? 'queued' : getResultCaptureStatus(result));
+  const currentLocus=locus?.resultId===selected?locus:undefined;
+  const captureStatus=result && (queuePosition !== undefined ? 'queued' : getResultCaptureStatus(result,currentLocus));
   const [tab,setTab]=useState('preview');useEffect(()=>setTab('preview'),[selected]);
   const deliveries=delivery.filter(item=>item.resultId===selected);
   const latest=[...deliveries].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
@@ -85,6 +88,7 @@ export function CaptureInspector({ selected, snapshot, queuePosition, readError,
       {result && captureStatus && <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap items-center gap-1.5"><CaptureStatusBadge state={captureStatus} />{captureStatus !== 'saved' && <Badge variant={result.retention.state === 'failed' ? 'destructive' : result.retention.state === 'pending' ? 'info' : 'outline'}>{result.retention.state === 'retained' && result.retention.revision !== result.revision ? `Saved revision ${result.retention.revision}` : retentionLabel(result.retention.state)}</Badge>}</div><Button size="sm" disabled={!!busy || !state?.acquired} onClick={onExport}><DownloadIcon data-icon="inline-start" />{busy === 'export' ? 'Preparing export…' : state?.complete ? 'Export ZIP' : 'Export available content'}</Button></div>}
       {latest && <div className="flex flex-wrap items-center justify-between gap-2 text-xs"><span>Latest export: {deliveryLabels[latest.state]} · revision {latest.revision}</span><Button variant="link" size="sm" onClick={()=>setTab('activity')}>View export activity</Button></div>}
       {deliveryConcern && <Alert variant={latest.state==='failed'||latest.state==='interrupted'?'destructive':'default'}><AlertTitle>{deliveryLabels[latest.state]}</AlertTitle><AlertDescription>{latest.reason ?? 'Check Chrome downloads for the actual delivery outcome. Your captured content remains available.'}</AlertDescription></Alert>}
+      <LocusSaveStatus transfer={currentLocus} busy={!!busy} onContinue={onContinueLocus} />
     </header>
     {(readError || (result && result.retention.state !== 'retained')) && <div className="shrink-0 px-5 pt-4 sm:px-8">{readError && <Failure title="Result read failed" message={`${readError}. Existing preview content may be older. Retry reads to try again.`} />}{result?.retention.state === 'failed' && <Failure title="Current content is not saved" message={`${result.retention.reason ?? 'Persistence failed'}. Only committed revision ${result.retention.revision} is recoverable after restart. Available content can still be exported.`} />}{result?.retention.state === 'pending' && <Pending title="Saving current content" message={`${result.retention.reason ?? 'Persistence is pending'}. Only committed revision ${result.retention.revision} is recoverable after restart. Available content can still be exported.`} />}<Button variant="link" size="sm" onClick={onRetry}>Retry reads</Button></div>}
     {snapshot && <DetailTabs key={snapshot.result.id} snapshot={snapshot} deliveries={deliveries} onNotice={onNotice} tab={tab} onTab={setTab} />}

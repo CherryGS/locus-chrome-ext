@@ -66,6 +66,39 @@ resets it on the next check. A new explicit attempt keeps its own status instead
 falling back to an older successful capture. Passive checks read summaries only,
 do not acquire source content, and do not create or keep a Blob helper alive.
 
+## Automatic Twitter saving
+
+Configure **Locus connection** in the results tab with the active IPv4 loopback
+address and Token from Locus Settings. The primary Twitter action then saves
+automatically after the complete selected message and files have been acquired.
+Optional unknown author/time attributes do not alone make acquisition incomplete.
+No upload starts for partial capture or unavailable retained bytes. Basic local
+mapping checks precede uploads; the server remains the final validation authority.
+
+The page displays **Saved to Locus** only after the complete import outcome is
+confirmed. Files uploaded without a completed import are not successful saves.
+An unavailable connection or rejected import supplies a separate failure message.
+The result view can check and continue the original save in the same Locus run;
+it does not automatically retry failed domain stages or replay old-run requests.
+Existing staging/export capabilities remain available, including for Bilibili.
+Clearing staging cannot remove already accepted Locus data or recreate a cleared
+local result when an accepted server operation finishes later.
+
+Run the real extension/server regression against a disposable library and profile:
+
+```powershell
+$env:LOCUS_SERVER_PATH = 'E:\Project\locus\target\debug\locus-server.exe'
+$env:LOCUS_CHROME_PATH = '<Chrome for Testing executable>'
+pnpm build
+pnpm --dir apps/extension test:browser:locus
+```
+
+The fixture copies the server binary, uses its stdin bootstrap, configures an
+isolated external port, and verifies actual File/Twitter association plus the
+complete-only sending gate. It never opens the user's library. Its disposable
+manifest pregrants fixture origins; production requests loopback access on the
+connection button's user gesture.
+
 ## Current bounds
 
 ### Technical diagnostics by default

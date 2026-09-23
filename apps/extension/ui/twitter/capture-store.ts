@@ -67,7 +67,7 @@ export class CaptureStore {
     const sourceId = postUrl(url).id;
     if (!this.alive) return;
     if (this.quickStarts.has(sourceId) || this.value.drafts[sourceId]?.busy === 'enqueue') { this.showQueue();return; }
-    const processing = (summary: ResultSummary) => !summary.unresolvedReason && (summary.queuePosition !== undefined || summary.acquisition === 'pending' || summary.retention.state === 'pending');
+    const processing = (summary: ResultSummary) => !summary.unresolvedReason && (summary.queuePosition !== undefined || summary.acquisition === 'pending' || summary.retention.state === 'pending' || !!summary.locus && ['waiting','uploading','importing'].includes(summary.locus.state));
     const active = this.value.tasks.find(task => task.sourceId === sourceId && processing(task.summary));
     const previous = active?.summary ?? this.sourceResult(sourceId);
     if (previous && processing(previous) && (active || !this.passive.get(sourceId)?.error)) {
@@ -169,7 +169,7 @@ export class CaptureStore {
     const summary = task?.summary ?? (passive?.summary && !this.removed.has(passive.summary.id) ? passive.summary : undefined);
     const error = task ? task.error || this.value.error : passive?.error;
     if (error) return { state: 'unknown', message: error };
-    if (summary) return { state: getCaptureStatus(summary), progress: summary.progress, message: `${summary.label}: acquisition ${summary.acquisition}; retention ${summary.retention.state}${summary.queuePosition ? `; queue position ${summary.queuePosition}` : ''}${summary.retention.reason ? ` — ${summary.retention.reason}` : ''}` };
+    if (summary) return { state: getCaptureStatus(summary), progress: summary.acquisition==='complete'&&summary.locus?undefined:summary.progress, message: summary.locus?.message ?? `${summary.label}: acquisition ${summary.acquisition}; retention ${summary.retention.state}${summary.queuePosition ? `; queue position ${summary.queuePosition}` : ''}${summary.retention.reason ? ` — ${summary.retention.reason}` : ''}` };
     const state = passive ? 'uncaptured' : 'checking';return { state, message: captureStates[state].description };
   }
   sourceResult(sourceId: string): ResultSummary | undefined {

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
+    "./locus": "./src/locus.ts",
     "./urls": "./src/urls.ts",
     "./relay-parser": "./src/relay-parser.ts",
     "./source": "./src/source.ts",

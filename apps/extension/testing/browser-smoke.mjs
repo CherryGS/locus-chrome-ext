@@ -134,7 +134,7 @@ async function capture(id, textOnly=false) {
   await task.getByRole('button',{name:'Open result',exact:true}).evaluate(button=>button.click());await pause(100);assert.equal(context.pages().length,tabs,'Script cannot navigate to results');
   await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();await page.evaluate(()=>{const row=document.querySelector('.fixture-row'),replacement=row.cloneNode(true);replacement.querySelector('[data-locus-action]')?.remove();row.replaceWith(replacement);});await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'single row action after replacement');
   await page.evaluate(()=>{const article=document.querySelector('article'),replacement=article.cloneNode(true);replacement.querySelector('[data-locus-action]')?.remove();article.replaceWith(replacement);window.installFixtureArticle(replacement);});await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'single article action after replacement');await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();await task.waitFor();assert.equal(await page.evaluate(()=>window.fixtureNavigations),0);
-  if(id==='100'){await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/199';});await pause(200);await until(()=>action.getAttribute('data-locus-state'),state=>state==='uncaptured','changed source has independent state');await task.waitFor();await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/100';});await until(()=>action.getAttribute('data-locus-state'),state=>state==='saved','restored exact-source state');}
+  if(id==='100'){await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/199';});await pause(200);await until(()=>action.getAttribute('data-locus-state'),state=>state==='uncaptured','changed source has independent state');await task.waitFor();await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/100';});await until(()=>action.getAttribute('data-locus-state'),state=>state==='failed','restored exact-source missing-connection state');}
   return page;
 }
 async function verifyLoggedInAction() {
@@ -234,7 +234,7 @@ try {
   let source=await capture('100');
   let rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.length===1,'text-only retention');
   const textId=rows[0].id; assert.equal(rows[0].assets.length,0); assert.equal(rows[0].records[0].payload.fullText,'Synthetic post 100\nFull message');
-  await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','saved exact source restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.locator('[data-locus-action] button').click({modifiers:['Shift']});
+  await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='failed','missing-connection status restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.locator('[data-locus-action] button').click({modifiers:['Shift']});
   await source.getByRole('button',{name:'Open result'}).click();
   resultPage=await until(async()=>context.pages().find(page=>page.url()===`chrome-extension://${extensionId}/results.html#${textId}`),Boolean,'explicit result opens in an existing or new tab');
   await resultPage.waitForLoadState();
@@ -275,7 +275,7 @@ try {
   checks.push('Native ZIP download confirmed complete; exported MP4 bytes and JSON/JSONL paths match');
 
   // Clear target stays pinned even when result routing changes while dialog open.
-  const retainedSource=await context.newPage();await retainedSource.goto('https://x.com/renamed/status/101');await retainedSource.locator('[data-locus-action] button').waitFor();await retainedSource.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/renamed/status/101';});await pause(300);await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','source identity survives username change');
+  const retainedSource=await context.newPage();await retainedSource.goto('https://x.com/renamed/status/101');await retainedSource.locator('[data-locus-action] button').waitFor();await retainedSource.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/renamed/status/101';});await pause(300);await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='failed','source identity survives username change');
   await observer.getByRole('button',{name:'Clear result',exact:true}).click();
   await observer.evaluate(id=>{location.hash=id;},textId);
   await observer.getByRole('button',{name:'Cancel',exact:true}).click();

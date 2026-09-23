@@ -36,7 +36,7 @@ function QueueTasks({ tasks, preparations, store }: { tasks: CaptureTask[]; prep
     </ItemContent>{draft.error && <ItemActions><Button size="sm" variant="outline" onClick={event => { if (event.nativeEvent.isTrusted) void store.quickCapture(draft.url); }}>Retry capture</Button></ItemActions>}
   </Item>)}{ordered.map(task => <Item key={task.summary.id} role="listitem" variant="outline" size="sm" data-task-id={task.summary.id}>
     <ItemContent className="min-w-0"><ItemTitle>{task.summary.label}</ItemTitle><div className="flex flex-wrap items-center gap-2"><CaptureStatusBadge state={task.error ? 'unknown' : getCaptureStatus(task.summary)} />{task.summary.queuePosition !== undefined && <span className="text-xs text-muted-foreground">Position {task.summary.queuePosition}</span>}</div>
-      {task.error && <TechnicalFailure title="Task observation failed" message={task.error} context={{resultId:task.summary.id,sourceUrl:task.summary.sourceUrl}} />}
+      <p role="status" className="text-xs text-muted-foreground">{task.summary.locus?.message}</p>{task.error && <TechnicalFailure title="Task observation failed" message={task.error} context={{resultId:task.summary.id,sourceUrl:task.summary.sourceUrl}} />}
       {task.summary.issues?.map(issue=><TechnicalFailure key={issue.target} title={`Acquisition failed · ${issue.target}`} message={issue.reason} context={{resultId:task.summary.id,sourceUrl:task.summary.sourceUrl,revision:task.summary.revision,target:issue.target}} />)}
       {task.summary.retention.state === 'failed' && <TechnicalFailure title="Retention failed" message={task.summary.retention.reason ?? 'Current content is not saved locally.'} context={{resultId:task.summary.id,revision:task.summary.revision,committedRevision:task.summary.retention.revision}} />}
     </ItemContent>
@@ -55,7 +55,7 @@ export function CaptureQueuePanel({ store }: { store: CaptureStore }) {
   const waiting = states.filter(state => state === 'queued').length;
   const running = states.filter(state => state === 'importing' || state === 'saving').length;
   const attention = states.filter(state => ['partial','failed','unknown'].includes(state)).length + preparations.filter(item => item.error).length;
-  const detail = view.error ? 'Status unavailable' : preparing ? `${preparing} preparing · ${running + waiting} in queue` : running || waiting ? `${running} active · ${waiting} queued` : attention ? `${attention} need attention` : view.tasks.length ? `${view.tasks.length} saved locally` : 'Ready to capture';
+  const detail = view.error ? 'Status unavailable' : preparing ? `${preparing} preparing · ${running + waiting} in queue` : running || waiting ? `${running} active · ${waiting} queued` : attention ? `${attention} need attention` : view.tasks.length ? `${view.tasks.length} finished` : 'Ready to capture';
   return <aside aria-label="Locus capture queue" className="pointer-events-auto w-[23rem] max-w-[calc(100vw-2rem)]">
     {!view.expanded ? <Button variant="secondary" className="h-auto w-full justify-between gap-3 py-3" aria-label="Expand capture queue" aria-expanded={false} onClick={event => { if (event.nativeEvent.isTrusted) store.showQueue(); }}><span className="flex items-center gap-2"><ListOrderedIcon data-icon="inline-start" />Capture queue</span><span className="text-xs">{detail}</span></Button> :
       <Card size="sm" className="flex max-h-[min(75dvh,42rem)] flex-col gap-0 overflow-hidden pb-0">

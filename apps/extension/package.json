@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
+    "test:browser:locus": "node testing/locus-browser-smoke.mjs",
     "test:browser": "node testing/browser-smoke.mjs",
     "test:browser:bilibili": "node testing/bilibili-smoke.mjs",
     "probe:bilibili-media": "node testing/bilibili-media-probe/run.mjs",

@@ -11,10 +11,14 @@ import { createArchive } from './archive';
 import { CHANNEL, coordinator, type Inspection } from './protocol';
 import { diagnosticError } from '@locus/capture-core/diagnostics';
 import { captureProgress, type AcquisitionProgress } from './capture-progress';
+import { newTransfer, transferToLocus } from '../locus/transfer';
+import { transferActive, type LocusTransfer } from '../locus/model';
 
 type Candidate=TwitterCandidate|BilibiliCandidate;
 export function startOffscreen() {
   const database = new ResultDatabase();
+  const locusTransfers = new Map<string, LocusTransfer>();
+  const locusActive = new Map<string, AbortController>();
   const live = new Map<string, Snapshot>();
   const active = new Map<string, AbortController>();
   const transfers = new Map<string, AcquisitionProgress>();
@@ -38,7 +42,21 @@ export function startOffscreen() {
   let closing = false;
   let lastUse = Date.now();
   const changed = () => { if(disposed)return;lastUse = Date.now(); channel.postMessage({ changed: true }); };
-  const summary = (result:CaptureResult) => {const value={...summarizeResult(result),progress:captureProgress(result,transfers.get(result.id))},position=waiting.indexOf(result.id);return position<0?value:{...value,queuePosition:position+1};};
+  const summary = (result:CaptureResult) => {const transfer=locusTransfers.get(result.id);const value={...summarizeResult(result),...(transfer?{locus:{state:transfer.state,message:transfer.message}}:{}),progress:captureProgress(result,transfers.get(result.id))},position=waiting.indexOf(result.id);return position<0?value:{...value,queuePosition:position+1};};
+  async function saveTransfer(transfer:LocusTransfer) {
+    if(disposed)throw new Error('Locus execution owner ended');
+    await database.saveLocusTransfer(transfer);locusTransfers.set(transfer.resultId,transfer);changed();
+  }
+  async function sendToLocus(snapshot:Snapshot) {
+    const id=snapshot.result.id;
+    if(locusActive.has(id))return;
+    const controller=new AbortController();locusActive.set(id,controller);
+    try {
+      const transfer=locusTransfers.get(id)??newTransfer(id,snapshot.result.revision);
+      await transferToLocus(snapshot,structuredClone(transfer),await database.locusConnection(),saveTransfer,{signal:controller.signal});
+    } catch(error) {if(!(error instanceof ClearedError)&&!disposed)storageError=errorMessage(error);}
+    finally{locusActive.delete(id);changed();}
+  }
   const liveBytes=()=>[...live.values()].reduce((total,item)=>total+Object.values(item.blobs).reduce((sum,blob)=>sum+blob.size,0),0);
   const removeWaiting=(id:string)=>{const index=waiting.indexOf(id);if(index>=0)waiting.splice(index,1);};
   function pump() {
@@ -70,6 +88,7 @@ export function startOffscreen() {
       await job.initial;const snapshot=live.get(job.id);if(disposed||!snapshot)return;
       for(const part of [...snapshot.result.records,...snapshot.result.assets])if(part.acquisition.state==='pending')part.acquisition={state:'unavailable',reason};
       snapshot.result.revision++;await retain(snapshot);
+      const transfer=locusTransfers.get(job.id);if(transfer)await saveTransfer({...transfer,state:'failed',message:reason});
       if(snapshot.result.retention.state==='retained')live.delete(job.id);
     } catch(error) {if(!(error instanceof ClearedError))storageError=errorMessage(error);}
     finally{jobs.delete(job.id);changed();pump();}
@@ -96,6 +115,10 @@ export function startOffscreen() {
     recovery = (async () => {
       recoveryNeeded = false;
       try {
+        for(const transfer of await database.locusTransfers()) {
+          if(transferActive(transfer)&&!jobs.has(transfer.resultId)&&!locusActive.has(transfer.resultId)){transfer.state='unverified';transfer.message='The extension restarted during this save. Check and continue the original request; nothing was replayed';await database.saveLocusTransfer(transfer);}
+          locusTransfers.set(transfer.resultId,transfer);
+        }
         for (const result of await database.list()) if (availability(result).pending && !active.has(result.id) && !live.has(result.id)) {
           try {
             const snapshot = await database.read(result.id);
@@ -151,12 +174,15 @@ export function startOffscreen() {
         if(disposed)return;
         snapshot.result.revision++; await retain(snapshot);
       }
+      if(site==='twitter'&&!disposed&&!controller.signal.aborted&&live.has(id))await sendToLocus(snapshot);
     } catch (error) {
       if (!disposed&&!(error instanceof ClearedError)) {
         for (const asset of snapshot.result.assets) if (asset.acquisition.state === 'pending') asset.acquisition = { state: 'unavailable', reason: errorMessage(error) };
         snapshot.result.revision++; await retain(snapshot).catch(() => {});
       }
     } finally {
+      const transfer=locusTransfers.get(id);
+      if(!disposed&&transfer?.state==='waiting')await saveTransfer({...transfer,state:'failed',message:'Capture did not complete. Nothing was sent to Locus'}).catch(()=>{});
       active.delete(id);working.delete(id);if(assemblyJob===id)assemblyJob=undefined;
       jobs.delete(id);
       if (snapshot.result.retention.state === 'retained') live.delete(id);
@@ -200,10 +226,15 @@ export function startOffscreen() {
       return { items, deliveries: await deliveryList(), storageError };
     }
     if (!id) throw new Error('Result reference required');
-    if (operation === 'read') return { snapshot: await read(id), deliveries: (await deliveryList()).filter(d => d.resultId === id) };
+    if (operation === 'read') return { snapshot: await read(id), deliveries: (await deliveryList()).filter(d => d.resultId === id), locus:locusTransfers.get(id) };
+    if(operation==='locus-continue') {
+      if(jobs.has(id)||locusActive.has(id))return true;
+      const snapshot=await read(id);if(!snapshot||snapshot.result.site!=='twitter')throw new Error('Twitter capture required');
+      void sendToLocus(snapshot);return true;
+    }
     if (operation === 'clear') {
       clearing.add(id);
-      try {await database.clear(id);live.delete(id);jobs.get(id)?.controller.abort();removeWaiting(id);if(!active.has(id))jobs.delete(id);changed();return true;}
+      try {await database.clear(id);live.delete(id);locusActive.get(id)?.abort();locusTransfers.delete(id);jobs.get(id)?.controller.abort();removeWaiting(id);if(!active.has(id))jobs.delete(id);changed();return true;}
       finally{clearing.delete(id);pump();}
     }
     if (operation === 'export') {
@@ -266,6 +297,7 @@ export function startOffscreen() {
             if(liveBytes()>=512*1048576)throw new Error('Live capture content uses the 512 MiB owner memory limit. Finish or clear an existing capture first.');
             const id = crypto.randomUUID(); const result = 'site' in entry.candidate?selectBilibili(entry.candidate,message.selected,id):selectTwitter(entry.candidate, message.selected, id);
             candidates.delete(message.token);
+            if(site==='twitter')await saveTransfer(newTransfer(id,result.revision));
             const snapshot={result,blobs:{},readErrors:{}};live.set(id,snapshot);
             const job:Job={id,candidate:structuredClone(entry.candidate),controller:new AbortController(),initial:Promise.resolve()};jobs.set(id,job);waiting.push(id);
             job.initial=retain(snapshot);void job.initial.catch(()=>{});pump();
@@ -293,7 +325,7 @@ export function startOffscreen() {
           }
           case 'prepare-close': {
             const unsaved = [...live.values()].some(s => s.result.retention.state !== 'retained');
-            value = !jobs.size && !active.size && !exports.size && !grants.size && !candidates.size && !unsaved && requests === 1;
+            value = !jobs.size && !active.size && !locusActive.size && !exports.size && !grants.size && !candidates.size && !unsaved && requests === 1;
             if (value) closing = true; break;
           }
           default: throw new Error('Unsupported execution command');
@@ -307,7 +339,7 @@ export function startOffscreen() {
   const idleTimer = setInterval(() => {
     for (const [token, grant] of grants) if (grant.expiresAt < Date.now()) grants.delete(token);
     for (const [token, candidate] of candidates) if (candidate.expiresAt < Date.now()) candidates.delete(token);
-    if (Date.now() - lastUse > 60_000 && !requests && !jobs.size && !active.size && !exports.size && !grants.size && !candidates.size && ![...live.values()].some(s => s.result.retention.state !== 'retained')) void coordinator('idle').catch(() => {});
+    if (Date.now() - lastUse > 60_000 && !requests && !jobs.size && !active.size && !locusActive.size && !exports.size && !grants.size && !candidates.size && ![...live.values()].some(s => s.result.retention.state !== 'retained')) void coordinator('idle').catch(() => {});
   }, 15_000);
-  return () => { disposed=true;clearInterval(idleTimer); channel.close(); for (const job of jobs.values())job.controller.abort(); void database.close(); };
+  return () => { disposed=true;clearInterval(idleTimer); channel.close(); for (const job of jobs.values())job.controller.abort();for(const controller of locusActive.values())controller.abort(); void database.close(); };
 }

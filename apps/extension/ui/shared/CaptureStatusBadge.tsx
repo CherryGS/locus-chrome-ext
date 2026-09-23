@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { captureStates, type CaptureState } from './capture-status';
 
 const icons = {
+  'locus-saved': CheckCircle2Icon,
   uncaptured: DownloadIcon, checking: LoaderCircleIcon, importing: LoaderCircleIcon,
   queued: Clock3Icon,
   saving: LoaderCircleIcon, saved: CheckCircle2Icon, partial: TriangleAlertIcon,

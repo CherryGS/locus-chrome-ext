@@ -12,6 +12,8 @@ import type { SourceStatus } from './protocol';
 import { AuthenticatedProbeManager } from './authenticated-probe';
 import { AUTHENTICATED_SOURCE_LIMIT } from '@locus/twitter/authenticated-projection';
 import { probeMessageSize } from './probe-protocol';
+import { connectionInput, transferActive } from '../locus/model';
+import { checkConnection } from '../locus/client';
 
 export function startCoordinator() {
   const database = new ResultDatabase();
@@ -157,6 +159,18 @@ export function startCoordinator() {
         if((probes.owns(sender.tab?.id,sender.url)||biliProbes.owns(sender.tab?.id,sender.url))&&!['probe-ready','probe-data','bilibili-ready','bilibili-data'].includes(message.op))throw new Error('Internal source probes cannot perform normal page operations');
         let value: unknown;
         switch (message.op) {
+          case 'locus-settings': {
+            if(!resultPage)throw new Error('Connection settings require the extension results page');
+            const connection=await database.locusConnection();value={origin:connection?.origin??'',configured:!!connection};break;
+          }
+          case 'locus-connect': {
+            if(!resultPage||typeof message.origin!=='string'||typeof message.token!=='string')throw new Error('Invalid connection settings request');
+            const previous=await database.locusConnection();
+            const connection=connectionInput(message.origin,message.token||((previous && previous.origin===message.origin)?previous.token:''));
+            if(!await chrome.permissions.contains({origins:['http://127.0.0.1/*']}))throw new Error('Grant local Locus access first');
+            try {await checkConnection(connection);}catch(error){throw new Error(errorMessage(error).replaceAll(connection.token,'[redacted]'));}
+            await database.saveLocusConnection(connection);value=true;break;
+          }
           case 'authenticated-source':if(!offscreen||typeof message.url!=='string'||!Number.isSafeInteger(message.deadline)||message.deadline>Date.now()+40_000)throw new Error('Invalid authenticated source request');value=await probes.request(postUrl(message.url).url,message.deadline);break;
           case 'bilibili-source':if(!offscreen||typeof message.url!=='string'||!Number.isSafeInteger(message.deadline)||message.deadline>Date.now()+40_000)throw new Error('Invalid Bilibili source request');value=await biliProbes.request(partUrl(message.url).url,message.deadline);break;
           case 'bilibili-ready':value=await biliProbes.ready(message.token,message.url,sender);break;
@@ -168,7 +182,7 @@ export function startCoordinator() {
           case 'access': if (!offscreen && !page && !resultPage) throw new Error('Untrusted access request'); value = await access(page?site!:message.site==='bilibili'?'bilibili':'twitter'); break;
           case 'activate': if (!resultPage) throw new Error('Use the results tab to enable source access'); value = await activation(); break;
           case 'grant': {
-            if (!resultPage || !['list','read','clear','export'].includes(message.operation) || (message.operation !== 'list' && !validId(message.id))) throw new Error('Invalid result operation');
+            if (!resultPage || !['list','read','clear','export','locus-continue'].includes(message.operation) || (message.operation !== 'list' && !validId(message.id))) throw new Error('Invalid result operation');
             const token = crypto.randomUUID(); await owner('grant', { token, operation: message.operation, id: message.id }); value = token; break;
           }
           case 'inspect': {
@@ -183,6 +197,8 @@ export function startCoordinator() {
             const stored=sourceSummaries(await database.list(),sourceIds,site);
             // Passive indicators never create or keep alive a Blob owner.
             const ownerExists=(await contexts()).length>0;
+            const transfers=await database.locusTransfers();
+            for(const row of stored){const transfer=transfers.find(item=>item.resultId===row.summary?.id);if(row.summary&&transfer)row.summary.locus=!ownerExists&&transferActive(transfer)?{state:'unverified',message:'Save execution ended. Check the original result before continuing'}:{state:transfer.state,message:transfer.message};}
             const live: SourceStatus[]=ownerExists?await sendOwner('source-status',{sourceIds,site}):[];
             value=stored.map(row=>{
               const current=live.find(item=>item.sourceId===row.sourceId)?.summary;
@@ -210,7 +226,10 @@ export function startCoordinator() {
             else {
               const stored=await database.metadata(message.id);
               const current=(await contexts()).length?await sendOwner('live-status',{id:message.id}):null;
-              value=current??(stored?{...summarizeResult(stored),...(summarizeResult(stored).acquisition==='pending'?{unresolvedReason:'Capture execution is unavailable. Open the result to inspect interrupted work.'}:{})}:null);
+              const transfer=(await database.locusTransfers()).find(item=>item.resultId===message.id);
+              const locus=transfer?{state:transfer.state,message:transfer.message}:undefined;
+              if(locus&&transferActive(locus)&&!(await contexts()).length){locus.state='unverified';locus.message='Save execution ended. Check the original result before continuing';}
+              value=current??(stored?{...summarizeResult(stored),locus,...(summarizeResult(stored).acquisition==='pending'?{unresolvedReason:'Capture execution is unavailable. Open the result to inspect interrupted work.'}:{})}:null);
             }
             break;
           }

@@ -31,6 +31,14 @@ async function message(op:string, values:Record<string,unknown>={}, origin='resu
 }
 function delivery(): Delivery { return {id:crypto.randomUUID(),resultId:crypto.randomUUID(),revision:1,createdAt:new Date().toISOString(),state:'packaging',partial:false}; }
 describe('wakeable native delivery coordination',()=>{
+  it('never exposes the saved Locus Token through settings reads or source messages',async()=>{
+    const database=new ResultDatabase();await database.saveLocusConnection({origin:'http://127.0.0.1:46321',token:'private-secret'});await database.close();
+    startCoordinator();expect(await message('locus-settings')).toEqual({origin:'http://127.0.0.1:46321',configured:true});
+    await expect(message('locus-settings',{},'offscreen.html')).rejects.toThrow('results page');
+    await expect(message('locus-connect',{origin:'https://outside.example',token:'private-secret'})).rejects.toThrow('address from Locus Settings');
+    const response=await new Promise<any>(resolve=>listener({target:'coordinator',op:'locus-settings'},{id:'synthetic',url:'https://x.com/example/status/1',tab:{id:1},frameId:0,documentId:'doc'},resolve));
+    expect(response.ok).toBe(false);expect(JSON.stringify(response)).not.toContain('private-secret');
+  });
   it('upgrades persisted Bilibili page registration without expanding source probes to favorites',async()=>{
     permissions.mockResolvedValue(true);
     vi.mocked(chrome.scripting.getRegisteredContentScripts).mockImplementation(async filter=>(filter?.ids??[]).filter(id=>id.startsWith('locus-bilibili')).map(id=>({id,matches:['https://www.bilibili.com/*']})));

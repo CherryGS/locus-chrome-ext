@@ -5,8 +5,31 @@ Bilibili ordinary-video parts with complete media files. Results stay in extensi
 manual clear and can be exported as a ZIP with separate files, JSON and JSONL.
 
 Confirmed product intent lives in the independent local `project-doc/INTENT.md`.
-This implementation covers bounded current Twitter and Bilibili source structures. Other
-websites and Locus integration remain outside the current workflow.
+This implementation covers bounded current Twitter and Bilibili source structures.
+Complete Twitter captures automatically save media and source information to Locus
+after connection setup. Incomplete captures are not sent. Bilibili remains staged
+locally while its upstream integration is pending.
+
+## Locus connection
+
+Open the extension results tab, expand **Locus connection**, and enter the active
+`http://127.0.0.1:port` address and shared Token from Locus Settings. **Connect and
+save** requests optional loopback access and verifies the credential. The Token
+stays in extension-origin IndexedDB and is never returned to webpage callers.
+
+The Twitter action acquires the whole selected scope, checks basic mapping limits,
+uploads each actual file, then submits confirmed File IDs with Twitter snapshots
+to the existing external import endpoint. One selected media produces one import
+item; intentional text-only selections remain supported. **Saved to Locus** means
+all requested import items succeeded, not merely that files uploaded or local
+staging completed. Existing retained captures are not automatically sent.
+
+**Check and continue save** observes original request IDs after a lost response and
+can finish remaining steps in the same backend run without reuploading confirmed
+files. It does not replay unknown requests or silently retry failed domain stages.
+After Locus restarts, an unresolved old save stays unverified; check Locus before
+intentionally capturing again. Clearing local captures does not delete Locus data.
+This version does not query whether arbitrary posts are already present in Locus.
 
 ## Workspace
 

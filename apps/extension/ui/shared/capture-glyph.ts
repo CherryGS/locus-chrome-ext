@@ -1,6 +1,7 @@
 import type { CaptureState } from './capture-status';
 
 export const captureGlyphPaths: Record<CaptureState, string> = {
+  'locus-saved': 'M20 6 9 17l-5-5',
   uncaptured: 'M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5',
   queued: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l3 2',
   checking: 'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6', importing: 'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6', saving: 'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6',
