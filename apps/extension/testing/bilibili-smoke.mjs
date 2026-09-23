@@ -50,6 +50,14 @@ const vfrFile = path.join(work, 'vfr.mp4');
 cmd('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=30', '-vf', 'settb=1/15360,setpts=PTS-if(gte(N\\,60)\\,256\\,0),setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709', '-frames:v', '90', '-fps_mode', 'passthrough', '-enc_time_base', '1/15360', '-c:v', 'libx264', '-bf', '2', '-g', '30', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-colorspace', 'bt709', '-color_trc', 'bt709', '-color_primaries', 'bt709', '-an', '-movflags', '+frag_keyframe+delay_moov+default_base_moof', vfrFile]);
 const vfrBytes = await readFile(vfrFile), vfrAvcc = vfrBytes.indexOf(Buffer.from('avcC')); assert(vfrAvcc >= 0);
 aspectMedia.set(11, { file: vfrFile, bytes: vfrBytes, width: 320, height: 180, sar: '1:1', codec: 'avc1.' + vfrBytes.subarray(vfrAvcc + 5, vfrAvcc + 8).toString('hex') });
+const silentFile = process.env.LOCUS_BILI_SILENT_VIDEO ?? videoFile, silentBytes = await readFile(silentFile);
+const silentInfo = JSON.parse(cmd('ffprobe', ['-v', 'error', '-show_streams', '-of', 'json', silentFile])).streams;
+assert.equal(silentInfo.length, 1); assert.equal(silentInfo[0].codec_type, 'video');
+const silentAvcc = silentBytes.indexOf(Buffer.from('avcC')); assert(silentAvcc >= 0);
+aspectMedia.set(12, { file: silentFile, bytes: silentBytes, width: silentInfo[0].width, height: silentInfo[0].height, sar: '1:1', codec: 'avc1.' + silentBytes.subarray(silentAvcc + 5, silentAvcc + 8).toString('hex'), silent: true, duration: Number(silentInfo[0].duration) });
+const unexpectedAudioFile = path.join(work, 'unexpected-audio.mp4');
+cmd('ffmpeg', ['-v', 'error', '-i', videoFile, '-i', audioFile, '-c', 'copy', unexpectedAudioFile]);
+const unexpectedAudio = await readFile(unexpectedAudioFile), audioRequests = [];
 let real;
 if(process.env.LOCUS_BILI_REAL_VIDEO&&process.env.LOCUS_BILI_REAL_AUDIO){
   const bytes=await readFile(process.env.LOCUS_BILI_REAL_VIDEO),sound=await readFile(process.env.LOCUS_BILI_REAL_AUDIO);assert(bytes.length<=64*1048576&&sound.length<=64*1048576);
@@ -69,13 +77,15 @@ function fixture(p) {
     return { id, codecs, bandwidth: id * 1000, width: 320, height: 180, baseUrl: p === 2 ? `https://synthetic.mcdn.bilivideo.cn:8082/v1/resource${pathname}` : approved,
       ...(p === 2 ? { backup_url: [`https://synthetic.edge.mountaintoys.cn:4483${pathname}`, approved] } : {}) };
   };
-  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\n' }, { type: 2, raw_text: 'Synthetic collaborator', biz_id: 123 }, { type: 1, raw_text: 'Second line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 11 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
+  const initial = { bvid, aid: '116182891959963', cid, p, videoData: { bvid, cid: '100001', title: 'Synthetic multipart source', desc: p === 6 ? 'excerpt' : 'Complete &amp; description', desc_v2: p === 6 ? [{ type: 2, raw_text: 'unsupported' }] : [{ type: 1, raw_text: 'Complete & description\n' }, { type: 2, raw_text: 'Synthetic collaborator', biz_id: 123 }, { type: 1, raw_text: 'Second line' }], owner: { mid: '123', name: 'Synthetic uploader' }, pubdate: 1710000000, pic: 'http://i0.hdslb.com/bfs/archive/synthetic.png', rights: { ugc_pay_preview: 0, is_stein_gate: 0, ugc_pay: 0 }, pages: Array.from({ length: 14 }, (_, i) => ({ page: i + 1, cid: String(100001 + i), duration: 3, part: `Synthetic part ${i + 1}` })) } };
   const play = { code: 0, data: { timelength: 3000, accept_quality: [64], support_formats: [{ quality: 64 }], dash: { video: [track(64, 'avc1.64000D')], audio: p === 3 ? [] : [track(30280, 'mp4a.40.2')] } } };
   if (aspectMedia.has(p)) { const media = aspectMedia.get(p); Object.assign(play.data.dash.video[0], { width: media.width, height: media.height, codecs: media.codec }); }
+  if (p === 12 || p === 14) { Object.assign(play.data.dash, { audio: null, dolby: { type: 0, audio: null }, flac: null }); }
+  if (p === 12) { const media = aspectMedia.get(p); initial.videoData.pages[p - 1].duration = Math.ceil(media.duration); play.data.timelength = media.duration * 1000; }
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
   return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report{display:flex;gap:20px;margin:32px 0}.video-toolbar-right{display:flex;align-items:center;margin-left:auto}.video-toolbar-right-item{display:flex;align-items:center;gap:6px;height:24px}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>Synthetic Bilibili P${p}</h1><input aria-label="Outside browsing input"><div id="arc_toolbar_report" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right"><div data-v-abc123="" class="video-complaint video-toolbar-right-item"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3 2 21h20Z"/></svg><span class="video-toolbar-item-text">稿件举报</span></div></div></div>${bilibiliNativeFixture(p)}<main>Independent page browsing</main></div>`;
 }
-async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1', 1); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
+async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1'); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
 async function routeOwner() {
   const cdp = await context.browser().newBrowserCDPSession(); const target = await until(async () => (await cdp.send('Target.getTargets')).targetInfos.find(t => t.url.endsWith('/offscreen.html')), Boolean, 'offscreen target');
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: false }); let counter = 0; const pending = new Map();
@@ -83,7 +93,10 @@ async function routeOwner() {
   cdp.on('Target.receivedMessageFromTarget', event => { if (event.sessionId !== sessionId) return; const msg = JSON.parse(event.message); if (msg.id) { const request = pending.get(msg.id); pending.delete(msg.id); if (msg.error) request?.reject(new Error('Fixture CDP command failed')); else request?.resolve(msg.result); return; } if (msg.method !== 'Fetch.requestPaused') return; void (async () => {
     const req = msg.params, url = new URL(req.request.url); if (hold) await hold(url);
     const isCover = url.hostname.endsWith('.hdslb.com'), p = Number(url.pathname.split('/')[4]) - 100000, isAudio = url.pathname.includes('-30280.');
+    if (isAudio) audioRequests.push(p);
+    if (p === 13 && isAudio) { await send('Fetch.fulfillRequest', { requestId: req.requestId, responseCode: 503, body: '' }); return; }
     let body = isCover ? cover : p===8&&real?(isAudio?real.audio:real.video):isAudio ? audio : aspectMedia.get(p)?.bytes ?? video; if (p === 4 && !isAudio) body = body.subarray(0, Math.floor(body.length / 2));
+    if (p === 14 && !isCover) body = unexpectedAudio;
     const headers = [{ name: 'Content-Type', value: isCover ? 'image/png' : 'application/octet-stream' }, { name: 'Content-Length', value: String(p === 5 && !isAudio ? 65 * 1048576 : body.length) }];
     await send('Fetch.fulfillRequest', { requestId: req.requestId, responseCode: 200, responseHeaders: headers, body: body.toString('base64') });
   })().catch(() => {}); });
@@ -205,7 +218,7 @@ try {
     await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();
     const display = await until(() => dimensions(resultPage), value => value.ready >= 1, 'retained aspect preview'); assert.equal(display.width, sourceDisplay.width); assert.equal(display.height, sourceDisplay.height);
     const playback = [];
-    for (const position of [0, 1.5, 2.4]) {
+    for (const position of [0, (media.duration ?? 3) / 2, (media.duration ?? 3) - .6]) {
       const played = await resultPage.locator('video').evaluate(async (video, position) => {
         video.muted = true;
         if (position) await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Seek timed out')), 10000); video.addEventListener('seeked', () => { clearTimeout(timer); resolve(); }, { once: true }); video.currentTime = position; });
@@ -219,9 +232,12 @@ try {
     const metadata = JSON.parse(await entries.find(entry => entry.filename === 'metadata.json').getData(new TextWriter())), file = metadata.files.find(file => file.id === 'media-2');
     const output = path.join(work, `aspect-${part}-captured.mp4`); await writeFile(output, await entries.find(entry => entry.filename === file.path).getData(new Uint8ArrayWriter())); await zip.close();
     const actual = packets(output), original = packets(media.file), stream = actual.streams.find(stream => stream.codec_type === 'video');
-    assert.equal(original.streams[0].sample_aspect_ratio, media.sar);
-    for (const field of ['width', 'height', 'sample_aspect_ratio', 'display_aspect_ratio']) assert.equal(stream[field], original.streams[0][field], field);
-    for (const [kind, file] of [['video', media.file], ['audio', audioFile]]) {
+    assert.equal(original.streams[0].sample_aspect_ratio ?? '1:1', media.sar);
+    for (const field of ['width', 'height']) assert.equal(stream[field], original.streams[0][field], field);
+    assert.equal(stream.sample_aspect_ratio ?? '1:1', original.streams[0].sample_aspect_ratio ?? '1:1');
+    if (original.streams[0].display_aspect_ratio) assert.equal(stream.display_aspect_ratio, original.streams[0].display_aspect_ratio);
+    assert.equal(actual.streams.length, media.silent ? 1 : 2);
+    for (const [kind, file] of media.silent ? [['video', media.file]] : [['video', media.file], ['audio', audioFile]]) {
       const before = packets(file), track = actual.streams.find(stream => stream.codec_type === kind), after = actual.packets.filter(packet => packet.stream_index === track.index);
       assert.equal(track.extradata_hash, before.streams[0].extradata_hash); assert.deepEqual(after.map(packet => packet.data_hash), before.packets.map(packet => packet.data_hash));
       assertPresentationTiming(before.packets, after, kind);
@@ -235,12 +251,21 @@ try {
       const beforeFrames = frameHashes(media.file); assert.equal(beforeFrames.length, 90);
       assert.deepEqual(frameHashes(output), beforeFrames, 'VFR decoded frames in presentation order');
     }
+    if (media.silent) {
+      assert(!audioRequests.includes(part), 'Silent capture must not request or fabricate audio');
+      const row = (await rows()).find(row => row.id === attempt.id);
+      assert.equal(row.records[0].payload.representation.audioAbsent, true);
+      assert.equal(row.records[0].payload.representation.audioCodec, null);
+      assert.equal(row.records[0].payload.representation.audioSource, null);
+      assert.deepEqual(frameHashes(output), frameHashes(media.file), 'Silent decoded frames match the source');
+    }
     cmd('ffmpeg', ['-v', 'error', '-xerror', '-i', output, '-f', 'null', '-']);
     aspectProof.push({ part, sourceSar: media.sar, outputSar: stream.sample_aspect_ratio, dar: stream.display_aspect_ratio, sourceDisplay, display, playback, configurationEqual: true, allPacketsEqual: true, timingEqual: true, fullDecode: true });
   }
   await writeFile(path.join(work, 'aspect-evidence.json'), JSON.stringify(aspectProof, null, 2));
   checks.push('Non-square 1920x1070 SAR 1070:1071 and rounding-sensitive 320x180 SAR 1001:1000 preserve exact SAR/DAR, all encoded packets/configurations/timing, Chrome display dimensions, start/mid/end playback, full decode and ZIP bytes');
   checks.push('Fragmented VFR + B-frames preserve every packet, presentation timestamp, final-frame duration, decoded frame hash and browser playback through flat MP4 assembly');
+  checks.push('Explicitly silent DASH source imports one video track, preserves all packets/timing/decoded frames, plays at start/mid/end and exports ZIP without any audio request or fabricated track');
   if(real){
     const attempt=await capture(8);await attempt.page.close();const saved=await until(rows,list=>list.find(row=>row.id===attempt.id)?.assets.every(asset=>asset.acquisition.state!=='pending'),'real AVC terminal',120000);assert(saved.find(row=>row.id===attempt.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(saved));
     await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);await resultPage.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
@@ -250,12 +275,14 @@ try {
     const after=packets(output),proof=[];for(const[kind,file]of[['video',process.env.LOCUS_BILI_REAL_VIDEO],['audio',process.env.LOCUS_BILI_REAL_AUDIO]]){const original=packets(file),stream=after.streams.find(stream=>stream.codec_type===kind),actual=after.packets.filter(packet=>packet.stream_index===stream.index);assert.equal(stream.extradata_hash,original.streams[0].extradata_hash);assert.deepEqual(actual.map(packet=>packet.data_hash),original.packets.map(packet=>packet.data_hash));assertPresentationTiming(original.packets,actual,kind);proof.push({kind,packets:actual.length,configurationEqual:true,encodedPacketsEqual:true,presentationTimingEqual:true});}
     cmd('ffmpeg',['-v','error','-xerror','-i',output,'-f','null','-']);await writeFile(path.join(work,'real-media-evidence.json'),JSON.stringify({proof,playback,fullDecode:true},null,2));checks.push('Optional real AVC/AAC through production source fixture/byte path: complete packet+configuration preservation, source page closed, start/mid/end playback, full decode and native ZIP');
   }
-  for (const p of [3, 4, 5, 6]) {
+  for (const p of [3, 4, 5, 6, 13, 14]) {
     const attempt = await capture(p); const values = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `partial P${p}`); const row = values.find(row => row.id === attempt.id);
     assert(row.assets.some(asset => asset.acquisition.state === 'acquired')); if (p !== 6) assert.equal(row.assets.find(asset => asset.id === 'media-2').acquisition.state, 'unavailable'); else assert.equal(row.records[0].acquisition.state, 'unavailable');
     await attempt.page.getByRole('button',{name:'Expand capture queue',exact:true}).click();
     const diagnostic=attempt.page.locator(`[data-task-id="${attempt.id}"] [data-capture-diagnostic] pre`);
     await diagnostic.waitFor();const report=await diagnostic.textContent();assert(report.includes('stage:'));assert(report.includes(attempt.id));
+    if (p === 13) assert(report.includes('bilibili.resource.fetch') && report.includes('audio'), 'Failed audio download is not silent success');
+    if (p === 14) assert(report.includes('bilibili.video.track-inspection'), 'Unexpected embedded audio is not silently discarded');
     if(p===5){assert(report.includes('HTTP_SIZE_LIMIT'));assert(report.includes('68157440'));assert(report.includes('67108864'));
       await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},world:'ISOLATED',func:()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{document.documentElement.dataset.copiedDiagnostic=text;}}});}});},attempt.page.url());
       await attempt.page.locator(`[data-task-id="${attempt.id}"]`).getByRole('button',{name:'Copy diagnostic',exact:true}).click();

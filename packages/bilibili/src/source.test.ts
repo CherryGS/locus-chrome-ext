@@ -11,13 +11,13 @@ function fixture() {
   return { initial, play, candidate: () => normalizeBilibili(projectBilibili(initial, play, url, true), url) };
 }
 describe('Bilibili initial current-part source', () => {
-  it('binds root P2 CID independently of parent first CID and retains only safe selected metadata', () => { const f = fixture(), c = f.candidate(), r = selectBilibili(c, ['media-1', 'media-2'], 'result'); expect(c.text).toBe('Synthetic title\n\nOne\n& two'); expect(c.media[1]!.tracks?.video.quality).toBe(64); expect(c.media[1]!.tracks?.audio.quality).toBe(30280); expect(JSON.stringify(r)).not.toContain('private='); expect(JSON.stringify(r)).not.toContain('never project'); expect(JSON.stringify(r)).toContain('36531930223'); });
+  it('binds root P2 CID independently of parent first CID and retains only safe selected metadata', () => { const f = fixture(), c = f.candidate(), r = selectBilibili(c, ['media-1', 'media-2'], 'result'); expect(c.text).toBe('Synthetic title\n\nOne\n& two'); expect(c.media[1]!.tracks?.video.quality).toBe(64); expect(c.media[1]!.tracks?.audio?.quality).toBe(30280); expect(JSON.stringify(r)).not.toContain('private='); expect(JSON.stringify(r)).not.toContain('never project'); expect(JSON.stringify(r)).toContain('36531930223'); });
   it('retains numeric video filename suffixes independently of an unsuffixed audio track', () => {
     const f = fixture();
     for (const track of f.play.data.dash.video) track.baseUrl = track.baseUrl.replace('-1-', '_t6-1-');
     const candidate = f.candidate(), tracks = candidate.media[1]!.tracks;
     expect(tracks?.video.quality).toBe(64); expect(tracks?.video.url).toContain('_t6-1-64.m4s');
-    expect(tracks?.audio.url).not.toContain('_t6');
+    expect(tracks?.audio?.url).not.toContain('_t6');
     const retained = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
     expect(retained).toContain('_t6-1-64.m4s'); expect(retained).not.toContain('private=');
   });
@@ -25,7 +25,7 @@ describe('Bilibili initial current-part source', () => {
     const f = fixture();
     for (const track of [...f.play.data.dash.video, ...f.play.data.dash.audio]) track.baseUrl = track.baseUrl.replace('-1-', '_qe1-1-');
     const candidate = f.candidate(), tracks = candidate.media[1]!.tracks;
-    expect(tracks?.video.quality).toBe(64); expect(tracks?.audio.quality).toBe(30280);
+    expect(tracks?.video.quality).toBe(64); expect(tracks?.audio?.quality).toBe(30280);
     const retained = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
     expect(retained).toContain('_qe1-1-64.m4s'); expect(retained).toContain('_qe1-1-30280.m4s');
     expect(retained).not.toContain('private=');
@@ -78,9 +78,9 @@ describe('Bilibili initial current-part source', () => {
     }
     const candidate = f.candidate(), selected = candidate.media[1]!.tracks;
     expect(selected?.video).toMatchObject({ quality: 64, width: 580, height: 1280 });
-    expect(selected?.audio.quality).toBe(30280);
+    expect(selected?.audio?.quality).toBe(30280);
     expect(selected?.video.url).toContain('https://synthetic.bilivideo.com/');
-    expect(selected?.audio.url).toContain('https://synthetic.bilivideo.com/');
+    expect(selected?.audio?.url).toContain('https://synthetic.bilivideo.com/');
     const saved = JSON.stringify(selectBilibili(candidate, ['media-1', 'media-2'], 'result'));
     expect(saved).not.toContain('private='); expect(saved).not.toContain('mcdn');
   });
@@ -103,6 +103,29 @@ describe('Bilibili initial current-part source', () => {
   it('keeps only coarse bound duration when a nearby playinfo belongs to another CID',()=>{const f=fixture();f.play.data.timelength=26999;f.play.data.dash.video[0]!.baseUrl=f.play.data.dash.video[0]!.baseUrl.replaceAll('36531930223','36508468243');expect(f.candidate().payload).toMatchObject({part:{duration:27,durationPrecision:'coarse-seconds'}});});
   it('selects actual supported membership, not advertised-only quality or codec bitrate', () => { const f = fixture(); f.play.data.accept_quality.unshift(80); f.play.data.support_formats.unshift({ quality: 80 }); const c = f.candidate(); expect(c.media[1]!.tracks?.video.quality).toBe(64); });
   it('rejects conflicting quality ordering, contradictory dimensions and missing audio', () => { const f = fixture(); f.play.data.support_formats.reverse(); expect(f.candidate().media[1]!.reason).toContain('ordering'); f.play.data.support_formats.reverse(); f.play.data.dash.video[1]!.width = 1920; expect(f.candidate().media[1]!.reason).toContain('dimensions'); f.play.data.dash.audio = []; expect(f.candidate().media[1]!.reason).toContain('audio'); });
+  it('accepts an explicitly silent DASH source without inventing an audio representation', () => {
+    const f = fixture();
+    Object.assign(f.play.data.dash, { audio: null, dolby: { type: 0, audio: null }, flac: null });
+    const projected = projectBilibili(f.initial, f.play, url, true);
+    expect(projected.play.dash.audioAbsent).toBe(true);
+    const candidate = normalizeBilibili(projected, url);
+    expect(candidate.media[1]).toMatchObject({ reason: null, tracks: { audio: null, video: { quality: 64 } } });
+    expect(candidate.payload).toMatchObject({ representation: { audioAbsent: true, audioCodec: null, audioSource: null, audioBandwidth: null } });
+    expect(candidate.media[1]!.quality).toContain('no audio');
+  });
+  it.each([
+    { audio: undefined, dolby: { type: 0, audio: null }, flac: null },
+    { audio: [], dolby: { type: 0, audio: null }, flac: null },
+    { audio: {}, dolby: { type: 0, audio: null }, flac: null },
+    { audio: null },
+    { audio: null, dolby: { type: 1, audio: [{ id: 30250 }] }, flac: null },
+    { audio: null, dolby: { type: 0, audio: null }, flac: { audio: { id: 30251 } } },
+  ])('does not infer silence from missing, malformed or alternative audio: %j', fields => {
+    const f = fixture(); Object.assign(f.play.data.dash, fields);
+    expect(projectBilibili(f.initial, f.play, url, true).play.dash.audioAbsent).toBe(false);
+    const candidate = f.candidate(); expect(candidate.media[1]!.tracks).toBeUndefined();
+    expect(candidate.media[1]!.reason).toContain('audio'); expect(candidate.payload).not.toBeNull();
+  });
   it('does not claim unqualified AV1 as supported AVC', () => { const f = fixture(); for (const v of f.play.data.dash.video) v.codecs = 'av01.0.08M.08'; expect(f.candidate().media[1]!.reason).toContain('AV1'); });
   it('allows only grounded tracking keys without altering current-part identity', () => { expect(partUrl(url + '&spm_id_from=synthetic&trackid=1&share_source=copy_web&vd_source=x').id).toBe(partUrl(url).id); for (const value of [url + '&p=1', url.replace('p=2', 'p=0'), url.replace('/video/', '/bangumi/'), url + '&unknown=1']) expect(() => partUrl(value)).toThrow(); });
   it('upgrades only an approved cover and rejects offsite/credential/port resource URLs', () => { expect(bilibiliResource('http://i0.hdslb.com/bfs/archive/a.jpg?x=1', 'cover')).toBe('https://i0.hdslb.com/bfs/archive/a.jpg?x=1'); for (const value of ['https://evil.com/a.jpg', 'https://u:p@i0.hdslb.com/bfs/archive/a.jpg', 'https://i0.hdslb.com:444/bfs/archive/a.jpg']) expect(() => bilibiliResource(value, 'cover')).toThrow(); });
