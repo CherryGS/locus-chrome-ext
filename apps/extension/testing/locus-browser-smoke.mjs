@@ -10,6 +10,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { createBilibiliLocusSmoke } from './locus-bilibili-smoke.mjs';
 
 const member=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const binary=process.env.LOCUS_SERVER_PATH,chromePath=process.env.LOCUS_CHROME_PATH;
@@ -19,9 +20,10 @@ const serverPath=path.join(work,process.platform==='win32'?'server.exe':'server'
 const extension=path.join(work,'extension');await cp(path.join(member,'.output/chrome-mv3'),extension,{recursive:true});
 const manifestPath=path.join(extension,'manifest.json'),manifest=JSON.parse(await readFile(manifestPath,'utf8'));
 // Grant fixture origins only in the disposable build; production uses a gesture.
-manifest.host_permissions=['http://127.0.0.1/*','https://x.com/*','https://twitter.com/*','https://pbs.twimg.com/*','https://video.twimg.com/*'];
+manifest.host_permissions=manifest.optional_host_permissions;
 await writeFile(manifestPath,JSON.stringify(manifest));
 const image=await readFile(path.join(member,'testing/fixtures/black-frame.png'));
+const bilibili=await createBilibiliLocusSmoke({work,image});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(read,predicate,label){const deadline=Date.now()+30_000;let value;do{value=await read();if(predicate(value))return value;await pause(100);}while(Date.now()<deadline);throw new Error(`${label}: ${JSON.stringify(value)}`);}
 async function start(){
@@ -51,26 +53,29 @@ try{
   const errors=[];context.on('page',page=>page.on('pageerror',error=>errors.push(String(error))));
   await context.route('https://x.com/**',route=>{const id=new URL(route.request().url()).pathname.split('/').at(-1);return route.fulfill({status:200,contentType:'text/html',body:fixture(id,id==='124')});});
   await context.route('https://pbs.twimg.com/**',route=>route.request().url().includes('failure')?route.fulfill({status:503,body:'Unavailable'}):route.fulfill({status:200,contentType:'image/png',body:image}));
+  await bilibili.route(context);
   const worker=context.serviceWorkers()[0]??await context.waitForEvent('serviceworker'),extensionId=new URL(worker.url()).host;
   const results=await context.newPage();await results.goto(`chrome-extension://${extensionId}/results.html`);
   await results.locator('summary').filter({hasText:'Locus connection'}).click();
   await results.getByLabel('Locus address',{exact:true}).fill(`http://127.0.0.1:${port}`);await results.getByLabel('Token',{exact:true}).fill(credential.token);
-  await results.getByRole('button',{name:'Connect and save'}).click();await until(()=>results.locator('form').innerText(),value=>value.includes('Connected. Complete Twitter captures save automatically.'),'connection feedback');
+  await results.getByRole('button',{name:'Connect and save'}).click();await until(()=>results.locator('form').innerText(),value=>value.includes('Connected. Complete Twitter and Bilibili captures save automatically.'),'connection feedback');
   // Offscreen documents are not Playwright pages; route their site fixtures via
   // their own CDP target. Loopback traffic continues to the real Locus server.
   const cdp=await context.browser().newBrowserCDPSession();
   const target=await until(async()=>(await cdp.send('Target.getTargets')).targetInfos.find(value=>value.url.endsWith('/offscreen.html')),Boolean,'offscreen owner');
   const {sessionId}=await cdp.send('Target.attachToTarget',{targetId:target.targetId,flatten:false});
-  const pending=new Map();let sequence=0;
+  const pending=new Map(),locusRequests=[];let sequence=0;
   const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});void cdp.send('Target.sendMessageToTarget',{sessionId,message:JSON.stringify({id,method,params})}).catch(reject);});
   cdp.on('Target.receivedMessageFromTarget',event=>{
     if(event.sessionId!==sessionId)return;const message=JSON.parse(event.message);
     if(message.id){const receiver=pending.get(message.id);pending.delete(message.id);if(message.error)receiver?.reject(new Error(message.error.message));else receiver?.resolve(message.result);}
-    if(message.method==='Fetch.requestPaused')void(async()=>{const request=message.params,url=new URL(request.request.url),id=url.pathname.split('/').at(-1);const source=url.hostname==='x.com';const body=source?Buffer.from(fixture(id,id==='124')):image;
+    if(message.method==='Network.requestWillBeSent'){const {url,method,postData}=message.params.request;const parsed=new URL(url);if(parsed.hostname==='127.0.0.1'&&parsed.pathname.startsWith('/external/v1/'))locusRequests.push({path:parsed.pathname,method,...(parsed.pathname.endsWith('/import-batches')&&postData?{body:JSON.parse(postData)}:{})});}
+    if(message.method==='Fetch.requestPaused')void(async()=>{const request=message.params,url=new URL(request.request.url),id=url.pathname.split('/').at(-1);const response=await bilibili.response(url);if(response){await send('Fetch.fulfillRequest',{requestId:request.requestId,...response});return;}const source=url.hostname==='x.com';const body=source?Buffer.from(fixture(id,id==='124')):image;
       await send('Fetch.fulfillRequest',{requestId:request.requestId,responseCode:url.pathname.includes('failure')?503:200,responseHeaders:[{name:'Content-Type',value:source?'text/html':'image/png'},{name:'Content-Length',value:String(body.length)}],body:body.toString('base64')});
     })().catch(error=>errors.push(String(error)));
   });
-  await send('Fetch.enable',{patterns:[{urlPattern:'https://x.com/*'},{urlPattern:'https://pbs.twimg.com/*'}]});
+  await send('Network.enable');
+  await send('Fetch.enable',{patterns:[{urlPattern:'https://x.com/*'},{urlPattern:'https://pbs.twimg.com/*'},...bilibili.patterns]});
   const rows=()=>results.evaluate(async()=>{const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('locus-results-v1');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});try{return await new Promise((resolve,reject)=>{const r=db.transaction('locus-transfers').objectStore('locus-transfers').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}finally{db.close();}});
   const page=await context.newPage();await page.goto('https://x.com/synthetic/status/123');await page.locator('[data-locus-action] button').click();
   const saved=await until(rows,values=>values.some(value=>value.state==='complete'),'automatic Locus import').catch(async error=>{await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();throw new Error(`${error.message}\n${await page.locator('[data-locus-capture]').evaluate(host=>host.shadowRoot.querySelector('.dark').innerText)}`);});
@@ -84,6 +89,7 @@ try{
   await until(rows,values=>values.length===2&&values.some(value=>value.state==='failed'),'partial capture blocks delivery');
   assert.equal((await application.request('/api/v1/import-batches')).batches.length,1);
   assert.equal((await rows()).find(value=>value.state==='failed').uploads.length,0);
+  const bilibiliChecks=await bilibili.verify({context,results,rows,application,extensionId,until,locusRequests});
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({passed:['Connection UI and credential check','One-click complete Twitter capture -> real upload -> real File/Twitter import','Page shows confirmed Locus result','Incomplete capture sends no upload or import'],artifacts:work}));
+  console.log(JSON.stringify({passed:['Connection UI and credential check','One-click complete Twitter capture -> real upload -> real File/Twitter import','Page shows confirmed Locus result','Incomplete capture sends no upload or import',...bilibiliChecks],artifacts:work}));
 }finally{await context?.close();if(application.process.exitCode===null){await application.stop().catch(async()=>{application.process.kill();await application.exited;});}}

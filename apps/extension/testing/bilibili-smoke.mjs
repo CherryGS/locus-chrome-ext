@@ -137,9 +137,9 @@ try {
   assert.equal(await bootRevoked.locator('[data-locus-bilibili-action]').count(), 1); await bootRevoked.close();
   checks.push('Revocation before native bootstrap cancels deferred controls; explicit reactivation mounts once');
   const success = await capture(2);await verifyBilibiliProgress(success.page,until,work);const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
-  await until(()=>success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'),state=>state==='saved','successful merge restores the check');
-  assert.equal(await success.page.locator('[data-locus-bilibili-action="toolbar"] svg > path').getAttribute('d'),'M20 6 9 17l-5-5');
-  checks.push('Bilibili video/audio byte progress uses the shared Twitter ring and centered percentage, then restores the check only after saving');
+  await until(()=>success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'),state=>state==='failed','complete local capture still requires a configured Locus connection');
+  assert((await success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('aria-description')).includes('Configure the Locus'));
+  checks.push('Bilibili video/audio progress uses the shared ring; missing Locus connection is reported separately from complete local acquisition');
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\n@Synthetic collaborator Second line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
   assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002_t6-1-64.m4s');
   assert.equal(selected.records[0].payload.representation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-30280.m4s');
@@ -161,7 +161,7 @@ try {
     recommendation.innerHTML=`<div class="framepreview-box" style="width:160px;height:90px"><a href="${base}?p=2" style="display:block"><img alt="Same part recommendation" width="160" height="90" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"></a></div><a href="${base}?p=2">Title-only link</a>`;document.body.append(recommendation);
   },base);
   const recommended=success.page.locator('[data-locus-bilibili-action="cover"]');await until(()=>recommended.count(),count=>count===1,'video recommendation uses generic cover binding');
-  await until(()=>recommended.getAttribute('data-state'),state=>state==='saved','toolbar and preview of the same part share saved state');
+  await until(()=>recommended.getAttribute('data-state'),state=>state==='failed','toolbar and preview share the same Locus connection outcome');
   await success.page.locator('#fixture-recommendation .framepreview-box a').evaluate(link=>{link.href=link.href.replace('p=2','p=1');});
   await until(()=>recommended.getAttribute('data-state'),state=>state==='uncaptured','recommended different part has independent state');
   await success.page.locator('#fixture-recommendation').evaluate(node=>node.remove());await until(()=>recommended.count(),count=>count===0,'removed recommendation releases its control');

@@ -1,7 +1,17 @@
 import { twitterImportItems } from '@locus/twitter/locus';
+import { bilibiliImportItems } from '@locus/bilibili/locus';
 import type { Snapshot } from '@locus/capture-core/model';
 import { bootstrap, LocusClient, LocusError, type ImportBatch, type Outcome, type Submission } from './client';
 import type { LocusConnection, LocusRequest, LocusTransfer } from './model';
+
+// Bilibili cover/image stages are nested; shallow inspection hides their errors
+// and can turn an uncertain cover association into an apparently definite failure.
+function stages(value: unknown): { state: string; reason?: string }[] {
+  if (!value || typeof value !== 'object') return [];
+  const node = value as Record<string, unknown>;
+  const own = typeof node.state === 'string' ? [{ state: node.state, ...(typeof node.reason === 'string' ? { reason: node.reason } : {}) }] : [];
+  return [...own, ...Object.values(node).flatMap(stages)];
+}
 
 export function newTransfer(resultId: string, revision: number): LocusTransfer {
   return { resultId, revision, state: 'waiting', message: 'Waiting for complete capture before saving to Locus', uploads: [] };
@@ -23,7 +33,7 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
   try {
     if (transfer.state === 'complete') return;
     check();
-    const items = twitterImportItems(snapshot);
+    const items = snapshot.result.site === 'bilibili' ? bilibiliImportItems(snapshot) : twitterImportItems(snapshot);
     if (!connection) throw new Error('Configure the Locus address and Token in the extension’s connection settings, then continue this save');
     if (transfer.origin && transfer.origin !== connection.origin) throw new Error('This save belongs to another Locus address. Restore that connection to check its result');
     const runId = await bootstrap(connection, options.transport);
@@ -64,15 +74,15 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
         await pause();
       }
     }
-    for (const item of transfer.items) {
-      if (!item.assetId) continue;
-      let upload = transfer.uploads.find(value => value.assetId === item.assetId);
-      if (!upload) { upload = { assetId: item.assetId, request: { id: crypto.randomUUID() } }; transfer.uploads.push(upload); }
+    const assets = [...new Set(transfer.items.flatMap(item => [item.assetId, item.coverAssetId]).filter((id): id is string => !!id))];
+    for (const assetId of assets) {
+      let upload = transfer.uploads.find(value => value.assetId === assetId);
+      if (!upload) { upload = { assetId, request: { id: crypto.randomUUID() } }; transfer.uploads.push(upload); }
       if (upload.fileId) continue;
-      const bytes = snapshot.blobs[item.assetId]!;
-      transfer.state = 'uploading'; transfer.message = `Uploading file ${transfer.uploads.filter(value => value.fileId).length + 1} of ${snapshot.result.assets.length}`;
+      const bytes = snapshot.blobs[assetId]!;
+      transfer.state = 'uploading'; transfer.message = `Uploading file ${transfer.uploads.filter(value => value.fileId).length + 1} of ${assets.length}`;
       await persist();
-      const query = new URLSearchParams({ request_id: upload.request.id, byte_count: String(bytes.size), filename: `${snapshot.result.id}-${item.assetId}` });
+      const query = new URLSearchParams({ request_id: upload.request.id, byte_count: String(bytes.size), filename: `${snapshot.result.id}-${assetId}` });
       const completed = await outcome(upload.request, () => client.request<Submission>(`uploads?${query}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes }));
       if (completed.outcome.status !== 'upload' || !completed.outcome.result) throw new Error('Locus did not confirm a File upload result');
       const observation = completed.outcome.result;
@@ -86,7 +96,10 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
     await persist();
     const completed = await outcome(transfer.importRequest, () => client.post<Submission>('import-batches', {
       request_id: transfer.importRequest!.id,
-      items: transfer.items!.map(item => ({ file_id: item.assetId ? transfer.uploads.find(value => value.assetId === item.assetId)!.fileId : null, twitter: item.twitter })),
+      items: transfer.items!.map(item => ({
+        file_id: item.assetId ? transfer.uploads.find(value => value.assetId === item.assetId)!.fileId : null,
+        ...(item.bilibili ? { bilibili: item.bilibili, cover_file_id: transfer.uploads.find(value => value.assetId === item.coverAssetId)!.fileId } : { twitter: item.twitter }),
+      })),
     }));
     if (completed.outcome.status !== 'import_batch' || !completed.outcome.batch_id) throw new Error('Locus did not confirm an import batch');
     transfer.batchId = completed.outcome.batch_id;
@@ -94,10 +107,11 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
     const batch = observed.batches.find(value => value.batch_id === transfer.batchId && value.original_request_id === transfer.importRequest!.id);
     if (observed.run_id !== runId || !batch || !batch.original_ended || batch.items.length !== transfer.items.length) throw new Error('The complete import result is not yet attributable. Check again');
     transfer.entityIds = batch.items.flatMap(item => item.current.confirmed_entity_id ? [item.current.confirmed_entity_id] : []);
-    uncertain = batch.items.some(item => Object.values(item.current).some(value => value !== null && typeof value === 'object' && 'state' in value && value.state === 'uncertain'));
-    if (batch.items.some(item => item.current.overall !== 'success' || !item.current.complete || !item.current.confirmed_entity_id)) {
+    const observedStages = batch.items.flatMap(item => stages(item.current));
+    uncertain = observedStages.some(value => value.state === 'uncertain');
+    if (batch.items.some(item => item.current.overall !== 'success' || !item.current.complete || !item.current.confirmed_entity_id) || observedStages.some(value => ['failed', 'uncertain', 'conflict'].includes(value.state))) {
       knownFailure=!uncertain;
-      const reasons = batch.items.flatMap(item => Object.values(item.current).flatMap(value => value !== null && typeof value === 'object' && 'reason' in value && typeof value.reason === 'string' ? [value.reason] : []));
+      const reasons = observedStages.flatMap(value => value.reason ? [value.reason] : []);
       throw new Error(`Locus import needs attention (${transfer.entityIds.length}/${batch.items.length} entries established). ${reasons.join('; ') || 'Inspect the import stages in Locus; uploaded files and successful stages remain saved'}`);
     }
     transfer.state = 'complete'; transfer.message = `Saved to Locus · ${transfer.entityIds.length} ${transfer.entityIds.length === 1 ? 'entry' : 'entries'}`;

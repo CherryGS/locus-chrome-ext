@@ -174,7 +174,7 @@ export function startOffscreen() {
         if(disposed)return;
         snapshot.result.revision++; await retain(snapshot);
       }
-      if(site==='twitter'&&!disposed&&!controller.signal.aborted&&live.has(id))await sendToLocus(snapshot);
+      if(!disposed&&!controller.signal.aborted&&live.has(id))await sendToLocus(snapshot);
     } catch (error) {
       if (!disposed&&!(error instanceof ClearedError)) {
         for (const asset of snapshot.result.assets) if (asset.acquisition.state === 'pending') asset.acquisition = { state: 'unavailable', reason: errorMessage(error) };
@@ -229,7 +229,8 @@ export function startOffscreen() {
     if (operation === 'read') return { snapshot: await read(id), deliveries: (await deliveryList()).filter(d => d.resultId === id), locus:locusTransfers.get(id) };
     if(operation==='locus-continue') {
       if(jobs.has(id)||locusActive.has(id))return true;
-      const snapshot=await read(id);if(!snapshot||snapshot.result.site!=='twitter')throw new Error('Twitter capture required');
+      if(!locusTransfers.has(id))throw new Error('No existing Locus save for this capture. Start a new capture explicitly');
+      const snapshot=await read(id);if(!snapshot||!['twitter','bilibili'].includes(snapshot.result.site))throw new Error('Supported capture required');
       void sendToLocus(snapshot);return true;
     }
     if (operation === 'clear') {
@@ -297,7 +298,7 @@ export function startOffscreen() {
             if(liveBytes()>=512*1048576)throw new Error('Live capture content uses the 512 MiB owner memory limit. Finish or clear an existing capture first.');
             const id = crypto.randomUUID(); const result = 'site' in entry.candidate?selectBilibili(entry.candidate,message.selected,id):selectTwitter(entry.candidate, message.selected, id);
             candidates.delete(message.token);
-            if(site==='twitter')await saveTransfer(newTransfer(id,result.revision));
+            await saveTransfer(newTransfer(id,result.revision));
             const snapshot={result,blobs:{},readErrors:{}};live.set(id,snapshot);
             const job:Job={id,candidate:structuredClone(entry.candidate),controller:new AbortController(),initial:Promise.resolve()};jobs.set(id,job);waiting.push(id);
             job.initial=retain(snapshot);void job.initial.catch(()=>{});pump();

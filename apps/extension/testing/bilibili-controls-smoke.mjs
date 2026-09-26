@@ -41,7 +41,7 @@ export async function verifyBilibiliControls({ context, worker, work, rows, unti
     const saved = await until(rows, values => values.some(row => !before.includes(row.id) && row.assets.every(asset => asset.acquisition.state === 'acquired')), `${kind} saved P1`);
     const result = saved.find(row => !before.includes(row.id)); assert.equal(result.sourceUrl, `${base}?p=1`); assert.equal(page.url(), url);
     await until(() => context.pages().length, count => count === tabs, 'temporary source tab cleanup');
-    await until(() => second.getAttribute('data-state'), value => value === 'saved', 'saved card indicator');
+    await until(() => second.getAttribute('data-state'), value => value === 'failed', 'unconfigured Locus outcome is shared by matching cards');
     await page.getByRole('button', { name: 'Expand capture queue', exact: true }).click();
     await page.getByRole('textbox', { name: 'Outside browsing input' }).fill('browse while importing');
     assert.equal(await page.getByRole('dialog').count(), 0);

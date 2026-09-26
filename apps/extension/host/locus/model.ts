@@ -1,4 +1,10 @@
 import type { TwitterImportSnapshot } from '@locus/twitter/locus';
+import type { BilibiliImportSnapshot } from '@locus/bilibili/locus';
+
+// Keep the original Twitter shape readable in already persisted transfers.
+export type LocusImportItem =
+  | { assetId?: string; twitter: TwitterImportSnapshot; coverAssetId?: never; bilibili?: never }
+  | { assetId: string; coverAssetId: string; bilibili: BilibiliImportSnapshot; twitter?: never };
 
 export interface LocusConnection { origin: string; token: string }
 export interface LocusRequest { id: string; dispatched?: boolean }
@@ -7,7 +13,7 @@ export interface LocusTransfer {
   resultId: string; revision: number;
   state: 'waiting' | 'uploading' | 'importing' | 'complete' | 'failed' | 'unverified';
   message: string; origin?: string; runId?: string;
-  uploads: LocusUpload[]; items?: { assetId?: string; twitter: TwitterImportSnapshot }[];
+  uploads: LocusUpload[]; items?: LocusImportItem[];
   importRequest?: LocusRequest; batchId?: string; entityIds?: string[];
 }
 export type LocusSummary = Pick<LocusTransfer, 'state' | 'message'>;

@@ -34,6 +34,12 @@ async function consume<T>(operation: string, id?: string): Promise<T> {
 }
 async function begin() { const inspection = await command('inspect',{url:candidate.sourceUrl, owner:'tab:doc'}); return command('capture',{token:inspection.token, selected:['media-1','media-2'], owner:'tab:doc'}); }
 describe('offscreen producer lifetime', () => {
+  it.each(['twitter', 'bilibili'])('does not start a new Locus transfer for an old staged %s result', async site => {
+    const snapshot = syntheticSnapshot(); snapshot.result.site = site;
+    const database = new ResultDatabase(); await database.commit(snapshot);
+    await expect(consume('locus-continue', snapshot.result.id)).rejects.toThrow('No existing Locus save');
+    expect(await database.locusTransfers()).toEqual([]); await database.close();
+  });
   it('publishes live byte progress without committing stream chunks', async () => {
     let release!: (blob: Blob) => void;
     let progress!: (value: { receivedBytes: number; totalBytes: number | null }) => void;

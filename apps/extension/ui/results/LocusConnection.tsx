@@ -17,7 +17,7 @@ export function LocusConnection() {
       // Chrome needs the permission request inside this user gesture.
       if(!await chrome.permissions.request({origins:['http://127.0.0.1/*']}))throw new Error('Local Locus access was not granted');
       await coordinator('locus-connect',{origin:normalized,token});
-      setOrigin(normalized);setToken('');setConfigured(true);setMessage('Connected. Complete Twitter captures save automatically.');
+      setOrigin(normalized);setToken('');setConfigured(true);setMessage('Connected. Complete Twitter and Bilibili captures save automatically.');
     } catch(error){setInvalid(true);setMessage(error instanceof Error?error.message:'Connection failed');}
     finally{setBusy(false);}
   }
@@ -25,7 +25,7 @@ export function LocusConnection() {
     <form className="max-w-xl py-4" onSubmit={event=>{event.preventDefault();void connect();}}>
       <FieldGroup><Field data-invalid={invalid}><FieldLabel htmlFor="locus-origin">Locus address</FieldLabel><Input id="locus-origin" value={origin} onChange={event=>setOrigin(event.target.value)} disabled={busy} aria-invalid={invalid} autoComplete="off" /><FieldDescription>Copy the active address from Locus Settings → External access.</FieldDescription></Field>
         <Field data-invalid={invalid}><FieldLabel htmlFor="locus-token">Token</FieldLabel><Input id="locus-token" type="password" value={token} onChange={event=>setToken(event.target.value)} placeholder={configured?'Leave blank to keep the saved Token':'Paste the Token from Locus Settings'} disabled={busy} aria-invalid={invalid} autoComplete="off" /></Field>
-        <Field><Button type="submit" disabled={busy}>{busy?'Connecting…':'Connect and save'}</Button><FieldDescription role="status">{message||'Twitter saves directly to Locus after complete capture. Bilibili remains in the staging area.'}</FieldDescription></Field>
+        <Field><Button type="submit" disabled={busy}>{busy?'Connecting…':'Connect and save'}</Button><FieldDescription role="status">{message||'Twitter and Bilibili save directly to Locus after complete capture.'}</FieldDescription></Field>
       </FieldGroup>
     </form>
   </details>;
