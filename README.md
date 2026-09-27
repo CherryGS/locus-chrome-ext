@@ -67,7 +67,9 @@ resume against a new run.
   attention. **In progress**, **Saved**, and **All captures** provide the other
   views. Search filters summary fields, not file contents.
 - **Preview**, **Metadata**, and **Activity** separate captured content from
-  acquisition, retention and delivery outcomes. Technical diagnostics can be
+  acquisition, retention and delivery outcomes. Preview links to the author and
+  original content. Metadata groups capture, source and file details, with full
+  JSON available on demand or via **Copy JSON**. Technical diagnostics can be
   expanded and copied.
 - **Export ZIP** / **Export available content** writes `metadata.json`,
   `records.jsonl` and acquired files. Chrome reports the actual download outcome.

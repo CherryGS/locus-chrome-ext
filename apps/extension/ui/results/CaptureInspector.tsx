@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeftIcon, CheckCircle2Icon, CircleAlertIcon, LoaderCircleIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, FileIcon, ImageIcon, InboxIcon, Trash2Icon, VideoIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeftIcon, CheckCircle2Icon, CircleAlertIcon, LoaderCircleIcon, DownloadIcon, ExternalLinkIcon, FileIcon, ImageIcon, InboxIcon, Trash2Icon, VideoIcon } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -9,7 +9,7 @@ import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription } f
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { availability, errorMessage, type Snapshot, type Delivery } from '@locus/capture-core/model';
+import { availability, type Snapshot, type Delivery } from '@locus/capture-core/model';
 import { bilibiliPresentation } from '@locus/bilibili/presentation';
 import { twitterPresentation } from '@locus/twitter/presentation';
 import { CaptureStatusBadge, StagingBadge } from '@/ui/shared/CaptureStatusBadge';
@@ -18,6 +18,8 @@ import { getResultCaptureStatus } from '@/ui/shared/capture-status';
 import type { LocusTransfer } from '@/host/locus/model';
 import { toast } from '@/components/ui/toast';
 import { LocusSaveStatus } from './LocusSaveStatus';
+import { CaptureMetadata } from './CaptureMetadata';
+import { SourceLink } from './SourceLink';
 import { acquisitionLabel, deliveryLabels, exactTime, fileSize, retentionLabel, safeSource, sourceName } from './presentation';
 
 export function Failure({ title, message, context }: { title: string; message: string; context?: Record<string, unknown> }) { return <TechnicalFailure collapsed title={title} message={message} context={context} onNotice={title=>toast.add({title})} />; }
@@ -40,12 +42,13 @@ function Preview({ snapshot }: { snapshot: Snapshot }) {
   const acquiredFiles = result.assets.filter(asset => asset.acquisition.state === 'acquired').length;
   const previewAssets=result.site==='bilibili'?[...result.assets].sort((a,b)=>Number(b.id==='media-2')-Number(a.id==='media-2')):result.assets;
   return <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-6 sm:px-8 sm:py-8">
+    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>Captured {exactTime(result.createdAt)}</span><SourceLink href={result.sourceUrl}>{result.site === 'bilibili' ? 'Open original video' : result.site === 'twitter' ? 'Open original post' : 'Open original content'}</SourceLink></div>
     {result.records.map(record => {
       const post = result.site === 'twitter' && record.acquisition.state === 'acquired' ? twitterPresentation(record.payload) : null;
       const part=result.site==='bilibili'&&record.acquisition.state==='acquired'?bilibiliPresentation(record.payload):null;
       return <article key={record.id} className="flex flex-col gap-5">
-        {post && <><header className="flex items-center gap-3"><Avatar size="lg"><AvatarFallback>{(post.displayName ?? post.username ?? 'X').slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0"><p className="font-medium">{post.displayName ?? post.username ?? 'Author unknown'}</p><p className="text-sm text-muted-foreground">{post.username ? `@${post.username}` : 'Username unknown'}{post.publishedAt ? ` · ${exactTime(post.publishedAt)}` : ' · Publication time unknown'}</p></div></header><div className="whitespace-pre-wrap break-words text-base leading-7">{post.text || <span className="text-muted-foreground">Empty authored message</span>}</div></>}
-        {part && <><header><h3 className="text-lg font-medium">{part.title}</h3><p className="text-sm text-muted-foreground">Uploader: {part.uploader ?? "Unknown"} · {part.part}</p><p className="text-sm text-muted-foreground">{part.quality}</p></header><p className="whitespace-pre-wrap break-words">{part.description || "Empty authored description"}</p></>}{!post && !part && record.acquisition.state === 'acquired' && <Alert><AlertTitle>Record available</AlertTitle><AlertDescription>This record has no supported text preview. Its full payload is available in Metadata.</AlertDescription></Alert>}
+        {post && <><header className="flex items-center gap-3"><Avatar size="lg"><AvatarFallback>{(post.displayName ?? post.username ?? 'X').slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="min-w-0"><p className="font-medium"><SourceLink href={post.authorUrl} label="Open author profile">{post.displayName ?? post.username ?? 'Author unknown'}</SourceLink></p><p className="break-words text-sm text-muted-foreground">{post.username ? `@${post.username}` : 'Username unknown'}{post.publishedAt ? ` · ${exactTime(post.publishedAt)}` : ' · Publication time unknown'}</p></div></header><div className="whitespace-pre-wrap break-words text-base leading-7">{post.text || <span className="text-muted-foreground">Empty authored message</span>}</div></>}
+        {part && <><header className="flex flex-col gap-2"><h3 className="break-words text-lg font-medium">{part.title}</h3><p className="text-sm text-muted-foreground">Uploader: <SourceLink href={part.authorUrl} label="Open uploader profile">{part.uploader ?? 'Unknown'}</SourceLink></p><p className="break-words text-sm text-muted-foreground">{part.part}</p><p className="text-sm text-muted-foreground">{part.quality}{part.publishedAt && ` · ${exactTime(part.publishedAt)}`}</p></header><p className="whitespace-pre-wrap break-words">{part.description || "Empty authored description"}</p></>}{!post && !part && record.acquisition.state === 'acquired' && <Alert><AlertTitle>Record available</AlertTitle><AlertDescription>This record has no supported text preview. Its full payload is available in Metadata.</AlertDescription></Alert>}
         {record.acquisition.state === 'pending' && <Pending title="Content is still being acquired" message={record.acquisition.reason ?? 'The producer has not supplied the message yet.'} />}
         {record.acquisition.state === 'unavailable' && <Failure title="Content unavailable" message={record.acquisition.reason ?? 'The producer could not supply the message.'} context={{resultId:result.id,sourceUrl:result.sourceUrl,revision:result.revision,recordId:record.id}} />}
       </article>;
@@ -68,10 +71,9 @@ function Activity({ snapshot, deliveries }: { snapshot: Snapshot; deliveries: De
   </div>;
 }
 function DetailTabs({ snapshot, deliveries, onNotice, tab, onTab }: { snapshot: Snapshot; deliveries: Delivery[]; onNotice: (message:string) => void; tab:string; onTab:(value:string)=>void }) {
-  const metadata = useMemo(() => JSON.stringify({ result: snapshot.result, receiverReadErrors: snapshot.readErrors }, null, 2), [snapshot.result, snapshot.readErrors]);
   return <Tabs value={tab} onValueChange={value=>onTab(String(value))} className="min-h-0 flex-1 gap-0"><div className="shrink-0 border-b px-5 sm:px-8"><TabsList variant="line" aria-label="Capture details"><TabsTrigger value="preview">Preview</TabsTrigger><TabsTrigger value="metadata">Metadata</TabsTrigger><TabsTrigger value="activity">Activity{deliveries.length > 0 && <span className="text-xs">({deliveries.length})</span>}</TabsTrigger></TabsList></div>
     <TabsContent value="preview" className="min-h-0 overflow-hidden"><ScrollArea className="h-full"><Preview snapshot={snapshot} /></ScrollArea></TabsContent>
-    <TabsContent value="metadata" className="min-h-0 overflow-hidden"><ScrollArea className="h-full"><div className="flex flex-col gap-4 p-5 sm:p-8"><div className="flex items-start justify-between gap-3"><div><h3 className="font-medium">Capture metadata</h3><p className="mt-1 text-sm text-muted-foreground">Full site payloads, selected-file associations, and read outcomes. File bytes are exported separately.</p></div><Button variant="outline" size="sm" onClick={() => void navigator.clipboard.writeText(metadata).then(() => onNotice('Metadata copied.')).catch(error => onNotice(`Could not copy metadata: ${errorMessage(error)}`))}><CopyIcon data-icon="inline-start" />Copy JSON</Button></div><pre className="overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/30 p-4 text-xs leading-relaxed">{metadata}</pre></div></ScrollArea></TabsContent>
+    <TabsContent value="metadata" className="min-h-0 overflow-hidden"><ScrollArea className="h-full"><CaptureMetadata snapshot={snapshot} onNotice={onNotice} /></ScrollArea></TabsContent>
     <TabsContent value="activity" className="min-h-0 overflow-hidden"><ScrollArea className="h-full"><Activity snapshot={snapshot} deliveries={deliveries} /></ScrollArea></TabsContent>
   </Tabs>;
 }

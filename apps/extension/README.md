@@ -45,6 +45,7 @@ they do not change production permissions or add production test hooks.
 | `pnpm --dir apps/extension test:browser` | Twitter source controls, optional selection, queue dispatch, retained bytes, native ZIP downloads, clear/restart races, result-page layout and Inbox interaction. |
 | `pnpm --dir apps/extension test:browser:bilibili` | Video pages and homepage/favorites/search/listing cards; current-part binding, native player coexistence, offscreen assembly, packet/timing preservation, playback, ZIP bytes, partial failures and cleanup. |
 | `pnpm --dir apps/extension exec node testing/inbox-ui-run.mjs` | Focused Inbox views, settings, notifications, diagnostics, keyboard/mobile interaction, clear races and historical missing-configuration staging. |
+| `pnpm --dir apps/extension exec node testing/inspector-ui-run.mjs` | Preview author/original links, grouped metadata, exact JSON copying, unavailable fields/files and desktop/mobile layouts. |
 | `pnpm --dir apps/extension exec node testing/queue-ui-run.mjs` | Floating button geometry, mouse/touch dragging, modal focus/scroll behavior, resize/teardown and stable newest-first task order on both sites. |
 | `pnpm --dir apps/extension test:browser:locus` | Real extension-to-Locus delivery for Twitter and Bilibili, original-request continuation and failure-to-Inbox handling using a disposable server library. |
 
