@@ -68,8 +68,9 @@ implement every feature they describe.
   (currently 116). A guide's Baseline label is not proof of support at that floor.
   Verify API availability and each execution context before adopting it.
 - Existing shadcn/Base UI composition, semantic colors, and dark theme remain the
-  component conventions. The webpage capture queue is intentionally nonmodal
-  and does not capture focus or lock page scrolling.
+  component conventions. The draggable webpage queue launcher opens a modal only
+  through explicit activation. The separate Twitter media-selection draft stays
+  nonmodal; background status updates never open a modal or move focus.
 - Do not add `tabs` permission merely because code reads `tab.url`. Matching host
   permissions can authorize access to the relevant tab fields. Preserve scoped,
   optional website grants. See the [official Tabs API permissions](https://developer.chrome.com/docs/extensions/reference/api/tabs#permissions).

@@ -56,9 +56,9 @@ try{
   await bilibili.route(context);
   const worker=context.serviceWorkers()[0]??await context.waitForEvent('serviceworker'),extensionId=new URL(worker.url()).host;
   const results=await context.newPage();await results.goto(`chrome-extension://${extensionId}/results.html`);
-  await results.locator('summary').filter({hasText:'Locus connection'}).click();
+  await results.getByRole('button',{name:'Locus settings',exact:true}).click();
   await results.getByLabel('Locus address',{exact:true}).fill(`http://127.0.0.1:${port}`);await results.getByLabel('Token',{exact:true}).fill(credential.token);
-  await results.getByRole('button',{name:'Connect and save'}).click();await until(()=>results.locator('form').innerText(),value=>value.includes('Connected. Complete Twitter and Bilibili captures save automatically.'),'connection feedback');
+  await results.getByRole('button',{name:'Connect and save'}).click();await results.getByText('Locus connection verified',{exact:true}).waitFor();
   // Offscreen documents are not Playwright pages; route their site fixtures via
   // their own CDP target. Loopback traffic continues to the real Locus server.
   const cdp=await context.browser().newBrowserCDPSession();
@@ -83,13 +83,30 @@ try{
   await until(()=>page.locator('[data-locus-action] button').getAttribute('aria-label'),value=>value?.includes('Saved to Locus'),'page confirmation');
   const batches=await application.request('/api/v1/import-batches');assert.equal(batches.batches.length,1);assert.equal(batches.batches[0].items[0].current.overall,'success');
   assert.equal(batches.batches[0].items[0].current.twitter.state,'success');assert.equal(batches.batches[0].items[0].current.association.state,'success');
-  await results.goto(`chrome-extension://${extensionId}/results.html#${saved[0].resultId}`);await results.getByText(saved[0].message,{exact:true}).waitFor();
+  await results.goto(`chrome-extension://${extensionId}/results.html#${saved[0].resultId}`);await results.getByText('Locus confirmed this save', {exact:false}).waitFor();await results.getByRole('button',{name:'Saved',exact:true}).waitFor();
   await results.screenshot({path:path.join(work,'saved-to-locus.png'),fullPage:true});
   await page.goto('https://x.com/synthetic/status/124');await page.locator('[data-locus-action] button').click();
   await until(rows,values=>values.length===2&&values.some(value=>value.state==='failed'),'partial capture blocks delivery');
   assert.equal((await application.request('/api/v1/import-batches')).batches.length,1);
-  assert.equal((await rows()).find(value=>value.state==='failed').uploads.length,0);
+  const failed=(await rows()).find(value=>value.state==='failed');assert.equal(failed.uploads.length,0);
+  await results.goto(`chrome-extension://${extensionId}/results.html#${failed.resultId}`);await results.getByRole('button',{name:'Inbox',exact:true}).waitFor();await results.getByRole('button',{name:'Export available content',exact:true}).waitFor();assert.equal(await results.getByRole('button',{name:'Check and continue save',exact:true}).count(),0);await results.screenshot({path:path.join(work,'failed-save-inbox.png'),fullPage:true});
   const bilibiliChecks=await bilibili.verify({context,results,rows,application,extensionId,until,locusRequests});
+  // A complete capture must remain usable when the actual receiver is offline.
+  // This exercises the requested fallback, independently of acquisition failure.
+  await application.stop();
+  const priorIds=new Set((await rows()).map(value=>value.resultId));
+  await page.goto('https://x.com/synthetic/status/125');await page.locator('[data-locus-action] button').click();
+  const offlineRows=await until(rows,values=>values.some(value=>!priorIds.has(value.resultId)&&value.state==='failed'),'offline receiver retains complete capture');
+  const offline=offlineRows.find(value=>!priorIds.has(value.resultId));assert.equal(offline.uploads.length,0);
+  await results.goto(`chrome-extension://${extensionId}/results.html`);
+  await results.getByRole('button',{name:'Open capture @synthetic · 125',exact:true}).click();
+  await results.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
+  await results.getByRole('button',{name:'Check and continue save',exact:true}).waitFor();
+  await results.getByText('Synthetic complete post 125',{exact:true}).waitFor();
+  await results.locator('img').evaluate(image=>image.decode());
+  assert.equal(await results.locator('img').evaluate(image=>image.complete&&image.naturalWidth>0),true);
+  assert.equal(await results.locator('[data-capture-diagnostic] pre').isVisible(),false);
+  await results.screenshot({path:path.join(work,'offline-save-inbox.png'),fullPage:true});
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({passed:['Connection UI and credential check','One-click complete Twitter capture -> real upload -> real File/Twitter import','Page shows confirmed Locus result','Incomplete capture sends no upload or import',...bilibiliChecks],artifacts:work}));
+  console.log(JSON.stringify({passed:['Connection UI and credential check','One-click complete Twitter capture -> real upload -> real File/Twitter import','Page shows confirmed Locus result','Incomplete capture sends no upload or import',...bilibiliChecks,'Offline real receiver: complete capture reopens in default Inbox with retained preview, export and original-save continuation'],artifacts:work}));
 }finally{await context?.close();if(application.process.exitCode===null){await application.stop().catch(async()=>{application.process.kill();await application.exited;});}}

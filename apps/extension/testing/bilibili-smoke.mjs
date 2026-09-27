@@ -121,6 +121,7 @@ try {
   await context.route('https://www.bilibili.com/fixture-native.mp4*', route => route.fulfill({ contentType: 'video/mp4', body: video }));
   for (const [part, media] of aspectMedia) await context.route(`https://www.bilibili.com/fixture-aspect-${part}.mp4`, route => route.fulfill({ contentType: 'video/mp4', body: media.bytes }));
   await context.route('https://space.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('favorites', base) }));
+  await context.route('https://search.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('search', base) }));
   await context.route('https://api.bilibili.com/x/web-interface/nav', route => { navRequests++; return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': 'https://www.bilibili.com', 'Access-Control-Allow-Credentials': 'true' }, body: JSON.stringify({ code: 0, data: { isLogin: sessionLogin, unrelatedAccount: 'not-selected' } }) }); });
   await until(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), values => values.some(value => value.id === 'locus-bilibili-main'), 'Bilibili source registration');
   resultPage = await context.newPage(); await resultPage.goto(`chrome-extension://${extensionId}/results.html`); await resultPage.getByText('No captures yet', { exact: true }).waitFor(); await routeOwner();
@@ -137,8 +138,8 @@ try {
   assert.equal(await bootRevoked.locator('[data-locus-bilibili-action]').count(), 1); await bootRevoked.close();
   checks.push('Revocation before native bootstrap cancels deferred controls; explicit reactivation mounts once');
   const success = await capture(2);await verifyBilibiliProgress(success.page,until,work);const complete = await until(rows, list => list.some(row => row.id === success.id && row.assets.every(asset => asset.acquisition.state !== 'pending')), 'terminal P2', 120000);assert(complete.find(row=>row.id===success.id).assets.every(asset=>asset.acquisition.state==='acquired'),JSON.stringify(complete));
-  await until(()=>success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'),state=>state==='failed','complete local capture still requires a configured Locus connection');
-  assert((await success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('aria-description')).includes('Configure the Locus'));
+  await until(()=>success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'),state=>state==='saved','complete local capture still requires a configured Locus connection');
+  assert((await success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('aria-description')).includes('Configure Locus'));
   checks.push('Bilibili video/audio progress uses the shared ring; missing Locus connection is reported separately from complete local acquisition');
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\n@Synthetic collaborator Second line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
   assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002_t6-1-64.m4s');
@@ -161,12 +162,12 @@ try {
     recommendation.innerHTML=`<div class="framepreview-box" style="width:160px;height:90px"><a href="${base}?p=2" style="display:block"><img alt="Same part recommendation" width="160" height="90" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"></a></div><a href="${base}?p=2">Title-only link</a>`;document.body.append(recommendation);
   },base);
   const recommended=success.page.locator('[data-locus-bilibili-action="cover"]');await until(()=>recommended.count(),count=>count===1,'video recommendation uses generic cover binding');
-  await until(()=>recommended.getAttribute('data-state'),state=>state==='failed','toolbar and preview share the same Locus connection outcome');
+  await until(()=>recommended.getAttribute('data-state'),state=>state==='saved','toolbar and preview share the same Locus connection outcome');
   await success.page.locator('#fixture-recommendation .framepreview-box a').evaluate(link=>{link.href=link.href.replace('p=2','p=1');});
   await until(()=>recommended.getAttribute('data-state'),state=>state==='uncaptured','recommended different part has independent state');
   await success.page.locator('#fixture-recommendation').evaluate(node=>node.remove());await until(()=>recommended.count(),count=>count===0,'removed recommendation releases its control');
   checks.push('Toolbar is centered immediately before Report; video-page cover links use the same discovery as listings and share exact-part state without treating title links as cards');
-  await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
+  await success.page.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await success.page.getByRole('dialog').waitFor(); await success.page.keyboard.press('Escape'); await success.page.getByRole('dialog').waitFor({state:'hidden'}); await success.page.getByRole('textbox', { name: 'Outside browsing input' }).fill('still browsing'); await success.page.screenshot({ path: path.join(work, 'bilibili-nonmodal.png') });
   const playback = () => success.page.locator('#bilibili-player video').evaluate(video => ({ ready: video.readyState, frames: video.getVideoPlaybackQuality().totalVideoFrames, part: video.dataset.part, error: video.error?.message }));
   const beforeFrames = (await playback()).frames;
   await until(playback, value => value.ready >= 2 && value.frames > beforeFrames && !value.error, 'native video continues after retained capture');
@@ -279,22 +280,24 @@ try {
     const attempt = await capture(p); const values = await until(rows, values => values.find(row => row.id === attempt.id)?.assets.every(asset => asset.acquisition.state !== 'pending'), `partial P${p}`); const row = values.find(row => row.id === attempt.id);
     assert(row.assets.some(asset => asset.acquisition.state === 'acquired')); if (p !== 6) assert.equal(row.assets.find(asset => asset.id === 'media-2').acquisition.state, 'unavailable'); else assert.equal(row.records[0].acquisition.state, 'unavailable');
     await attempt.page.getByRole('button',{name:'Expand capture queue',exact:true}).click();
-    const diagnostic=attempt.page.locator(`[data-task-id="${attempt.id}"] [data-capture-diagnostic] pre`);
+    const acquisitionDiagnostic=attempt.page.locator(`[data-task-id="${attempt.id}"] [data-capture-diagnostic]`).filter({hasText:'Acquisition failed'}).first();
+    await acquisitionDiagnostic.locator('summary').click();const diagnostic=acquisitionDiagnostic.locator('pre');
     await diagnostic.waitFor();const report=await diagnostic.textContent();assert(report.includes('stage:'));assert(report.includes(attempt.id));
     if (p === 13) assert(report.includes('bilibili.resource.fetch') && report.includes('audio'), 'Failed audio download is not silent success');
     if (p === 14) assert(report.includes('bilibili.video.track-inspection'), 'Unexpected embedded audio is not silently discarded');
     if(p===5){assert(report.includes('HTTP_SIZE_LIMIT'));assert(report.includes('68157440'));assert(report.includes('67108864'));
       await worker.evaluate(async url=>{const [tab]=await chrome.tabs.query({url});await chrome.scripting.executeScript({target:{tabId:tab.id},world:'ISOLATED',func:()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{document.documentElement.dataset.copiedDiagnostic=text;}}});}});},attempt.page.url());
-      await attempt.page.locator(`[data-task-id="${attempt.id}"]`).getByRole('button',{name:'Copy diagnostic',exact:true}).click();
+      await acquisitionDiagnostic.getByRole('button',{name:'Copy diagnostic',exact:true}).click();
       assert.equal(await attempt.page.evaluate(()=>document.documentElement.dataset.copiedDiagnostic),report);
       await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`);
       await resultPage.getByRole('button',{name:'Export available content',exact:true}).waitFor();
       await until(()=>resultPage.locator('[data-capture-diagnostic] pre').allTextContents(),values=>values.some(value=>value.includes('HTTP_SIZE_LIMIT')&&value.includes('68157440')),'retained result diagnostic');
+      const retainedDiagnostic=resultPage.locator('[data-capture-diagnostic]').filter({hasText:'HTTP_SIZE_LIMIT'}).first();assert.equal(await retainedDiagnostic.locator('pre').isVisible(),false);await retainedDiagnostic.locator('summary').click();await retainedDiagnostic.locator('pre').waitFor();
       await attempt.page.screenshot({path:path.join(work,'bilibili-debug-queue.png')});
     }
     await attempt.page.close();
   }
-  checks.push('Default expanded technical errors in queue and retained result, original stage/byte values and result correlation preserved, copy action returns the displayed report');
+  checks.push('Expanded queue diagnostics and on-demand retained result diagnostics, original stage/byte values and result correlation preserved, copy action returns the displayed report');
   checks.push('Missing audio, truncated track and oversize response preserve metadata/cover; incomplete metadata preserves independently acquired files');
   let releaseClear; hold=url=>url.pathname.includes('/100009/')?new Promise(resolve=>{releaseClear=resolve;}):undefined;
   const clearing=await capture(9);await until(async()=>typeof releaseClear,value=>value==='function','held clear media');
@@ -309,7 +312,7 @@ try {
   await worker.evaluate(()=>{for(const listener of globalThis.fixtureRemoval)listener({origins:['https://www.bilibili.com/*']});});
   hold=undefined;releaseRevoke();const interrupted=await until(rows,list=>list.find(row=>row.id===revoking.id)?.assets.find(asset=>asset.id==='media-2')?.acquisition.state==='unavailable','revoked video');assert.equal(interrupted.find(row=>row.id===revoking.id).assets[0].acquisition.state,'acquired');await revoking.page.close();
   checks.push('Worker recreation preserves a surviving CDN lease; clear during fetch prevents resurrection; simulated removal/rapid regrant interrupts accepted Bilibili bytes and preserves committed cover');
-  sessionLogin = false; const denied = await context.newPage(); await denied.goto(`${base}?p=7`); const beforeDenied = (await rows()).length; await denied.getByRole('button', { name: 'Locus capture P7' }).click(); await denied.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); await denied.getByText(/Sign in to Bilibili before capturing this part/).waitFor(); assert.equal((await rows()).length, beforeDenied); await denied.close(); sessionLogin = true;
+  sessionLogin = false; const denied = await context.newPage(); await denied.goto(`${base}?p=7`); const beforeDenied = (await rows()).length; await denied.getByRole('button', { name: 'Locus capture P7' }).click(); await denied.getByRole('button', { name: 'Expand capture queue', exact: true }).click(); const denial=denied.locator('[data-capture-diagnostic]').filter({hasText:/Sign in to Bilibili before capturing this part/});await denial.locator('summary').click();await denial.locator('pre').waitFor(); assert.equal((await rows()).length, beforeDenied); await denied.close(); sessionLogin = true;
   checks.push(...await verifyBilibiliControls({ context, worker, work, rows, until, base }));
   await until(() => worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), rules => rules.length === 0, 'DNR cleanup');
   const sessions = await worker.evaluate(() => chrome.storage.session.get(null)); assert.equal(sessions['locus-bilibili-probes-v1']?.length ?? 0, 0); assert.equal(sessions['locus-bilibili-cdn-leases-v1']?.length ?? 0, 0);

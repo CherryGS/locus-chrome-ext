@@ -95,6 +95,9 @@ function SidebarProvider({
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
+        !event.defaultPrevented &&
+        !(event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable], video, audio, [role="dialog"], [role="alertdialog"]')) &&
+        !document.querySelector('[role="dialog"][data-open], [role="alertdialog"][data-open]') &&
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
         (event.metaKey || event.ctrlKey)
       ) {

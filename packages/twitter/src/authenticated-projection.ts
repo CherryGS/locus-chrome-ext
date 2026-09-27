@@ -52,7 +52,18 @@ function projectNoteTweet(value: unknown): Data {
   } } };
 }
 
-/** Project only the selected ordinary Tweet; never copy viewer or session state. */
+/** X can wrap the focal Tweet in visibility metadata and omit its inner typename.
+ * Unwrap exactly this observed result shape at selection, never a nested quote or
+ * arbitrary wrapper. The canonical bridge envelope still requires a plain Tweet. */
+function unwrapSelectedTweet(raw: unknown, requestedId: string): unknown {
+  const result = object(raw);
+  if (result.__typename !== 'TweetWithVisibilityResults') return raw;
+  if (result.rest_id !== undefined && id(result.rest_id) !== requestedId) throw new Error('Signed-in wrapper identity does not match the selected source');
+  const tweet = object(result.tweet);
+  return tweet.__typename === undefined ? { ...tweet, __typename: 'Tweet' } : tweet;
+}
+
+/** Project only the selected Tweet; never copy viewer or session state. */
 function projectTweet(raw: unknown, requestedId: string): DataObject {
   const tweet = object(raw), legacy = object(tweet.legacy);
   if (tweet.__typename === 'TweetTombstone' || tweet.__typename === 'TweetUnavailable') throw new Error('X did not make this post available to the current signed-in session');
@@ -138,7 +149,7 @@ export function selectAuthenticatedTweetDetail(response: unknown, requestedUrl: 
   if (matches.length !== 1) throw new Error('Signed-in selected entry is ambiguous');
   const content = object(matches[0]!.content), item = object(content.itemContent);
   if (content.entryType !== 'TimelineTimelineItem' || item.itemType !== 'TimelineTweet') throw new Error('Unsupported signed-in timeline entry');
-  return bounded({ schema: 'twitter-session/1', requestedId: requested.id, textContext, tweet: projectTweet(object(item.tweet_results).result, requested.id) });
+  return bounded({ schema: 'twitter-session/1', requestedId: requested.id, textContext, tweet: projectTweet(unwrapSelectedTweet(object(item.tweet_results).result, requested.id), requested.id) });
 }
 
 /** Validate the page projection again at the extension's ownership boundary. */

@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { bilibiliResource, bilibiliTrackResource } from './urls';
+import { bilibiliPage, partUrl, bilibiliResource, bilibiliTrackResource } from './urls';
+
+describe('Bilibili search entry surfaces', () => {
+  it.each(['all', 'video'])('recognizes the %s search listing without accepting it as a video selection', route => {
+    const page = `https://search.bilibili.com/${route}?keyword=fixture&search_source=5`;
+    expect(bilibiliPage(page)).toBe('listing');
+    expect(() => partUrl(page)).toThrow();
+    expect(() => partUrl('https://search.bilibili.com/video/BV145PxzCEoE/')).toThrow();
+  });
+  it.each(['http://search.bilibili.com/all', 'https://search.bilibili.com.evil.test/all', 'https://search.bilibili.com:8443/all', 'https://user@search.bilibili.com/all', 'https://live.bilibili.com/123'])('rejects unapproved listing origin %s', page => {
+    expect(bilibiliPage(page)).toBeUndefined();
+  });
+});
 
 const cid = '1234567890123';
 const path = (suffix = '', directoryCid = cid, filenameCid = cid) => `/upgcxcode/23/01/${directoryCid}/${filenameCid}${suffix}-1-30080.m4s`;

@@ -122,10 +122,11 @@ context keys. No remote logging or additional permission is needed.
 ### Bilibili current-part capture
 
 Choose **Enable Bilibili** in the library and grant its separate optional origins:
-`www.bilibili.com`, `space.bilibili.com`, `api.bilibili.com`, `*.bilivideo.com`, and
-`*.hdslb.com` over HTTPS. After upgrading from detail-only capture, choose Enable
-Bilibili again to grant the added optional space origin. Ordinary video cards on
-the homepage and favorites page expose a 28-pixel capture icon at the cover's
+`www.bilibili.com`, `space.bilibili.com`, `search.bilibili.com`, `api.bilibili.com`,
+`*.bilivideo.com`, and `*.hdslb.com` over HTTPS. After upgrading an existing
+installation, choose Enable Bilibili again to grant any added optional origins.
+Ordinary video cards on the homepage, favorites and search results expose a
+28-pixel capture icon at the cover's
 upper left on hover or keyboard focus. Known saved/pending/problem states remain
 visible. The card's link selects the part, defaulting to P1 when unspecified;
 programme/live cards and ambiguous links do not get controls. Favorites batch

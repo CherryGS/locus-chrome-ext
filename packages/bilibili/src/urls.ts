@@ -1,6 +1,6 @@
 import { diagnosticError } from '@locus/capture-core/diagnostics';
 
-export const BILIBILI_PAGE_ORIGINS = ['https://www.bilibili.com/*', 'https://space.bilibili.com/*'];
+export const BILIBILI_PAGE_ORIGINS = ['https://www.bilibili.com/*', 'https://space.bilibili.com/*', 'https://search.bilibili.com/*'];
 export const BILIBILI_ORIGINS = [...BILIBILI_PAGE_ORIGINS, 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'];
 
 /** Page entry surfaces do not broaden the ordinary-video source selection. */
@@ -8,6 +8,7 @@ export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | 'l
   try {
     const url = new URL(input);
     if (url.protocol !== 'https:' || url.port || url.username || url.password) return;
+    if (url.hostname === 'search.bilibili.com') return 'listing';
     if (url.hostname === 'space.bilibili.com') return /^\/\d+\/favlist\/?$/.test(url.pathname) ? 'favorites' : 'listing';
     if (url.hostname !== 'www.bilibili.com') return;
     if (url.pathname === '/') return 'home';

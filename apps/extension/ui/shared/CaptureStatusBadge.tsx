@@ -1,4 +1,5 @@
-import { CheckCircle2Icon, CircleHelpIcon, Clock3Icon, DownloadIcon, LoaderCircleIcon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
+import { CheckCircle2Icon, CircleHelpIcon, Clock3Icon, DownloadIcon, InboxIcon, LoaderCircleIcon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
+import type { CaptureResult } from '@locus/capture-core/model';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { captureStates, type CaptureState } from './capture-status';
@@ -7,7 +8,7 @@ const icons = {
   'locus-saved': CheckCircle2Icon,
   uncaptured: DownloadIcon, checking: LoaderCircleIcon, importing: LoaderCircleIcon,
   queued: Clock3Icon,
-  saving: LoaderCircleIcon, saved: CheckCircle2Icon, partial: TriangleAlertIcon,
+  saving: LoaderCircleIcon, saved: InboxIcon, partial: TriangleAlertIcon,
   failed: XCircleIcon, unknown: CircleHelpIcon,
 };
 
@@ -23,4 +24,10 @@ export function CaptureStatusBadge({ state }: { state: CaptureState }) {
     <CaptureStatusIcon state={state} />
     {label}
   </Badge>;
+}
+
+/** Retained bytes are a separate fact even when acquisition or delivery failed. */
+export function StagingBadge({ result }: { result: Pick<CaptureResult, 'retention' | 'revision'> }) {
+  if (result.retention.state !== 'retained' || result.retention.revision !== result.revision) return null;
+  return <Badge variant="outline" data-capture-retention="staged" title="Available content is retained in the extension. This does not imply complete acquisition or a successful Locus save."><InboxIcon data-icon="inline-start" />Staged locally</Badge>;
 }

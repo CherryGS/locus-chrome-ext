@@ -1,5 +1,5 @@
 import type { CaptureResult, Delivery, Snapshot } from '@locus/capture-core/model';
-import type { LocusConnection, LocusTransfer } from '../locus/model';
+import { normalizeTransfer, type LocusConnection, type LocusTransfer } from '../locus/model';
 
 export class ClearedError extends Error { constructor() { super('This result was cleared'); } }
 const done = (tx: IDBTransaction) => {
@@ -81,7 +81,7 @@ export class ResultDatabase {
   }
   async locusTransfers(): Promise<LocusTransfer[]> {
     const db = await this.open(), tx = db.transaction('locus-transfers'), end = done(tx);
-    const values = await request<LocusTransfer[]>(tx.objectStore('locus-transfers').getAll()); await end; return values;
+    const values = await request<LocusTransfer[]>(tx.objectStore('locus-transfers').getAll()); await end; return values.map(normalizeTransfer);
   }
   async saveLocusTransfer(value: LocusTransfer) {
     const db = await this.open(), tx = db.transaction(['locus-transfers', 'guards'], 'readwrite'), end = done(tx);

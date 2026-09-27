@@ -1,15 +1,30 @@
 import type { ResultSummary } from '@/host/chrome/protocol';
 import type { Delivery } from '@locus/capture-core/model';
 
-export type LibraryView = 'all' | 'progress' | 'ready' | 'attention';
-export const viewLabels: Record<LibraryView, string> = { all: 'All captures', progress: 'In progress', ready: 'Ready', attention: 'Needs attention' };
+export type LibraryView = 'all' | 'progress' | 'saved' | 'inbox';
+export const viewLabels: Record<LibraryView, string> = { all: 'All captures', progress: 'In progress', saved: 'Saved', inbox: 'Inbox' };
 export function resultView(item: ResultSummary): Exclude<LibraryView, 'all'> {
+  // Local attention takes precedence even when the receiver confirmed its save.
+  if (item.unresolvedReason || item.retention.state === 'failed') return 'inbox';
   if (item.queuePosition !== undefined) return 'progress';
-  if(item.locus?.state==='complete')return 'ready';
-  if (item.retention.state === 'failed' || ['partial', 'unavailable'].includes(item.acquisition)) return 'attention';
+  if (['partial', 'unavailable'].includes(item.acquisition)) return 'inbox';
+  if (item.locus?.state === 'failed' || item.locus?.state === 'unverified' || item.locus?.state === 'configuration-required') return 'inbox';
   if (item.acquisition === 'pending' || item.retention.state === 'pending') return 'progress';
-  if(item.locus){if(item.locus.state==='failed'||item.locus.state==='unverified')return 'attention';return 'progress';}
-  return item.acquisition === 'complete' && item.retention.state === 'retained' && item.retention.revision === item.revision ? 'ready' : 'attention';
+  if (item.acquisition !== 'complete' || item.retention.revision !== item.revision) return 'inbox';
+  if (item.locus?.state === 'complete') return 'saved';
+  return item.locus ? 'progress' : 'inbox';
+}
+export function resultHint(item: ResultSummary): string {
+  if (item.unresolvedReason) return 'Read problem · retry reads';
+  if (item.retention.state === 'failed') return 'Not retained · export available content';
+  if (item.queuePosition !== undefined) return `Waiting · position ${item.queuePosition}`;
+  if (['partial', 'unavailable'].includes(item.acquisition)) return 'Selected content missing · inspect available portions';
+  if (item.locus?.state === 'unverified') return 'Save unverified · check the original save';
+  if (item.locus?.state === 'failed') return 'Save failed · review next steps';
+  if (item.locus?.state === 'configuration-required') return 'Staged locally · configure Locus, then continue';
+  if (resultView(item) === 'saved') return 'Confirmed in Locus · local copy retained';
+  if (resultView(item) === 'progress') return item.locus ? 'Capture and Locus save in progress' : 'Capture in progress';
+  return item.retention.revision !== item.revision ? 'Current revision not retained · retry reads' : 'Locally staged · available for export';
 }
 export function acquisitionLabel(state: string) { return ({ complete: 'Complete', pending: 'In progress', partial: 'Partial capture', unavailable: 'Unavailable', acquired: 'Acquired' } as Record<string,string>)[state] ?? state; }
 export function retentionLabel(state: string) { return ({ retained: 'Saved locally', pending: 'Saving…', failed: 'Not saved' } as Record<string,string>)[state] ?? state; }

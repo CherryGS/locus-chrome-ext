@@ -11,10 +11,22 @@ export interface LocusRequest { id: string; dispatched?: boolean }
 export interface LocusUpload { assetId: string; request: LocusRequest; fileId?: string }
 export interface LocusTransfer {
   resultId: string; revision: number;
-  state: 'waiting' | 'uploading' | 'importing' | 'complete' | 'failed' | 'unverified';
+  state: 'configuration-required' | 'waiting' | 'uploading' | 'importing' | 'complete' | 'failed' | 'unverified';
   message: string; origin?: string; runId?: string;
   uploads: LocusUpload[]; items?: LocusImportItem[];
   importRequest?: LocusRequest; batchId?: string; entityIds?: string[];
+}
+export const configurationMessage = 'Locus setup required. Configure Locus in connection settings, then explicitly continue this save.';
+const legacyConfigurationMessage = 'Configure the Locus address and Token in the extension’s connection settings, then continue this save';
+/** Only the original pre-connection failure is ordinary staging. Dispatch and
+ * receiver evidence always keep their original failure/uncertainty meaning. */
+export function initialConfigurationOnly(transfer: LocusTransfer): boolean {
+  return !transfer.origin && !transfer.runId && !transfer.items && !transfer.batchId && !transfer.entityIds?.length
+    && !transfer.importRequest?.dispatched && transfer.uploads.every(upload => !upload.request.dispatched && !upload.fileId);
+}
+export function normalizeTransfer(transfer: LocusTransfer): LocusTransfer {
+  return transfer.state === 'failed' && transfer.message === legacyConfigurationMessage && initialConfigurationOnly(transfer)
+    ? { ...transfer, state: 'configuration-required', message: configurationMessage } : transfer;
 }
 export type LocusSummary = Pick<LocusTransfer, 'state' | 'message'>;
 export const transferActive = (transfer?: LocusSummary) => !!transfer && ['waiting', 'uploading', 'importing'].includes(transfer.state);

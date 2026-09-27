@@ -1,21 +1,27 @@
-/** Homepage/favorites DOM shapes observed in signed-in Bilibili, with synthetic content. */
+/** Observed homepage/favorites/search DOM shapes, with synthetic content. */
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
 export function bilibiliListingFixture(kind, base) {
-  const card = (title, href) => `<div data-fixture-card class="${kind === 'generic' ? 'unrelated-result-layout' : 'bili-video-card'}"><div class="bili-video-card__wrap"><div class="${kind === 'home' ? 'home-cover' : 'bili-video-card__cover'}"><a class="${kind === 'home' ? 'bili-video-card__image--link' : 'bili-cover-card'}" href="${href}" target="_blank"><div class="thumbnail"><img alt="${title}" width="320" height="180" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3C/svg%3E"></div></a><div class="${kind === 'home' ? 'bili-watch-later--wrap' : 'bili-card-watch-later'}"><button class="${kind === 'home' ? 'bili-watch-later' : 'bili-card-watch-later__btn'}" aria-label="Watch later" onclick="window.nativeLater=(window.nativeLater||0)+1">▷</button></div><div class="bili-card-checkbox"></div></div><h3 class="${kind === 'home' ? 'bili-video-card__info--tit' : 'bili-video-card__title'}">${title}</h3></div></div>`;
+  const card = (title, href) => kind === 'search'
+    // Search uses a protocol-relative cover link directly under the card wrap,
+    // with picture and native watch-later inside that link (observed 2026-09-27).
+    ? `<div data-fixture-card class="bili-video-card"><div class="bili-video-card__wrap"><a href="${href.replace(/^https:/, '')}" target="_blank" data-mod="search-card"><div class="bili-video-card__image"><div class="bili-video-card__image--wrap"><div class="bili-watch-later--wrap"><button class="bili-watch-later" aria-label="Watch later" onclick="event.preventDefault();window.nativeLater=(window.nativeLater||0)+1">▷</button></div><picture class="v-img bili-video-card__cover thumbnail"><img alt="${title}" width="320" height="180" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3C/svg%3E"></picture></div></div></a><a href="${href}"><h3>${title}</h3></a></div></div>`
+    : `<div data-fixture-card class="${kind === 'generic' ? 'unrelated-result-layout' : 'bili-video-card'}"><div class="bili-video-card__wrap"><div class="${kind === 'home' ? 'home-cover' : 'bili-video-card__cover'}"><a class="${kind === 'home' ? 'bili-video-card__image--link' : 'bili-cover-card'}" href="${href}" target="_blank"><div class="thumbnail"><img alt="${title}" width="320" height="180" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3C/svg%3E"></div></a><div class="${kind === 'home' ? 'bili-watch-later--wrap' : 'bili-card-watch-later'}"><button class="${kind === 'home' ? 'bili-watch-later' : 'bili-card-watch-later__btn'}" aria-label="Watch later" onclick="window.nativeLater=(window.nativeLater||0)+1">▷</button></div><div class="bili-card-checkbox"></div></div><h3 class="${kind === 'home' ? 'bili-video-card__info--tit' : 'bili-video-card__title'}">${title}</h3></div></div>`;
   return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili ${kind}</title><style>
     body{background:#141617;color:#bbb;font:16px system-ui;margin:40px}main{display:flex;gap:24px;flex-wrap:wrap;max-width:1100px}[data-fixture-card]{width:320px}a:has(img){display:block}.home-cover,.bili-video-card__cover{position:relative}.thumbnail{height:180px;background:linear-gradient(140deg,#1b4545,#447368);border-radius:8px;display:grid;place-items:center}a{color:inherit;text-decoration:none}h3{font-size:16px}.bili-watch-later--wrap,.bili-card-watch-later{position:absolute;top:8px;right:8px}.bili-watch-later,.bili-card-watch-later__btn{width:28px;height:28px;border:0;border-radius:6px;background:rgba(25,27,28,.8);color:white}.bili-card-checkbox--visible{position:absolute;top:8px;left:8px;width:24px;height:24px;background:#aaa}input{margin-bottom:24px}section{height:1200px}
+    .bili-watch-later--wrap{z-index:9}
     </style><h1>Continue browsing ${kind}</h1><input aria-label="Outside browsing input"><main>
     ${card('Current part', `${base}?p=2&spm_id_from=fixture`)}${card('Default part', base)}${card('Programme excluded', 'https://www.bilibili.com/bangumi/play/ep123')}${card('Unverified selection excluded', `${base}?list=all`)}
+    ${kind === 'search' ? card('Live result excluded', 'https://live.bilibili.com/123') + card('Ad redirect excluded', 'https://cm.bilibili.com/cm/api/fees/pc') : ''}
     </main><section>Independent page content</section>`;
 }
 
 export async function verifyBilibiliControls({ context, worker, work, rows, until, base }) {
   const checks = [];
-  for (const kind of ['home', 'favorites', 'generic']) {
+  for (const kind of ['home', 'favorites', 'generic', 'search']) {
     const page = await context.newPage(); await page.setViewportSize({ width: 1280, height: 900 });
-    const url = kind === 'home' ? 'https://www.bilibili.com/' : kind === 'generic' ? 'https://www.bilibili.com/v/popular/all' : 'https://space.bilibili.com/123/favlist?fid=456';
+    const url = kind === 'home' ? 'https://www.bilibili.com/' : kind === 'generic' ? 'https://www.bilibili.com/v/popular/all' : kind === 'search' ? 'https://search.bilibili.com/all?keyword=fixture&search_source=5' : 'https://space.bilibili.com/123/favlist?fid=456';
     await page.goto(url);
     const buttons = page.locator('[data-locus-bilibili-action="cover"]'); await until(() => buttons.count(), count => count === 2, `${kind} two ordinary candidates`);
     assert.equal(await buttons.locator('svg').count(), 2); assert.equal(await buttons.evaluateAll(values => values.some(button => button.closest('a'))), false);
@@ -41,8 +47,9 @@ export async function verifyBilibiliControls({ context, worker, work, rows, unti
     const saved = await until(rows, values => values.some(row => !before.includes(row.id) && row.assets.every(asset => asset.acquisition.state === 'acquired')), `${kind} saved P1`);
     const result = saved.find(row => !before.includes(row.id)); assert.equal(result.sourceUrl, `${base}?p=1`); assert.equal(page.url(), url);
     await until(() => context.pages().length, count => count === tabs, 'temporary source tab cleanup');
-    await until(() => second.getAttribute('data-state'), value => value === 'failed', 'unconfigured Locus outcome is shared by matching cards');
+    await until(() => second.getAttribute('data-state'), value => value === 'saved', 'unconfigured Locus outcome is shared by matching cards');
     await page.getByRole('button', { name: 'Expand capture queue', exact: true }).click();
+    await page.getByRole('dialog').waitFor(); await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({state:'hidden'});
     await page.getByRole('textbox', { name: 'Outside browsing input' }).fill('browse while importing');
     assert.equal(await page.getByRole('dialog').count(), 0);
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Outside browsing input');

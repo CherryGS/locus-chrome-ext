@@ -48,8 +48,33 @@ describe('Locus two-stage delivery',()=>{
       if(kind==='partial')snapshot.result.assets[0]!.acquisition={state:'unavailable'};
       if(kind==='bytes')snapshot.blobs={};
       await transferToLocus(snapshot,transfer,kind==='connection'?undefined:connection,async()=>{},{transport:api.transport});
-      expect(api.transport).not.toHaveBeenCalled();expect(transfer.state).toBe('failed');
+      expect(api.transport).not.toHaveBeenCalled();expect(transfer.state).toBe(kind === 'connection' ? 'configuration-required' : 'failed');
     }
+  });
+  it('validates completeness before configuration and continues only when explicitly invoked', async () => {
+    const api = backend(), snapshot = fixture(), transfer = newTransfer('capture', 2);
+    await transferToLocus(snapshot, transfer, undefined, async () => {}, { transport: api.transport });
+    expect(transfer.state).toBe('configuration-required'); expect(api.transport).not.toHaveBeenCalled();
+    await transferToLocus(snapshot, transfer, connection, async () => {}, { transport: api.transport });
+    expect(transfer.state).toBe('complete'); expect(api.mutations).toEqual(['upload', 'import_batch']);
+    const incomplete = fixture(); incomplete.blobs = {};
+    const blocked = newTransfer('capture', 2);
+    await transferToLocus(incomplete, blocked, undefined, async () => {}, { transport: api.transport });
+    expect(blocked.state).toBe('failed'); expect(blocked.message).not.toContain('Configure');
+  });
+  it('preserves real failures and uncertainty when configuration later disappears', async () => {
+    for (const state of ['failed', 'unverified'] as const) {
+      const api = backend(), transfer = { ...newTransfer('capture', 2), state, message: 'Network unreachable' };
+      await transferToLocus(fixture(), transfer, undefined, async () => {}, { transport: api.transport });
+      expect(transfer.state).toBe(state); expect(api.transport).not.toHaveBeenCalled();
+    }
+  });
+  it('does not downgrade dispatched uncertainty when settings are absent', async () => {
+    const api = backend(), transfer = newTransfer('capture', 2);
+    transfer.importRequest = { id: 'original', dispatched: true };
+    await transferToLocus(fixture(), transfer, undefined, async () => {}, { transport: api.transport });
+    expect(transfer.state).toBe('unverified'); expect(transfer.importRequest.id).toBe('original');
+    expect(api.transport).not.toHaveBeenCalled();
   });
   it('observes a lost upload response after owner recreation without resending bytes',async()=>{
     const api=backend({lost:true}),snapshot=fixture(),transfer=newTransfer('capture',2);

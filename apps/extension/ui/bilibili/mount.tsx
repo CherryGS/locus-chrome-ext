@@ -38,9 +38,9 @@ export function mountBilibiliControls() {
   let scanTimer: ReturnType<typeof setTimeout> | undefined, lookupTimer: ReturnType<typeof setTimeout> | undefined;
   const sheet = document.createElement('style'); sheet.textContent = controlStyles + progressRingStyles; document.documentElement.append(sheet);
   const host = document.createElement('div'); host.dataset.locusBilibiliQueue = 'true'; host.id = `locus-bilibili-queue-${crypto.randomUUID()}`;
-  host.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;pointer-events:none';
+  host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
   const shadow = host.attachShadow({ mode: 'open' }), style = document.createElement('style'); style.textContent = styles.replaceAll(':root', ':host'); shadow.append(style);
-  const queue = document.createElement('div'); queue.className = 'dark'; shadow.append(queue); document.documentElement.append(host);
+  const queue = document.createElement('div'); queue.className = 'dark';queue.style.pointerEvents = 'auto'; shadow.append(queue); document.documentElement.append(host);
   const root = createRoot(queue);
   const isolatedEvents = ['click', 'dblclick', 'pointerdown', 'pointerup', 'keydown', 'keyup'];
   const isolate = (event: Event) => event.stopPropagation();
@@ -48,11 +48,11 @@ export function mountBilibiliControls() {
 
   function Surface() {
     const view = useSyncExternalStore(store.subscribe, store.snapshot);
-    return <><CaptureQueuePanel store={store} />{[...mounts.values()].map(mounted => {
+    return <><CaptureQueuePanel store={store} portalContainer={queue} />{[...mounts.values()].map(mounted => {
       const { candidate, slot, key } = mounted, status = store.sourceStatus(candidate.source.id);
       slot.dataset.persistent = String(!['uncaptured', 'checking'].includes(status.state));
       return createPortal(<CaptureAction candidate={candidate} {...status} queueId={host.id}
-        expanded={view.expanded && view.selected === candidate.source.id}
+        expanded={view.expanded && (!view.selected || view.selected === candidate.source.id)}
         activate={event => {
           event.preventDefault(); event.stopPropagation();
           if (!event.nativeEvent.isTrusted) return;

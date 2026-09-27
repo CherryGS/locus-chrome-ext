@@ -2,7 +2,7 @@ import { twitterImportItems } from '@locus/twitter/locus';
 import { bilibiliImportItems } from '@locus/bilibili/locus';
 import type { Snapshot } from '@locus/capture-core/model';
 import { bootstrap, LocusClient, LocusError, type ImportBatch, type Outcome, type Submission } from './client';
-import type { LocusConnection, LocusRequest, LocusTransfer } from './model';
+import { configurationMessage, initialConfigurationOnly, normalizeTransfer, type LocusConnection, type LocusRequest, type LocusTransfer } from './model';
 
 // Bilibili cover/image stages are nested; shallow inspection hides their errors
 // and can turn an uncertain cover association into an apparently definite failure.
@@ -23,7 +23,7 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
   save: (value: LocusTransfer) => Promise<void>, options: { transport?: typeof fetch; pause?: () => Promise<void>; signal?: AbortSignal } = {}) {
   const persist = () => save(structuredClone(transfer));
   const pause = options.pause ?? (() => new Promise<void>(resolve => setTimeout(resolve, 750)));
-  let uncertain = false;
+  let uncertain = transfer.state === 'unverified';
   let knownFailure = false;
   const deadline = Date.now() + 10 * 60_000;
   const check = () => {
@@ -34,7 +34,11 @@ export async function transferToLocus(snapshot: Snapshot, transfer: LocusTransfe
     if (transfer.state === 'complete') return;
     check();
     const items = snapshot.result.site === 'bilibili' ? bilibiliImportItems(snapshot) : twitterImportItems(snapshot);
-    if (!connection) throw new Error('Configure the Locus address and Token in the extension’s connection settings, then continue this save');
+    if (!connection && initialConfigurationOnly(transfer) && (transfer.state === 'waiting' || normalizeTransfer(transfer).state === 'configuration-required')) {
+      transfer.state = 'configuration-required'; transfer.message = configurationMessage;
+      await persist(); return;
+    }
+    if (!connection) throw new Error('Connection settings are unavailable. Restore them to check the original save');
     if (transfer.origin && transfer.origin !== connection.origin) throw new Error('This save belongs to another Locus address. Restore that connection to check its result');
     const runId = await bootstrap(connection, options.transport);
     if (transfer.runId && transfer.runId !== runId) {

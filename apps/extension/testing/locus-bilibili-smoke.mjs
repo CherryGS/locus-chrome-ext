@@ -109,14 +109,13 @@ export async function createBilibiliLocusSmoke({ work, image }) {
       const success = await capture(2), saved = await savedCapture(success.id, 2);
       await until(() => success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('data-state'), value => value === 'locus-saved', 'Bilibili page confirmed saved status');
       await success.page.screenshot({ path: path.join(work, 'bilibili-page-saved.png'), fullPage: true });
-      await results.goto(`chrome-extension://${extensionId}/results.html#${saved.resultId}`); await results.getByText(saved.message, { exact: true }).waitFor();
+      await results.goto(`chrome-extension://${extensionId}/results.html#${saved.resultId}`); await results.getByText('Locus confirmed this save', { exact: false }).waitFor();
       await results.locator('video').waitFor(); await results.locator('img').first().waitFor();
       await until(() => results.locator('video').evaluate(video => video.readyState), value => value >= 2, 'Retained Bilibili preview bytes decoded');
       await results.locator('video').evaluate(async video => { video.muted = true; await video.play(); });
       await until(() => results.locator('video').evaluate(video => video.currentTime), value => value > .1, 'Retained Bilibili preview plays');
       await results.locator('video').evaluate(video => video.pause());
       assert(await results.locator('img').first().evaluate(image => image.complete && image.naturalWidth > 0));
-      await results.locator('summary').filter({ hasText: 'Locus connection' }).click();
       await results.setViewportSize({ width: 1400, height: 1500 });
       await results.screenshot({ path: path.join(work, 'bilibili-result-saved.png'), fullPage: true });
       checks.push('Native Bilibili P2 -> two uploads -> one registered import with video/cover File linkage, source metadata and successful nested source/cover/image/video stages', 'Bilibili page and retained result show confirmed Locus save with video and cover');

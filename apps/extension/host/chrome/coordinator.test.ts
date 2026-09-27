@@ -39,23 +39,28 @@ describe('wakeable native delivery coordination',()=>{
     const response=await new Promise<any>(resolve=>listener({target:'coordinator',op:'locus-settings'},{id:'synthetic',url:'https://x.com/example/status/1',tab:{id:1},frameId:0,documentId:'doc'},resolve));
     expect(response.ok).toBe(false);expect(JSON.stringify(response)).not.toContain('private-secret');
   });
-  it('upgrades persisted Bilibili page registration without expanding source probes to favorites',async()=>{
+  it('upgrades persisted Bilibili page registration without expanding source probes to listings',async()=>{
     permissions.mockResolvedValue(true);
-    vi.mocked(chrome.scripting.getRegisteredContentScripts).mockImplementation(async filter=>(filter?.ids??[]).filter(id=>id.startsWith('locus-bilibili')).map(id=>({id,matches:['https://www.bilibili.com/*']})));
+    vi.mocked(chrome.scripting.getRegisteredContentScripts).mockImplementation(async filter=>(filter?.ids??[]).filter(id=>id.startsWith('locus-bilibili')).map(id=>({id,matches:id==='locus-bilibili'?['https://www.bilibili.com/*','https://space.bilibili.com/*']:['https://www.bilibili.com/*']})));
     startCoordinator();await message('activate');
     const updates=vi.mocked(chrome.scripting.updateContentScripts).mock.calls.flatMap(([scripts])=>scripts);
     expect(updates.some(script=>script.id==='locus-bilibili'&&script.matches?.includes('https://space.bilibili.com/*'))).toBe(true);
+    expect(updates.some(script=>script.id==='locus-bilibili'&&script.matches?.includes('https://search.bilibili.com/*'))).toBe(true);
     expect(updates.some(script=>script.id==='locus-bilibili-main'||script.id==='locus-bilibili-bridge')).toBe(false);
   });
   it('accepts ordinary card selections across granted Bilibili pages while rejecting other origins and source types',async()=>{
     permissions.mockResolvedValue(true);startCoordinator();await message('activate');send.mockClear();
     const selected='https://www.bilibili.com/video/BV145PxzCEoE/?p=2';
     const inspect=(url:string,source=selected)=>new Promise<any>(resolve=>listener({target:'coordinator',op:'inspect',url:source},{id:'synthetic',url,tab:{id:7},frameId:0,documentId:'listing-doc'},resolve));
-    for(const page of ['https://www.bilibili.com/','https://space.bilibili.com/123/favlist?fid=456','https://space.bilibili.com/123/video','https://www.bilibili.com/v/popular/all'])expect((await inspect(page)).ok).toBe(true);
-    for(const page of ['https://search.bilibili.com/all','http://www.bilibili.com/','https://www.bilibili.com.evil.test/'])expect((await inspect(page)).ok).toBe(false);
+    for(const page of ['https://www.bilibili.com/','https://space.bilibili.com/123/favlist?fid=456','https://space.bilibili.com/123/video','https://www.bilibili.com/v/popular/all','https://search.bilibili.com/all?keyword=fixture','https://search.bilibili.com/video?keyword=fixture'])expect((await inspect(page)).ok).toBe(true);
+    for(const page of ['https://search.bilibili.com.evil.test/all','http://search.bilibili.com/all','http://www.bilibili.com/','https://www.bilibili.com.evil.test/'])expect((await inspect(page)).ok).toBe(false);
     expect((await inspect('https://www.bilibili.com/','https://www.bilibili.com/bangumi/play/ep123')).ok).toBe(false);
     expect((await inspect('https://www.bilibili.com/','https://x.com/user/status/123')).ok).toBe(false);
-    expect(send.mock.calls.filter(([request])=>request.op==='inspect')).toHaveLength(4);
+    expect((await inspect('https://search.bilibili.com/all','https://search.bilibili.com/video/BV145PxzCEoE/')).ok).toBe(false);
+    expect(send.mock.calls.filter(([request])=>request.op==='inspect')).toHaveLength(6);
+    permissions.mockResolvedValue(false);
+    expect((await inspect('https://search.bilibili.com/all')).ok).toBe(false);
+    expect(send.mock.calls.filter(([request])=>request.op==='inspect')).toHaveLength(6);
   });
   it('invalidates an old inspection across delayed owner creation and site withdrawal/regrant',async()=>{
     permissions.mockResolvedValue(true);contexts.mockResolvedValue([]);let created!:()=>void;

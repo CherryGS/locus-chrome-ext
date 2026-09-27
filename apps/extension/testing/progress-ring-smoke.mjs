@@ -50,10 +50,10 @@ export async function verifyProgressRing({ context, until, checks, work }) {
     } else {
       await until(() => action.evaluate(button => ({ percent: button.dataset.locusPercent, text: button.querySelector('[data-locus-progress] text').textContent, label: button.getAttribute('aria-label') })), value => value.percent === 'indeterminate' && value.text === '…' && value.label.includes('File size unknown'), 'unknown byte total stays indeterminate after queue submission');
     }
-    await until(() => action.getAttribute('data-locus-state'), value => value === 'failed', 'finished capture reports missing Locus connection');
+    await until(() => action.getAttribute('data-locus-state'), value => value === 'saved', 'finished capture reports missing Locus connection');
     assert.equal(await action.getAttribute('data-locus-percent'), null);
     assert.equal(await action.locator('[data-locus-progress]').evaluate(ring => getComputedStyle(ring).display), 'none');
-    assert.equal(await action.locator('svg > path').getAttribute('d'), 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm-3 6 6 6m0-6-6 6');
+    assert.equal(await action.locator('svg > path').getAttribute('d'), 'M4 4h16l2 10v6H2v-6L4 4zm-2 10h6l2 3h4l2-3h6');
     assert.equal(await page.locator('article').evaluate(article => article.getBoundingClientRect().height), height);
     await page.close();
   }

@@ -16,12 +16,12 @@ export function mountTwitterControls() {
   const store = new CaptureStore();
   const mounts = new Set<MountedAction>();
   const host = document.createElement('div');host.dataset.locusCapture = 'true';host.id = `locus-queue-${crypto.randomUUID()}`;
-  // The host establishes a page stacking boundary; the panel is an ordinary
-  // region with no full-page hit target, backdrop, or modal focus behavior.
-  host.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;pointer-events:none;';
+  // Keep the modal portal in the styled shadow surface, independent of the
+  // fixed launcher position. Only visible controls and the open backdrop hit-test.
+  host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none;';
   const shadow = host.attachShadow({ mode: 'open' });const style = document.createElement('style');style.textContent = styles.replaceAll(':root', ':host');shadow.append(style);
-  const container = document.createElement('div');container.className = 'dark';container.style.colorScheme = 'dark';shadow.append(container);
-  document.documentElement.append(host);const root = createRoot(container);root.render(<CaptureQueuePanel store={store} />);
+  const container = document.createElement('div');container.className = 'dark';container.style.pointerEvents = 'auto';container.style.colorScheme = 'dark';shadow.append(container);
+  document.documentElement.append(host);const root = createRoot(container);root.render(<CaptureQueuePanel store={store} portalContainer={container} />);
   let enabled = true;let authorized = false;let accessInFlight = false;let retryDelay = 500;
   let accessTimer: ReturnType<typeof setTimeout> | undefined;let scanTimer: ReturnType<typeof setTimeout> | undefined;
   let lookupInFlight = false;let lookupQueued = false;let lookupTimer: ReturnType<typeof setTimeout> | undefined;
@@ -46,7 +46,7 @@ export function mountTwitterControls() {
     const progressMessage = (state === 'importing' || state === 'saving') && progress ? progress.percent === null ? `File size unknown; ${progress.completedFiles} of ${progress.totalFiles} files processed.` : `${progress.percent}% of selected files acquired. Locus saving follows complete acquisition.` : '';
     const label = `Locus capture. ${captureStates[state].label}. ${progressMessage} ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
     mounted.action.button.setAttribute('aria-label', label);mounted.action.button.title = label;
-    mounted.action.button.setAttribute('aria-expanded', String(store.snapshot().expanded && store.snapshot().selected === postUrl(mounted.url).id));
+    mounted.action.button.setAttribute('aria-expanded', String(store.snapshot().expanded && (!store.snapshot().selected || store.snapshot().selected === postUrl(mounted.url).id)));
     if (mounted.action.status.textContent !== message) mounted.action.status.textContent = message;
     setActionStatus(mounted.action, state, container, progress?.percent ?? null);
   }
@@ -99,8 +99,8 @@ export function mountTwitterControls() {
     for (const source of rows) if (![...mounts].some(mounted => mounted.article === source.article)) create(source);
     store.retainSources(rows.map(row => postUrl(row.url).id));
   }
-  // Only events originating in the panel are isolated from X's shortcuts. No
-  // document-level focus, Escape, pointer, or scrolling interception is used.
+  // Isolate extension controls from X's shortcuts. The explicitly opened dialog
+  // owns modal focus and scrolling; the launcher and selection draft do not.
   for (const type of ['click','dblclick','pointerdown','keydown','keyup']) host.addEventListener(type, event => event.stopPropagation());
   function revoke(message: { target?: string; op?: string }) { if (message?.target === 'page' && message.op === 'revoke') stop(); }
   function stop() { if (!enabled) return;enabled = false;observer.disconnect();clearInterval(timer);clearTimeout(lookupTimer);clearTimeout(accessTimer);clearTimeout(scanTimer);unsubscribe();store.stop();root.unmount();host.remove();chrome.runtime.onMessage.removeListener(revoke);for (const mounted of mounts) mounted.action.slot.remove();mounts.clear();scope.__locusCaptureMounted = false; }

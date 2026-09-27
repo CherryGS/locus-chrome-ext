@@ -5,7 +5,7 @@ import type { CaptureProgress } from '@/host/chrome/capture-progress';
 import { captureStates, type CaptureState } from '@/ui/shared/capture-status';
 import { presentationAttributes, type BilibiliCandidate } from './candidates';
 
-const labels: Record<CaptureState, string> = { 'locus-saved': '已存入 Locus', uncaptured: '导入', checking: '导入', queued: '排队中', importing: '导入中', saving: '保存中', saved: '已导入', partial: '部分导入', failed: '需处理', unknown: '状态未知' };
+const labels: Record<CaptureState, string> = { 'locus-saved': '已存入 Locus', uncaptured: '导入', checking: '导入', queued: '排队中', importing: '导入中', saving: '保存中', saved: '已暂存', partial: '部分导入', failed: '需处理', unknown: '状态未知' };
 
 export function CaptureAction({ candidate, state, message, progress, queueId, expanded, activate }: {
   candidate: BilibiliCandidate; state: CaptureState; message: string; queueId: string; expanded: boolean;

@@ -80,10 +80,45 @@ describe('authenticated TweetDetail source binding', () => {
     expect(() => selectAuthenticatedTweetDetail(response(entry(tweet()), entry(tweet())), url)).toThrow('ambiguous');
     const module = entry(tweet()); module.content.entryType = 'TimelineTimelineModule';
     expect(() => selectAuthenticatedTweetDetail(response(module), url)).toThrow('Unsupported');
-    const wrapped = { __typename: 'TweetWithVisibilityResults', tweet: tweet() };
+    const wrapped = { __typename: 'UnknownTweetWrapper', tweet: tweet() };
     expect(() => selectAuthenticatedTweetDetail(response(entry(wrapped, sourceId)), url)).toThrow('Unsupported signed-in Tweet');
     expect(() => selectAuthenticatedTweetDetail(response(entry({ __typename: 'TweetTombstone' }, sourceId)), url)).toThrow('current signed-in session');
     expect(() => selectAuthenticatedTweetDetail({ errors: [{ message: 'Sign in' }] }, url)).toThrow('TweetDetail response');
+  });
+  // Observed on 2026-09-26 for /DuskenVow/status/2096374492155056257:
+  // TweetWithVisibilityResults { limitedActionResults, tweet }, inner typename
+  // omitted. Keep all fixture text, identities and media synthetic.
+  it.each([false, true])('unwraps the bound visibility result (inner typename: %s)', typed => {
+    const target = tweet();
+    if (!typed) delete target.__typename;
+    const selected = selectAuthenticatedTweetDetail(response(entry({ __typename:'TweetWithVisibilityResults', limitedActionResults:{privateFixture:'must-not-transfer'}, tweet:target }, sourceId)), url)!;
+    expect(selected.tweet.__typename).toBe('Tweet');
+    expect(JSON.stringify(selected)).not.toContain('limitedActionResults');
+    expect(JSON.stringify(selected)).not.toContain('must-not-transfer');
+    const candidate = normalizeAuthenticatedTwitter(JSON.parse(JSON.stringify(selected)), url);
+    expect(candidate.sourceId).toBe(sourceId); expect(candidate.text).toBe(target.legacy.full_text);
+    expect(candidate.media[0]!.url).toContain('high.mp4');
+    target.legacy.extended_entities.media[0].type = 'photo'; delete target.legacy.extended_entities.media[0].video_info;
+    const photo = selectAuthenticatedTweetDetail(response(entry({ __typename:'TweetWithVisibilityResults', tweet:target }, sourceId)), url)!;
+    expect(normalizeAuthenticatedTwitter(photo, url).media[0]).toMatchObject({kind:'photo',sourceId:'55'});
+  });
+  it.each(['id','legacy-id','wrapper-id','foreign-media','nested','tombstone','missing'])('rejects invalid visibility results: %s', fault => {
+    const target = tweet(); delete target.__typename;
+    const wrapped: any = { __typename:'TweetWithVisibilityResults', tweet:target };
+    if (fault === 'id') target.rest_id = '21';
+    if (fault === 'legacy-id') target.legacy.id_str = '21';
+    if (fault === 'wrapper-id') wrapped.rest_id = '21';
+    if (fault === 'foreign-media') target.legacy.extended_entities.media[0].source_status_id_str = '21';
+    if (fault === 'nested') wrapped.tweet = { __typename:'TweetWithVisibilityResults',tweet:target };
+    if (fault === 'tombstone') wrapped.tweet = { __typename:'TweetTombstone' };
+    if (fault === 'missing') delete wrapped.tweet;
+    expect(() => selectAuthenticatedTweetDetail(response(entry(wrapped, sourceId)), url)).toThrow();
+  });
+  it('keeps untyped direct results and wrapped bridge envelopes unsupported', () => {
+    const untyped = tweet(); delete untyped.__typename;
+    expect(() => selectAuthenticatedTweetDetail(response(entry(untyped)), url)).toThrow('Unsupported');
+    const selected = project(); selected.tweet = { __typename:'TweetWithVisibilityResults',tweet:selected.tweet };
+    expect(() => normalizeAuthenticatedTwitter(selected, url)).toThrow('Unsupported');
   });
   it('revalidates the projected envelope, source and author in the extension owner', () => {
     const selected = project(); selected.requestedId = '21';

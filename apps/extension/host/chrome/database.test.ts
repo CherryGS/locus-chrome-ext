@@ -14,6 +14,26 @@ describe('transactional results', () => {
     expect(await reopened.locusTransfers()).toEqual([transfer]);await reopened.clear(snapshot.result.id);
     await expect(reopened.saveLocusTransfer({...transfer,state:'complete'})).rejects.toThrow('cleared');expect(await reopened.locusTransfers()).toEqual([]);await reopened.close();
   });
+  it('projects only legacy initial configuration failures before any execution owner starts', async () => {
+    const name = crypto.randomUUID(), database = new ResultDatabase(name), snapshot = syntheticSnapshot();
+    await database.commit(snapshot);
+    const original = { resultId: snapshot.result.id, revision: 1, state: 'failed' as const, message: 'Configure the Locus address and Token in the extension’s connection settings, then continue this save', uploads: [], importRequest: { id: 'unchanged-request' } };
+    await database.saveLocusTransfer(original); await database.close();
+    const reopened = new ResultDatabase(name);
+    expect((await reopened.locusTransfers())[0]).toMatchObject({ state: 'configuration-required', resultId: original.resultId, importRequest: original.importRequest });
+    expect(await (await reopened.read(original.resultId))!.blobs.file!.text()).toBe('synthetic bytes');
+    for (const evidence of [
+      { importRequest: { id: 'original', dispatched: true } },
+      { uploads: [{ assetId: 'file', request: { id: 'upload', dispatched: true } }] },
+      { uploads: [{ assetId: 'file', request: { id: 'upload' }, fileId: 'confirmed' }] },
+      { batchId: 'batch' }, { entityIds: ['entity'] }, { runId: 'prior-run' }, { origin: 'http://127.0.0.1:1234' },
+      { message: 'Network unavailable' },
+    ]) {
+      await reopened.saveLocusTransfer({ ...original, ...evidence });
+      expect((await reopened.locusTransfers())[0]?.state).toBe('failed');
+    }
+    await reopened.close();
+  });
   it('keeps confirmed delivery completion against late weaker writes', async () => {
     const database = new ResultDatabase(crypto.randomUUID());
     const row = { id: crypto.randomUUID(), resultId: crypto.randomUUID(), revision: 1, createdAt: new Date().toISOString(), state: 'complete' as const, partial: false };
