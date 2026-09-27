@@ -115,10 +115,10 @@ must be assessed independently by the source probe.
 
 ## Candidate and license
 
-Mediabunny **1.58.1**, by Vanilagy and contributors, is pinned as an experimental
-development dependency under **MPL-2.0**. Its source is unmodified; the temporary
-extension receives the package license, and bundled source retains its notices.
-It is not imported by any production entrypoint.
+Mediabunny **1.58.1**, by Vanilagy and contributors, is pinned under **MPL-2.0**.
+It is now also used by production Bilibili offscreen assembly. This separate
+probe retains its experimental remux and comparison harness. The library source
+is unmodified; both extension builds receive its license and bundled notices.
 
 - [Encoded media sources](https://mediabunny.dev/guide/media-sources)
 - [Encoded media sinks](https://mediabunny.dev/guide/media-sinks)

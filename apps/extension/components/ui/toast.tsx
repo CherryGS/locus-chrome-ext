@@ -212,9 +212,6 @@ function Toaster({
   )
 }
 
-const createToastManager = ToastPrimitive.createToastManager
-const useToastManager = ToastPrimitive.useToastManager
-
 export {
   Toaster,
   Toast,
@@ -226,7 +223,5 @@ export {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-  createToastManager,
   toast,
-  useToastManager,
 }
