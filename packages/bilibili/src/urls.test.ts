@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { bilibiliPage, partUrl, bilibiliResource, bilibiliTrackResource } from './urls';
+import { bilibiliPage, partUrl, watchlaterPartUrl, bilibiliResource, bilibiliTrackResource } from './urls';
+
+describe('Bilibili watch-later entry surfaces', () => {
+  const entry = 'https://www.bilibili.com/list/watchlater/?bvid=BV145PxzCEoE&oid=116182891959963&watchlater_cfg=%7B%22viewed%22%3A0%7D&spm_id_from=333.881.0.0';
+  it('normalizes a card to its ordinary first part without list bookkeeping', () => {
+    expect(bilibiliPage('https://www.bilibili.com/watchlater/list')).toBe('listing');
+    expect(bilibiliPage(entry)).toBe('watchlater');
+    expect(watchlaterPartUrl(entry)).toEqual(partUrl('https://www.bilibili.com/video/BV145PxzCEoE/'));
+    expect(() => partUrl(entry)).toThrow();
+  });
+  it('preserves the explicitly selected player part', () => {
+    expect(watchlaterPartUrl(entry + '&p=2&vd_source=fixture')).toEqual(partUrl('https://www.bilibili.com/video/BV145PxzCEoE/?p=2'));
+  });
+  it.each([
+    entry.replace('https:', 'http:'), entry.replace('www.bilibili.com', 'evil.test'),
+    entry.replace('www.bilibili.com', 'www.bilibili.com:8443'), entry.replace('www.bilibili.com', 'user@www.bilibili.com'),
+    entry.replace('/list/watchlater/', '/list/favorites/'), entry.replace('bvid=BV145PxzCEoE', 'bvid=ep123'),
+    entry.replace('bvid=BV145PxzCEoE', 'bvid='), entry + '&bvid=BV145PxzCEoE',
+    entry + '&p=0', entry + '&p=10000', entry + '&p=1&p=2', entry + '&p=2%26p%3D3', entry + '&list=all',
+  ])('rejects an unverified or ambiguous selection %s', url => {
+    expect(() => watchlaterPartUrl(url)).toThrow();
+  });
+  it('does not classify a watch-later player with no selected video as a candidate page', () => {
+    expect(bilibiliPage('https://www.bilibili.com/list/watchlater/')).toBeUndefined();
+  });
+});
 
 describe('Bilibili search entry surfaces', () => {
   it.each(['all', 'video'])('recognizes the %s search listing without accepting it as a video selection', route => {

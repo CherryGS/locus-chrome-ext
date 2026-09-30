@@ -4,7 +4,7 @@ export const BILIBILI_PAGE_ORIGINS = ['https://www.bilibili.com/*', 'https://spa
 export const BILIBILI_ORIGINS = [...BILIBILI_PAGE_ORIGINS, 'https://api.bilibili.com/*', 'https://*.bilivideo.com/*', 'https://*.hdslb.com/*'];
 
 /** Page entry surfaces do not broaden the ordinary-video source selection. */
-export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | 'listing' | undefined {
+export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | 'watchlater' | 'listing' | undefined {
   try {
     const url = new URL(input);
     if (url.protocol !== 'https:' || url.port || url.username || url.password) return;
@@ -13,8 +13,20 @@ export function bilibiliPage(input: string): 'home' | 'favorites' | 'video' | 'l
     if (url.hostname !== 'www.bilibili.com') return;
     if (url.pathname === '/') return 'home';
     if (url.pathname.startsWith('/video/')) { partUrl(input); return 'video'; }
+    if (/^\/list\/watchlater\/?$/.test(url.pathname)) { watchlaterPartUrl(input); return 'watchlater'; }
     return 'listing';
   } catch { return; }
+}
+/** Observed watch-later links select one ordinary video, not the surrounding list. */
+export function watchlaterPartUrl(input: string) {
+  const url = new URL(input), bvids = url.searchParams.getAll('bvid');
+  if (url.protocol !== 'https:' || url.hostname !== 'www.bilibili.com' || url.port || url.username || url.password || !/^\/list\/watchlater\/?$/.test(url.pathname) || bvids.length !== 1 || !/^BV[0-9A-Za-z]{10}$/.test(bvids[0]!)) throw new Error('Unsupported Bilibili watch-later selection');
+  for (const key of url.searchParams.keys()) if (!['bvid', 'oid', 'watchlater_cfg', 'p', 'spm_id_from', 'vd_source'].includes(key)) throw new Error('Unverified Bilibili watch-later query');
+  const parts = url.searchParams.getAll('p');
+  if (parts.length > 1) throw new Error('Ambiguous Bilibili watch-later part');
+  // List bookkeeping never enters the source/probe URL. The ordinary-video
+  // parser remains the authority for a bounded, explicit part selection.
+  return partUrl(`https://www.bilibili.com/video/${bvids[0]}/` + (parts.length ? `?p=${encodeURIComponent(parts[0]!)}` : ''));
 }
 export function partUrl(input: string) {
   const url = new URL(input);

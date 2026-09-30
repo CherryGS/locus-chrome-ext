@@ -1,5 +1,5 @@
 /** Synthetic async native bootstrap and player, separate from capture execution. */
-export function bilibiliNativeFixture(part) {
+export function bilibiliNativeFixture(part, watchlaterBvid) {
   return `<div id="bilibili-player" aria-label="Native player"><div class="bpx-player-container"></div></div>
     <button id="native-p1">Play native P1</button><button id="native-p2">Play native P2</button>
     <script>
@@ -15,8 +15,8 @@ export function bilibiliNativeFixture(part) {
       video.controls = true; video.width = 160; video.height = 90; player.append(video);
       const select = (part, navigate) => {
         if (navigate) {
-          history.pushState({}, '', '?p=' + part + '&vd_source=fixture');
-          document.querySelector('h1').textContent = 'Synthetic Bilibili P' + part;
+          history.pushState({}, '', ${JSON.stringify(watchlaterBvid ? `?bvid=${watchlaterBvid}&oid=116182891959963&` : '?')} + 'p=' + part + '&vd_source=fixture');
+          document.querySelector(${JSON.stringify(watchlaterBvid ? 'h1 a' : 'h1')}).textContent = 'Synthetic Bilibili P' + part;
         }
         video.dataset.part = String(part); video.src = '/fixture-native.mp4?p=' + part;
         void video.play().catch(() => {});
