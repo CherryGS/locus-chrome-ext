@@ -11,7 +11,7 @@ export function redactDiagnostic(text: string): string {
   }).replace(/\b(authorization|cookie|set-cookie|(?:access|refresh)[_-]?token|password|secret)\s*[:=]\s*[^\n]+/gi, '$1: [redacted]'));
 }
 
-export function diagnosticContext(input: unknown, depth = 0): Json {
+function diagnosticContext(input: unknown, depth = 0): Json {
   if (input === null || input === undefined) return null;
   if (typeof input === 'string') return bounded(redactDiagnostic(input), 2048);
   if (typeof input === 'boolean') return input;

@@ -1,4 +1,4 @@
-import type { Data, DataObject } from './relay-parser';
+import type { Data, DataObject } from './source-data';
 import { postUrl } from './urls';
 import { noteTweetId } from './note-tweet';
 

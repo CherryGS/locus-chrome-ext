@@ -209,6 +209,8 @@ try {
   let resultPage=await results();
   await resultPage.getByText('No captures yet',{exact:true}).waitFor();
   await resultPage.screenshot({path:path.join(work,'library-empty.png')});
+  await resultPage.getByRole('button',{name:'Settings',exact:true}).click();
+  await resultPage.getByRole('dialog',{name:'Settings',exact:true}).getByRole('tab',{name:'General',exact:true}).click();
   assert.equal(await resultPage.getByRole('button',{name:'Enable Twitter',exact:true}).isEnabled(),true);
   const actualGrants=await resultPage.evaluate(()=>chrome.permissions.getAll());
   assert.equal(actualGrants.origins?.length ?? 0,0);
@@ -226,7 +228,12 @@ try {
   await writeFile(twitterPath,`if(location.pathname==='/synthetic/status/505'){const send=chrome.runtime.sendMessage.bind(chrome.runtime);let attempts=0;chrome.runtime.sendMessage=(message,...args)=>{if(message?.op==='access'){document.documentElement.dataset.fixtureAccessAttempts=String(++attempts);if(attempts<3)return Promise.reject(new Error('Synthetic worker startup failure'));}return send(message,...args);};}\n`+await readFile(twitterPath,'utf8'));
   await installProgressFixture(extension);
   await launch('fixture-profile'); await routeFixtures(700);
-  resultPage=await results(); await resultPage.getByRole('button',{name:'Twitter enabled'}).waitFor();
+  resultPage=await results();
+  await resultPage.getByRole('button',{name:'Settings',exact:true}).click();
+  await resultPage.getByRole('dialog',{name:'Settings',exact:true}).getByRole('tab',{name:'General',exact:true}).click();
+  await resultPage.getByRole('button',{name:'Twitter enabled',exact:true}).waitFor();
+  await resultPage.keyboard.press('Escape');
+  await resultPage.getByRole('dialog',{name:'Settings',exact:true}).waitFor({state:'hidden'});
   await routeOffscreen(700);
   await verifyLoggedInAction();
   await verifyFocalActions({context,until,checks,work,loggedInFixture});

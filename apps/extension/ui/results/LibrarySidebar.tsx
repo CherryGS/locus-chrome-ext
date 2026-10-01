@@ -1,14 +1,108 @@
-import { InboxIcon, CheckCheckIcon, CircleDashedIcon, Globe2Icon, LibraryIcon, ScanLineIcon, ShieldCheckIcon } from 'lucide-react';
-import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge, SidebarFooter, SidebarSeparator, useSidebar } from '@/components/ui/sidebar';
-import type { ResultSummary } from '@/host/chrome/protocol';
-import { resultView, viewLabels, type LibraryView } from './presentation';
+import {
+  InboxIcon,
+  CheckCheckIcon,
+  CircleDashedIcon,
+  LibraryIcon,
+  ScanLineIcon,
+  Settings2Icon,
+} from "lucide-react";
+import type { RefObject } from "react";
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuBadge,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import type { ResultSummary } from "@/host/chrome/protocol";
+import { resultView, viewLabels, type LibraryView } from "./presentation";
 
-const views = [{ id:'inbox', icon:InboxIcon }, { id:'progress', icon:CircleDashedIcon }, { id:'saved', icon:CheckCheckIcon }, { id:'all', icon:LibraryIcon }] as const;
-export function LibrarySidebar({ view, onView, items, access, bilibiliAccess, busy, onEnable }: { view: LibraryView; onView: (view: LibraryView) => void; items?: ResultSummary[]; access?: boolean; bilibiliAccess?:boolean; busy: string; onEnable: (site?:'twitter'|'bilibili') => void }) {
+const views = [
+  { id: "inbox", icon: InboxIcon },
+  { id: "progress", icon: CircleDashedIcon },
+  { id: "saved", icon: CheckCheckIcon },
+  { id: "all", icon: LibraryIcon },
+] as const;
+export function LibrarySidebar({
+  view,
+  onView,
+  items,
+  onSettings,
+  settingsTrigger,
+}: {
+  view: LibraryView;
+  onView: (view: LibraryView) => void;
+  items?: ResultSummary[];
+  onSettings: () => void;
+  settingsTrigger: RefObject<HTMLButtonElement | null>;
+}) {
   const { setOpenMobile } = useSidebar();
-  return <Sidebar collapsible="icon">
-    <SidebarHeader className="px-3 py-5"><div className="flex items-center gap-3 px-1"><ScanLineIcon className="size-6 shrink-0" aria-hidden="true" /><div className="group-data-[collapsible=icon]:hidden"><h1 className="text-base font-semibold tracking-tight">Locus</h1><p className="text-xs text-muted-foreground">Capture workspace</p></div></div></SidebarHeader>
-    <SidebarContent><SidebarGroup><SidebarGroupLabel>Library</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>{views.map(({ id, icon:Icon }) => <SidebarMenuItem key={id}><SidebarMenuButton tooltip={viewLabels[id]} isActive={view === id} onClick={() => { onView(id);setOpenMobile(false); }}><Icon /><span>{viewLabels[id]}</span></SidebarMenuButton><SidebarMenuBadge>{items ? id === 'all' ? items.length : items.filter(item => resultView(item) === id).length : '—'}</SidebarMenuBadge></SidebarMenuItem>)}</SidebarMenu></SidebarGroupContent></SidebarGroup></SidebarContent>
-    <SidebarFooter className="gap-4 p-3"><SidebarGroup className="p-0"><SidebarGroupLabel>Source access</SidebarGroupLabel><SidebarMenu><SidebarMenuItem><SidebarMenuButton tooltip={access ? 'Twitter enabled' : 'Enable Twitter'} disabled={!!busy || access === true} onClick={()=>onEnable('twitter')}><Globe2Icon /><span>{access ? 'Twitter enabled' : busy === 'enable' ? 'Enabling…' : 'Enable Twitter'}</span></SidebarMenuButton></SidebarMenuItem><SidebarMenuItem><SidebarMenuButton tooltip={bilibiliAccess?'Bilibili enabled':'Enable Bilibili'} disabled={!!busy||bilibiliAccess===true} onClick={()=>onEnable('bilibili')}><Globe2Icon/><span>{bilibiliAccess?'Bilibili enabled':busy==='enable-bilibili'?'Enabling…':'Enable Bilibili'}</span></SidebarMenuButton></SidebarMenuItem></SidebarMenu><p className="px-2 pt-2 text-xs leading-relaxed text-muted-foreground group-data-[collapsible=icon]:hidden">Capture a post or current video part from its Locus action.</p></SidebarGroup><SidebarSeparator className="mx-0" /><div className="flex items-start gap-2 px-2 pb-1 text-xs leading-relaxed text-muted-foreground"><ShieldCheckIcon className="mt-0.5 size-4 shrink-0" /><span className="group-data-[collapsible=icon]:hidden">On this device.<br />Kept until you clear it.</span></div></SidebarFooter>
-  </Sidebar>;
+  const counts = { inbox: 0, progress: 0, saved: 0, all: items?.length ?? 0 };
+  for (const item of items ?? []) ++counts[resultView(item)];
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="px-3 py-5">
+        <div className="flex items-center gap-3 px-1">
+          <ScanLineIcon
+            className="size-6 shrink-0 text-primary"
+            aria-hidden="true"
+          />
+          <div className="group-data-[collapsible=icon]:hidden">
+            <h1 className="text-base font-semibold tracking-tight">Locus</h1>
+            <p className="text-xs text-muted-foreground">Web captures</p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Library</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {views.map(({ id, icon: Icon }) => (
+                <SidebarMenuItem key={id}>
+                  <SidebarMenuButton
+                    tooltip={viewLabels[id]}
+                    isActive={view === id}
+                    onClick={() => {
+                      onView(id);
+                      setOpenMobile(false);
+                    }}
+                  >
+                    <Icon />
+                    <span>{viewLabels[id]}</span>
+                  </SidebarMenuButton>
+                  <SidebarMenuBadge>
+                    {items ? counts[id] : "—"}
+                  </SidebarMenuBadge>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Settings"
+              aria-label="Settings"
+              onClick={onSettings}
+              ref={settingsTrigger}
+            >
+              <Settings2Icon />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
 }

@@ -30,15 +30,23 @@ try {
   });
   await worker.evaluate(async () => { if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument(); });
   await page.goto(`${url}#${id}`);
-  await page.getByText('Locus setup required', {exact:true}).waitFor();
-  await page.getByRole('button', {name:'Continue save',exact:true}).waitFor();
+  await page.getByRole('button', {name:'Locus setup required',exact:true}).waitFor();
   await page.getByText('Retained before configuration', {exact:true}).waitFor();
+  const toolbarHeight = await page.getByRole('region', { name: 'Capture inspection', exact: true }).locator(':scope > header').evaluate(header => header.getBoundingClientRect().height);
+  assert(toolbarHeight <= 130, `Configuration guidance must remain compact: ${toolbarHeight}px`);
+  assert.equal(await page.getByRole('region', { name: 'Capture inspection', exact: true }).locator(':scope > header [role="alert"]').count(), 0, 'Long setup explanations live in Activity');
   assert.equal(await page.locator('[data-capture-diagnostic]').count(), 0, 'Historical missing settings must not render as an error');
   assert.equal(await page.locator('[data-capture-state="failed"]').count(), 0);
   assert.equal(await page.locator('[data-capture-state="saved"] svg.lucide-inbox').count(), 2, 'List and detail share neutral staging');
   assert.deepEqual(requests, [], 'The result page does not fetch remote content');
+  while (await page.getByRole('button', { name: 'Close toast', exact: true }).count()) await page.getByRole('button', { name: 'Close toast', exact: true }).last().click();
+  await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]'));
   await page.screenshot({path:path.join(work,'historical-configuration-staging.png'),animations:'disabled'});
-  await page.close(); console.log('Historical missing configuration: real storage + owner restart -> neutral staging, retained content, no result-page HTTP requests PASS');
+  await page.getByRole('button', {name:'Locus setup required',exact:true}).click();
+  await page.getByRole('button', {name:'Continue save',exact:true}).waitFor();
+  await page.getByRole('button', {name:'Connection settings',exact:true}).waitFor();
+  await page.screenshot({path:path.join(work,'historical-configuration-activity.png'),animations:'disabled'});
+  await page.close(); console.log(`Historical missing configuration: real storage + owner restart -> neutral staging, retained content, no result-page HTTP requests; toolbar ${toolbarHeight}px PASS`);
   console.log(work);
 } catch (error) { console.error(`Artifacts: ${work}`); throw error; }
 finally { await context.close(); }

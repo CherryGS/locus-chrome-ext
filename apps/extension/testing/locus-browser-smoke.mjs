@@ -56,7 +56,7 @@ try{
   await bilibili.route(context);
   const worker=context.serviceWorkers()[0]??await context.waitForEvent('serviceworker'),extensionId=new URL(worker.url()).host;
   const results=await context.newPage();await results.goto(`chrome-extension://${extensionId}/results.html`);
-  await results.getByRole('button',{name:'Locus settings',exact:true}).click();
+  await results.getByRole('button',{name:'Settings',exact:true}).click();
   await results.getByLabel('Locus address',{exact:true}).fill(`http://127.0.0.1:${port}`);await results.getByLabel('Token',{exact:true}).fill(credential.token);
   await results.getByRole('button',{name:'Connect and save'}).click();await results.getByText('Locus connection verified',{exact:true}).waitFor();
   // Offscreen documents are not Playwright pages; route their site fixtures via
@@ -89,7 +89,7 @@ try{
   await until(rows,values=>values.length===2&&values.some(value=>value.state==='failed'),'partial capture blocks delivery');
   assert.equal((await application.request('/api/v1/import-batches')).batches.length,1);
   const failed=(await rows()).find(value=>value.state==='failed');assert.equal(failed.uploads.length,0);
-  await results.goto(`chrome-extension://${extensionId}/results.html#${failed.resultId}`);await results.getByRole('button',{name:'Inbox',exact:true}).waitFor();await results.getByRole('button',{name:'Export available content',exact:true}).waitFor();assert.equal(await results.getByRole('button',{name:'Check and continue save',exact:true}).count(),0);await results.screenshot({path:path.join(work,'failed-save-inbox.png'),fullPage:true});
+  await results.goto(`chrome-extension://${extensionId}/results.html#${failed.resultId}`);await results.getByRole('button',{name:'Inbox',exact:true}).waitFor();await results.getByRole('button',{name:'Export available content',exact:true}).waitFor();await results.getByRole('tab',{name:/^Activity/}).click();assert.equal(await results.getByRole('button',{name:'Check and continue save',exact:true}).count(),0);await results.getByRole('tab',{name:'Preview',exact:true}).click();await results.screenshot({path:path.join(work,'failed-save-inbox.png'),fullPage:true});
   const bilibiliChecks=await bilibili.verify({context,results,rows,application,extensionId,until,locusRequests});
   // A complete capture must remain usable when the actual receiver is offline.
   // This exercises the requested fallback, independently of acquisition failure.
@@ -101,11 +101,13 @@ try{
   await results.goto(`chrome-extension://${extensionId}/results.html`);
   await results.getByRole('button',{name:'Open capture @synthetic · 125',exact:true}).click();
   await results.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
+  await results.getByRole('tab',{name:/^Activity/}).click();
   await results.getByRole('button',{name:'Check and continue save',exact:true}).waitFor();
+  assert.equal(await results.locator('[data-capture-diagnostic] pre').isVisible(),false);
+  await results.getByRole('tab',{name:'Preview',exact:true}).click();
   await results.getByText('Synthetic complete post 125',{exact:true}).waitFor();
   await results.locator('img').evaluate(image=>image.decode());
   assert.equal(await results.locator('img').evaluate(image=>image.complete&&image.naturalWidth>0),true);
-  assert.equal(await results.locator('[data-capture-diagnostic] pre').isVisible(),false);
   await results.screenshot({path:path.join(work,'offline-save-inbox.png'),fullPage:true});
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({passed:['Connection UI and credential check','One-click complete Twitter capture -> real upload -> real File/Twitter import','Page shows confirmed Locus result','Incomplete capture sends no upload or import',...bilibiliChecks,'Offline real receiver: complete capture reopens in default Inbox with retained preview, export and original-save continuation'],artifacts:work}));

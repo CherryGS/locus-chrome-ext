@@ -1,8 +1,5 @@
 import { parse, type Node } from 'acorn';
-
-export type Data = null | undefined | boolean | number | string | Data[] | { [key: string]: Data };
-export type DataObject = { [key: string]: Data };
-export function object(value: Data): DataObject { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
+import { object, type Data, type DataObject } from './source-data';
 
 /** Read only the relayRecords data expression. Surrounding site code is never run. */
 export function parseRelay(source: string): Record<string, DataObject> {

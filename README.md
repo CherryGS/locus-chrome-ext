@@ -38,7 +38,7 @@ cards require access to `search.bilibili.com`.
 
 ## Connect to Locus
 
-Open **Locus settings** in the extension. Enter the active
+Open **Settings** at the bottom of the extension's sidebar, then **Connection**. Enter the active
 `http://127.0.0.1:port` address and Token from Locus Settings, then choose
 **Connect and save**. Connection setup requests optional loopback access and
 verifies the credential. The Token stays in extension storage and is not exposed
@@ -49,12 +49,12 @@ New complete Twitter and Bilibili captures automatically continue to Locus.
 retention or a successful file upload alone does not mean the save succeeded.
 
 Without connection settings, complete captures remain **Staged locally**. Open
-their Inbox entry, configure Locus and choose **Continue save**. Changing settings
+their Inbox entry and open **Activity**, configure Locus and choose **Continue save**. Changing settings
 does not automatically send old content. Captures created without a delivery
 attempt retain their local inspection and export behavior.
 
 For interrupted or uncertain delivery, **Check original save** or **Check and
-continue save** inspects the existing attempt without repeating confirmed
+continue save** in Activity inspects the existing attempt without repeating confirmed
 uploads. An unresolved attempt from an earlier Locus server run cannot silently
 resume against a new run.
 
@@ -100,6 +100,8 @@ rules/                 Repository implementation and web-platform guidance
 The app consumes private TypeScript workspace packages through explicit export
 subpaths. Site packages depend on capture-core; they do not import Chrome APIs,
 React or application code. WXT bundles the packages directly.
+Twitter source normalization and authenticated projection use lightweight shared
+value helpers; only the Relay syntax parser loads Acorn.
 
 The UI uses shadcn/Base UI, Tailwind CSS and Lucide icons. Theme variables live in
 `apps/extension/assets/tailwind.css`. Run `pnpm shadcn:info` to inspect the member's

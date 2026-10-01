@@ -55,6 +55,21 @@ try {
   };
   await open(fixtures[0]);
   await page.locator('img').evaluate(image => image.decode());
+  const changeTheme = async name => {
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const settings = page.getByRole('dialog', { name: 'Settings', exact: true });
+    await settings.getByRole('tab', { name: 'General', exact: true }).click();
+    await settings.getByRole('button', { name, exact: true }).click();
+    await page.keyboard.press('Escape');
+    await settings.waitFor({ state: 'hidden' });
+  };
+  await changeTheme('Use light theme');
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), false);
+  await page.screenshot({ path: path.join(work, 'preview-light-desktop.png'), animations: 'disabled' });
+  await page.reload();
+  await page.getByRole('heading', { name: fixtures[0].label, exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark')), false, 'Theme choice survives reopening');
+  await changeTheme('Use dark theme');
   const author = page.getByRole('link', { name: 'Open author profile', exact: true });
   assert.equal(await author.getAttribute('href'), 'https://x.com/fieldnotes');
   const original = page.getByRole('link', { name: 'Open original post', exact: true });

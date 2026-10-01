@@ -220,12 +220,20 @@ try {
     const sourceDisplay = await until(() => dimensions(sourcePage), value => value.ready >= 1, 'source aspect dimensions'); await sourcePage.close();
     await resultPage.goto(`chrome-extension://${extensionId}/results.html#${attempt.id}`); await resultPage.getByRole('button', { name: 'Export ZIP', exact: true }).waitFor();
     const display = await until(() => dimensions(resultPage), value => value.ready >= 1, 'retained aspect preview'); assert.equal(display.width, sourceDisplay.width); assert.equal(display.height, sourceDisplay.height);
+    // Decode proof needs a visible, foreground video; information above it can
+    // legitimately put the preview below the scroll viewport.
+    await resultPage.bringToFront();
+    await resultPage.locator('video').scrollIntoViewIfNeeded();
     const playback = [];
     for (const position of [0, (media.duration ?? 3) / 2, (media.duration ?? 3) - .6]) {
       const played = await resultPage.locator('video').evaluate(async (video, position) => {
         video.muted = true;
         if (position) await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Seek timed out')), 10000); video.addEventListener('seeked', () => { clearTimeout(timer); resolve(); }, { once: true }); video.currentTime = position; });
-        const before = video.getVideoPlaybackQuality().totalVideoFrames; await video.play(); await new Promise(resolve => setTimeout(resolve, 250)); video.pause(); return { time: video.currentTime, frames: video.getVideoPlaybackQuality().totalVideoFrames - before, error: video.error?.message };
+        const before = video.getVideoPlaybackQuality().totalVideoFrames;
+        await video.play();
+        const deadline = Date.now() + 5000;
+        while (video.getVideoPlaybackQuality().totalVideoFrames <= before && !video.error && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+        video.pause(); return { time: video.currentTime, frames: video.getVideoPlaybackQuality().totalVideoFrames - before, error: video.error?.message };
       }, position); assert(played.frames > 0 && !played.error, JSON.stringify(played)); playback.push(played);
     }
     const old = await resultPage.evaluate(async () => (await chrome.downloads.search({})).map(item => item.id));

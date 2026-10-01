@@ -90,9 +90,20 @@ manual session. Source/API layout changes can require new observed fixtures.
 - `entrypoints/`: WXT composition and runtime entry declarations.
 - `host/chrome/`: browser coordination, source probes, network access, IndexedDB,
   offscreen ownership, Bilibili assembly and native ZIP delivery.
+  `site-registration` handles registration and activation, `native-delivery`
+  correlates browser downloads, and the offscreen-only `site-capture` adapter
+  selects the concrete site producer without loading assembly into page/UI bundles.
 - `host/locus/`: connection validation, external API transport and durable save
   attempt continuation.
 - `ui/`: source-page controls, shared capture feedback and the results application.
+  `ui/capture/` owns the common task store, queue, launcher position and batched
+  passive status lookup. Site modules own native page mounting and selection UI.
+  Result navigation, permissions, preview, metadata, activity and clear confirmation
+  have separate modules; every surface shares capture and local-storage badges.
+  The inspector toolbar groups capture status beneath the title; status links
+  open Activity, which owns explanations, continuation actions and diagnostics.
+  Settings at the sidebar's bottom opens one modal for the Locus connection,
+  website access and appearance; no global workspace header is needed.
 - `components/ui/`: app-used shadcn/Base UI primitives.
 - `testing/`: browser runners and synthetic fixtures; unit tests live beside code.
 

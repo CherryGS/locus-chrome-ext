@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { availability } from '@locus/capture-core/model';
-import { AUTHENTICATED_SOURCE_LIMIT, normalizeAuthenticatedTwitter, selectAuthenticatedTweetDetail as selectDetail } from './authenticated-source';
+import { normalizeAuthenticatedTwitter } from './authenticated-source';
+import { AUTHENTICATED_SOURCE_LIMIT, selectAuthenticatedTweetDetail as selectDetail } from './authenticated-projection';
 import { selectTwitter } from './source';
 
 // Synthetic structural equivalents of the signed-in TweetDetail reply observed

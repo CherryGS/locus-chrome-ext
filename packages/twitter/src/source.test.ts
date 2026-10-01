@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { availability } from '@locus/capture-core/model';
 import { normalizeTwitter, PublicTwitterSourceUnavailableError, selectTwitter } from './source';
-import { parseRelay, type DataObject } from './relay-parser';
+import { parseRelay } from './relay-parser';
+import type { DataObject } from './source-data';
 import { mediaUrl, postUrl } from './urls';
 
 // Synthetic equivalents of the public Relay bindings observed 2026-09-19.

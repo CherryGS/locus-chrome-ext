@@ -1,9 +1,8 @@
 import type { Json } from '@locus/capture-core/model';
-import { object, type Data, type DataObject } from './relay-parser';
+import { object, type Data, type DataObject } from './source-data';
 import { normalizeTwitter, type TwitterCandidate } from './source';
 import { postUrl } from './urls';
 import { validateAuthenticatedTweetSource } from './authenticated-projection';
-export { AUTHENTICATED_SOURCE_LIMIT, selectAuthenticatedTweetDetail, type AuthenticatedTweetSource } from './authenticated-projection';
 
 const id = (value: unknown): string | null => typeof value === 'string' && /^\d{1,25}$/.test(value) ? value : null;
 

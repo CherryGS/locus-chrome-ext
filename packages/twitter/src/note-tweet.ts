@@ -1,4 +1,4 @@
-import type { Data, DataObject } from './relay-parser';
+import type { Data, DataObject } from './source-data';
 
 /** Note IDs are distinct from their attaching Tweet IDs. The Tweet's explicit
  * result reference establishes ownership; the encoded ID corroborates the note. */

@@ -1,5 +1,6 @@
 import type { CaptureResult, Json } from '@locus/capture-core/model';
-import { object, type Data, type DataObject } from './relay-parser';
+import { errorMessage } from '@locus/capture-core/model';
+import { object, type Data, type DataObject } from './source-data';
 import { mediaUrl, postUrl } from './urls';
 import { readNoteTweet } from './note-tweet';
 
@@ -49,7 +50,7 @@ export function normalizeTwitter(records: Record<string, DataObject>, requestedU
   const authorCore = deref(author?.core);
   const rawUsername = string(authorCore?.screen_name);
   const username = rawUsername && /^[A-Za-z0-9_]{1,30}$/.test(rawUsername) ? rawUsername : null;
-  const sourceUrl = username && /^[A-Za-z0-9_]{1,30}$/.test(username) ? `https://x.com/${username}/status/${sourceId}` : `https://x.com/i/status/${sourceId}`;
+  const sourceUrl = username ? `https://x.com/${username}/status/${sourceId}` : `https://x.com/i/status/${sourceId}`;
   // A long post's NoteTweet contains its complete message. TBirdData remains
   // the excerpt, with its own unrelated entity offsets, even when not truncated.
   const note = tweet.note_tweet === null ? null : readNoteTweet(tweet.note_tweet, deref);
@@ -81,7 +82,7 @@ export function normalizeTwitter(records: Record<string, DataObject>, requestedU
         item.bitrate = numeric(supported[0]!.bitrate);
         if (comparable) item.quality = 'Highest source-reported bitrate among complete MP4 variants';
       } else throw new Error('Unsupported media kind');
-    } catch (error) { item.reason = error instanceof Error ? error.message : String(error); }
+    } catch (error) { item.reason = errorMessage(error); }
     return item;
   });
   function relationship(value: Data): Json {

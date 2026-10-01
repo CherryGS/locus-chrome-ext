@@ -6,7 +6,6 @@ import { cn } from "cn"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetContent,
@@ -307,20 +306,6 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function SidebarSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="sidebar-separator"
-      data-sidebar="separator"
-      className={cn("mx-2 w-auto bg-sidebar-border", className)}
-      {...props}
-    />
-  )
-}
-
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -442,6 +427,8 @@ function SidebarMenuButton({
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const { isMobile, state } = useSidebar()
+  // Hidden tooltips still handle Escape. Mount them only for the desktop icon rail.
+  const showTooltip = !!tooltip && !isMobile && state === "collapsed"
   const comp = useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
@@ -450,7 +437,7 @@ function SidebarMenuButton({
       },
       props
     ),
-    render: !tooltip ? render : <TooltipTrigger render={render} />,
+    render: showTooltip ? <TooltipTrigger render={render} /> : render,
     state: {
       slot: "sidebar-menu-button",
       sidebar: "menu-button",
@@ -459,7 +446,7 @@ function SidebarMenuButton({
     },
   })
 
-  if (!tooltip) {
+  if (!tooltip || !showTooltip) {
     return comp
   }
 
@@ -475,7 +462,6 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
-        hidden={state !== "collapsed" || isMobile}
         {...tooltip}
       />
     </Tooltip>
@@ -513,7 +499,6 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 }
