@@ -100,6 +100,10 @@ manual session. Source/API layout changes can require new observed fixtures.
   passive status lookup. Site modules own native page mounting and selection UI.
   Result navigation, permissions, preview, metadata, activity and clear confirmation
   have separate modules; every surface shares capture and local-storage badges.
+  `RecordPreview` owns shared author/title/body/context slots for Twitter and
+  Bilibili. `record-presentation` maps their existing package projections into
+  these slots and metadata fields; adapters supply data rather than markup or
+  styles. Add site-specific display data there so both consumers keep one layout.
   The inspector toolbar groups capture status beneath the title; status links
   open Activity, which owns explanations, continuation actions and diagnostics.
   Settings at the sidebar's bottom opens one modal for the Locus connection,

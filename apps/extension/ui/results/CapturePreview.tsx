@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Item,
   ItemGroup,
@@ -20,8 +19,8 @@ import {
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Snapshot } from "@locus/capture-core/model";
-import { bilibiliPresentation } from "@locus/bilibili/presentation";
-import { twitterPresentation } from "@locus/twitter/presentation";
+import { recordPresentation, previewPresentation } from "./record-presentation";
+import { RecordPreview } from "./RecordPreview";
 import { SourceLink } from "./SourceLink";
 import { Failure, Pending } from "./ResultNotice";
 import { acquisitionLabel, exactTime, fileSize } from "./presentation";
@@ -101,100 +100,22 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
   const acquiredFiles = result.assets.filter(
     (asset) => asset.acquisition.state === "acquired",
   ).length;
-  const previewAssets =
-    result.site === "bilibili"
-      ? [...result.assets].sort(
-          (a, b) => Number(b.id === "media-2") - Number(a.id === "media-2"),
-        )
-      : result.assets;
+  const preview = previewPresentation(result);
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>Captured {exactTime(result.createdAt)}</span>
-        <SourceLink href={result.sourceUrl}>
-          {result.site === "bilibili"
-            ? "Open original video"
-            : result.site === "twitter"
-              ? "Open original post"
-              : "Open original content"}
-        </SourceLink>
+        <SourceLink href={result.sourceUrl}>{preview.originalLabel}</SourceLink>
       </div>
       {result.records.map((record) => {
-        const post =
-          result.site === "twitter" && record.acquisition.state === "acquired"
-            ? twitterPresentation(record.payload)
-            : null;
-        const part =
-          result.site === "bilibili" && record.acquisition.state === "acquired"
-            ? bilibiliPresentation(record.payload)
+        const presentation =
+          record.acquisition.state === "acquired"
+            ? recordPresentation(result.site, record.payload)
             : null;
         return (
           <article key={record.id} className="flex flex-col gap-5">
-            {post && (
-              <>
-                <header className="flex items-center gap-3">
-                  <Avatar size="lg">
-                    <AvatarFallback>
-                      {(post.displayName ?? post.username ?? "X")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      <SourceLink
-                        href={post.authorUrl}
-                        label="Open author profile"
-                      >
-                        {post.displayName ?? post.username ?? "Author unknown"}
-                      </SourceLink>
-                    </p>
-                    <p className="break-words text-sm text-muted-foreground">
-                      {post.username ? `@${post.username}` : "Username unknown"}
-                      {post.publishedAt
-                        ? ` · ${exactTime(post.publishedAt)}`
-                        : " · Publication time unknown"}
-                    </p>
-                  </div>
-                </header>
-                <div className="whitespace-pre-wrap break-words text-base leading-7">
-                  {post.text || (
-                    <span className="text-muted-foreground">
-                      Empty authored message
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-            {part && (
-              <>
-                <header className="flex flex-col gap-2">
-                  <h3 className="break-words text-lg font-medium">
-                    {part.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Uploader:{" "}
-                    <SourceLink
-                      href={part.authorUrl}
-                      label="Open uploader profile"
-                    >
-                      {part.uploader ?? "Unknown"}
-                    </SourceLink>
-                  </p>
-                  <p className="break-words text-sm text-muted-foreground">
-                    {part.part}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {part.quality}
-                    {part.publishedAt && ` · ${exactTime(part.publishedAt)}`}
-                  </p>
-                </header>
-                <p className="whitespace-pre-wrap break-words">
-                  {part.description || "Empty authored description"}
-                </p>
-              </>
-            )}
-            {!post && !part && record.acquisition.state === "acquired" && (
+            {presentation && <RecordPreview presentation={presentation} />}
+            {!presentation && record.acquisition.state === "acquired" && (
               <Alert>
                 <AlertTitle>Record available</AlertTitle>
                 <AlertDescription>
@@ -246,7 +167,7 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
           </p>
         )}
         <ItemGroup>
-          {previewAssets.map((asset, index) => (
+          {preview.assets.map(({ asset, title }, index) => (
             <Item
               key={asset.id}
               variant="outline"
@@ -263,16 +184,7 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
                   )}
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle>
-                    {result.site === "bilibili" && asset.id === "media-1"
-                      ? "Parent cover"
-                      : asset.mime?.startsWith("image/")
-                        ? "Image"
-                        : asset.mime?.startsWith("video/")
-                          ? "Video"
-                          : "File"}{" "}
-                    {index + 1}
-                  </ItemTitle>
+                  <ItemTitle>{title}</ItemTitle>
                   <ItemDescription>
                     {asset.mime
                       ? `${asset.mime} · ${fileSize(asset.size)}`

@@ -1,8 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { CopyIcon } from "lucide-react";
 import { errorMessage, type Snapshot } from "@locus/capture-core/model";
-import { twitterPresentation } from "@locus/twitter/presentation";
-import { bilibiliPresentation } from "@locus/bilibili/presentation";
+import { recordPresentation } from "./record-presentation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Item, ItemGroup, ItemContent, ItemTitle } from "@/components/ui/item";
@@ -46,7 +45,6 @@ export function CaptureMetadata({
     () => JSON.stringify({ result, receiverReadErrors: readErrors }, null, 2),
     [result, readErrors],
   );
-  const time = (value: string | null) => (value ? exactTime(value) : null);
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -104,57 +102,16 @@ export function CaptureMetadata({
         <h4 className="text-sm font-medium">Source information</h4>
         <ItemGroup>
           {result.records.map((record) => {
-            const post =
-              result.site === "twitter"
-                ? twitterPresentation(record.payload)
-                : null;
-            const part =
-              result.site === "bilibili"
-                ? bilibiliPresentation(record.payload)
-                : null;
-            const values: [string, ReactNode][] = post
-              ? [
-                  [
-                    "Author",
-                    <SourceLink href={post.authorUrl}>
-                      {post.displayName ?? post.username ?? "Author unknown"}
-                    </SourceLink>,
-                  ],
-                  ["Username", post.username ? `@${post.username}` : null],
-                  ["Post ID", post.sourceId],
-                  ["Author ID", post.accountId],
-                  ["Published", time(post.publishedAt)],
-                  ["Observed", time(post.observedAt)],
-                ]
-              : part
-                ? [
-                    ["Title", part.title],
-                    ["Part", part.part],
-                    [
-                      "Uploader",
-                      <SourceLink href={part.authorUrl}>
-                        {part.uploader ?? "Uploader unknown"}
-                      </SourceLink>,
-                    ],
-                    ["Uploader ID", part.uploaderId],
-                    ["BV ID", part.bvid],
-                    ["AV ID", part.aid],
-                    ["Part CID", part.cid],
-                    [
-                      "Duration",
-                      part.duration === null
-                        ? null
-                        : `${part.duration} seconds${part.durationPrecision === "coarse-seconds" ? " (approximate)" : ""}`,
-                    ],
-                    ["Published", time(part.publishedAt)],
-                    ["Observed", time(part.observedAt)],
-                    ["Source representation", part.quality],
-                    [
-                      "Audio",
-                      part.audioAbsent ? "No audio in source" : part.audioCodec,
-                    ],
-                  ]
-                : [];
+            const presentation = recordPresentation(
+              result.site,
+              record.payload,
+            );
+            const values: [string, ReactNode][] = (
+              presentation?.metadata ?? []
+            ).map(({ label, value, href }) => [
+              label,
+              href ? <SourceLink href={href}>{value}</SourceLink> : value,
+            ]);
             return (
               <Item
                 key={record.id}
@@ -179,7 +136,7 @@ export function CaptureMetadata({
                       ],
                     ]}
                   />
-                  {!post && !part && (
+                  {!presentation && (
                     <p className="text-sm text-muted-foreground">
                       No supported source summary. Any retained payload is
                       available in Full JSON below.
