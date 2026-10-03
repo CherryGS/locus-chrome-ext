@@ -23,6 +23,7 @@ colors:
   info: "#9cc8ed"
   border: "#35566c"
   input: "#35566c"
+  input-border: "#6e91a9"
   ring: "#a0c5dc"
   sidebar: "#142d45"
   sidebar-foreground: "#eef4f8"
@@ -121,7 +122,7 @@ components:
     height: "32px"
     padding: "0 10px"
   button-destructive:
-    backgroundColor: "color-mix(in oklab, var(--destructive) 20%, transparent)"
+    backgroundColor: "color-mix(in oklab, var(--destructive) 10%, transparent)"
     textColor: "{colors.destructive}"
     typography: "{typography.control}"
     rounded: "{rounded.large}"
@@ -202,7 +203,7 @@ The palette combines dark-blue working layers, yellow-green action priority and 
 - **Working ground** (`background`, `workspace-list`, `workspace-reading`): shell, summary list and distinct content field.
 - **Raised blue** (`card`, `card-foreground`, `popover`, `popover-foreground`): inspector header, recovery area, file containers and overlays.
 - **Quiet support** (`muted`, `muted-foreground`, `workspace-caption`): subordinate copy and restrained interaction feedback.
-- **Boundary and focus** (`border`, `input`, `ring`, `workspace-focus`): dividers, fields and keyboard indication. Primitive rings coexist with the explicit workspace outline.
+- **Boundary and focus** (`border`, `input`, `input-border`, `ring`, `workspace-focus`): dividers, control fill, editable-field boundaries and keyboard indication. Primitive rings coexist with the explicit workspace outline.
 
 **The Parallel Facts Rule.** Keep Capture, Local copy and Locus save independently labeled. Do not connect them with arrows, numbers or one aggregate success claim.
 
@@ -275,17 +276,17 @@ Compact primitives establish one clear priority: yellow-green primary, blue seco
 
 Default buttons are (32px) high, with (10px) horizontal padding, (6px) gap and (10px) radius. Small buttons are (28px), use (4px) gap and (8px) radius; extra-small buttons are (24px). Default, small and extra-small vector sizes are (16 / 14 / 12px). Default inline icons reduce their adjacent edge to (8px); small inline icons use (6px). Inspector export and in-place Retry loading use the small outline variant.
 
-Dark outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover. Secondary hover mixes foreground at 5%; ghost gains muted 50% tint. Destructive uses 20% failure fill, increasing to 30%, with a 40% failure focus ring. Primitive focus adds a (3px) ring at 50% ring opacity and a ring-colored border; workspace button/link focus also has a (2px) outline and (3px) offset. Press translates down (1px), except popup triggers. Disabled controls have 50% opacity and suppress pointer interaction.
+Dark outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover. Secondary hover mixes foreground at 5%; ghost gains muted 50% tint. Destructive uses 10% failure fill, increasing to 15% on hover, with a 40% failure focus ring. Primitive focus adds a (3px) ring at 50% ring opacity and a ring-colored border; workspace button/link focus also has a (2px) outline and (3px) offset. Press translates down (1px), except popup triggers. Disabled controls have 50% opacity and suppress pointer interaction.
 
 Inspector source/clear, Back and dialog close are (28px) icon controls; search clear is (24px). Their accessible names remain essential. These observed sizes do not assert blanket touch-target suitability in every host context. Preserve Base UI semantics; sidecar snippets illustrate appearance without reproducing application operations.
 
 ### Inputs / Fields
 
-Search uses InputGroup, a leading Search vector, a semantic label and visible placeholder. The group owns its input boundary, dark 30% fill, (32px) height and (10px) radius; inner-input focus moves the group border and adds the shared ring. The inner input removes duplicate boundaries. Search matches capture labels and source URLs; no-results guidance states that scope and offers clear search.
+Search uses InputGroup, a leading Search vector, a semantic label and visible placeholder. The group owns its input-border boundary, dark 30% input fill, (32px) height and (10px) radius; inner-input focus moves the group border and adds the shared ring. The inner input removes duplicate boundaries. Search matches capture labels and source URLs; no-results guidance states that scope and offers clear search.
 
 Settings is the real connection/access dialog, opening Connection by default and retaining General for explicit website grants. It contains no theme selector. Connection-busy protection, focus restoration and existing host operations remain authoritative; preview fixtures do not prove native grants or live connection success.
 
-Connection validation marks only the affected address or Token field, associates its error text with the input and focuses the first invalid field. Request failures remain a form-level status. A blank Token only reuses credentials at the saved address. Capture notifications with a View capture action, and error notifications, remain until dismissed; ordinary actionless success notices retain the provider's default timeout.
+Editable fields use the brighter input-border token while preserving their existing input-colored fill. Invalid fields use the full destructive ink on their boundary. Connection validation marks only the affected address or Token field, associates its error text with the input and focuses the first invalid field. Request failures remain a form-level status. A blank Token only reuses credentials at the saved address. Capture notifications with a View capture action, and error notifications, remain until dismissed; ordinary actionless success notices retain the provider's default timeout.
 
 Interface copy uses `Capture` / `Capturing` for obtaining content, `Local copy` / `Saved locally` for device storage, and `Saved to Locus` for confirmed receiver saving. The connection action is `Connect to Locus`; it does not send existing captures. Token source/reuse instructions remain visible as field help after typing. `Retry loading` rereads existing captures without reacquisition, and `Clear capture` names the local removal action in both its trigger and confirmation. Recovery copy states that only previously saved content can be recovered after restarting Chrome.
 

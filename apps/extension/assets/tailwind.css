@@ -28,6 +28,7 @@
   --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-border: var(--input-border);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -64,7 +65,7 @@
   --accent: #2a475c; --accent-foreground: #eaf2f7;
   --destructive: #ffb2bd; --destructive-foreground: #ffffff;
   --success: #91d6b1; --warning: #f0d48c; --info: #9cc8ed;
-  --border: #35566c; --input: #35566c; --ring: #a0c5dc;
+  --border: #35566c; --input: #35566c; --input-border: #6e91a9; --ring: #a0c5dc;
   --sidebar: #142d45; --sidebar-foreground: #eef4f8;
   --sidebar-accent: #284b65; --sidebar-muted: #b4c8d5;
   --workspace-reading: #132b3e; --workspace-list: #102638;
