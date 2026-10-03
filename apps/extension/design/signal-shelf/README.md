@@ -34,6 +34,11 @@ All records, labels, URLs and progress values are synthetic demonstration data.
 Source links are illustrative external navigation, not proof of a valid real post.
 No media is acquired, no result is persisted and no receiver request is sent.
 
+For the independent Quiet ledger comparison, records/view membership now come
+from `../shared/sample-data.ts`. Optional `capture=<sample-id>` and
+`scenario=empty|loading` query parameters initialize matching comparison states.
+The original default layout, theme and interactions remain the baseline.
+
 ## Build and checks
 
 ```sh
