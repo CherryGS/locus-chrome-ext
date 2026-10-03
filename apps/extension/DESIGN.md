@@ -249,6 +249,8 @@ The working shell is flat: blue tonal layers and single-pixel divisions separate
 
 Rows use `workspace-motion` (160ms) and `workspace-ease` (`cubic-bezier(.22,1,.36,1)`). Primitive transitions use the installed (150ms) default. Dialogs and confirmation dialogs open over `duration-fast` (250ms), close over `duration-quick` (150ms), and use `scale-large` (.96) with `ease-smooth-out`. Sorting menus share these clocks/easing, using `scale-medium` (.97) on entry and `scale-tiny` (.99) on exit. Backdrops share their dialog's clocks. Sidebar movement uses (200ms) linear transitions. Toast entry/stacking retains (500ms) transform/opacity, (150ms) height and (250ms) content opacity; ending style uses `duration-medium` (350ms) and `ease-smooth-out` for transform/opacity. These seven accepted motion tokens are defined once in the shared stylesheet. Reduced motion forces duration to (.01ms), one animation iteration and automatic scrolling; native Bilibili cover controls disable their own transition. Base UI owns focus, positioning, presence, dismissal and toast stacking/swipe behavior. No entrance choreography defines the workspace.
 
+Toast content keeps its natural height while the outer toast animates the stack height. Making content inherit that height feeds the outer measurement back into ResizeObserver when notifications have different heights.
+
 **The Flat Working Surface Rule.** Use tonal separation and restrained strokes for the working shell. Reserve the observed lift for overlays and transient feedback.
 
 ## Shapes
