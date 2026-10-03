@@ -275,6 +275,8 @@ Search uses InputGroup, a leading Search vector, a semantic label and visible pl
 
 Settings is the real connection/access dialog, opening Connection by default and retaining General for explicit website grants. It contains no theme selector. Connection-busy protection, focus restoration and existing host operations remain authoritative; preview fixtures do not prove native grants or live connection success.
 
+Connection validation marks only the affected address or Token field, associates its error text with the input and focuses the first invalid field. Request failures remain a form-level status. A blank Token only reuses credentials at the saved address. Capture notifications with a View capture action, and error notifications, remain until dismissed; ordinary actionless success notices retain the provider's default timeout.
+
 ### Navigation
 
 A mineral-blue rail provides Inbox, In progress, Saved and All captures, counts and Settings. Buttons measure (38px) high with (10px) gaps and (12px) counts. Active navigation uses sidebar-accent and `aria-current="page"`; hover uses the same local sidebar material. Responsive collapse and the mobile sheet preserve explicit access. The production rail does not inherit the sample's extra connection summary or synthetic toolbar.

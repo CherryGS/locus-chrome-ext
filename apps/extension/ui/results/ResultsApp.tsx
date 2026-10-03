@@ -38,6 +38,7 @@ export function ResultsApp() {
     const resultId = feedback.resultId;
     const id = toast.add({
       ...feedback,
+      timeout: resultId || feedback.type === "error" ? 0 : undefined,
       actionProps: resultId
         ? {
             children: "View capture",
