@@ -100,7 +100,7 @@ export function CaptureMetadata({
       </section>
       <section aria-label="Source records" className="flex flex-col gap-4">
         <h4 className="text-sm font-medium">Source information</h4>
-        <ItemGroup>
+        <ItemGroup role={result.records.length ? "list" : undefined}>
           {result.records.map((record) => {
             const presentation = recordPresentation(
               result.site,
@@ -114,6 +114,7 @@ export function CaptureMetadata({
             ]);
             return (
               <Item
+                role="listitem"
                 key={record.id}
                 variant="outline"
                 className="min-w-0 flex-col items-stretch"
@@ -167,9 +168,10 @@ export function CaptureMetadata({
             No media files were selected.
           </p>
         )}
-        <ItemGroup>
+        <ItemGroup role={result.assets.length ? "list" : undefined}>
           {result.assets.map((asset) => (
             <Item
+              role="listitem"
               key={asset.id}
               variant="outline"
               className="min-w-0 flex-col items-stretch"

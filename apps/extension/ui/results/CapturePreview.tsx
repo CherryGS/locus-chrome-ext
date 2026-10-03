@@ -166,9 +166,10 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
             missing.
           </p>
         )}
-        <ItemGroup>
+        <ItemGroup role={preview.assets.length ? "list" : undefined}>
           {preview.assets.map(({ asset, title }, index) => (
             <Item
+              role="listitem"
               key={asset.id}
               variant="outline"
               className="flex-col items-stretch p-4 sm:p-5"

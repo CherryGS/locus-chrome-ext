@@ -30,7 +30,7 @@ export function Pending({
   message: string;
 }) {
   return (
-    <Alert>
+    <Alert role="status">
       <LoaderCircleIcon />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>

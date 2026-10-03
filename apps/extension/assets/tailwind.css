@@ -117,6 +117,11 @@ a { text-underline-offset: 3px; }
 input, textarea { caret-color: var(--foreground); }
 * { scrollbar-color: var(--border) transparent; scrollbar-width: thin; }
 button:focus-visible, a:focus-visible { outline: 2px solid var(--workspace-focus); outline-offset: 3px; }
+[role=tabpanel]:focus-visible, #capture-workspace:focus-visible { outline: 2px solid var(--workspace-focus); outline-offset: -2px; }
+@media (forced-colors:active) {
+  :focus-visible { outline: 2px solid Highlight !important; outline-offset: 3px; }
+  [role=tabpanel]:focus-visible, #capture-workspace:focus-visible { outline-offset: -2px; }
+}
 .results-workspace { --workspace-sidebar-width: 192px; }
 .library-navigation { --muted-foreground: var(--sidebar-muted); --ring: var(--primary); }
 .library-navigation [data-slot=sidebar-menu-button] { height: 38px; gap: 10px; }

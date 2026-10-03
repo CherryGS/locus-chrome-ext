@@ -291,6 +291,10 @@ Flat summaries present source/time, label, and one status sentence with its func
 
 ### Status and Parallel Outcomes
 
+Keyboard focus on each capture summary exposes its source/time and status through accessible descriptions. The list footer is a stable polite status region for count changes. Routine local-copy and Locus progress use polite status semantics; missing configuration is a note, while actual failures retain alert semantics. These roles do not prove speech timing on every screen reader.
+
+Preview files, metadata records/files, and activity/export rows expose list-item semantics inside their existing ItemGroup. Empty groups omit the list role rather than announce a list with no entries. The queue launcher's controls relation is present only while its dialog exists.
+
 Shared status uses text, a (12px) functional vector and tone: Inbox for staging, Check for confirmed Locus save, TriangleAlert for partial, CircleAlert for failure and CircleHelp for unresolved state. Active acquisition/saving uses motion-safe LoaderCircle; queued uses Clock3. The inspector fact strip uses Clock for informational facts and follows its independent fact vocabulary.
 
 The signature definition list has three equal columns, a top boundary, (18px) top inset, (16px) wide gap and (22px) top margin. Badges are at least (24px) high, wrap words and retain labels. Below 768px gaps become (8px), captions/badges (11px), and badge horizontal padding (5px). Complete / Not saved locally / Saved is a valid combination.
@@ -298,6 +302,8 @@ The signature definition list has three equal columns, a top boundary, (18px) to
 Persistent recovery sits beside content before tabs. When read failure leaves an older snapshot visible, its warning includes an actionable Retry loading button wired to the existing read operation. Retention explanations identify the committed revision recoverable after restart; available content can still be exported. Original-save continuation and connection setup follow existing capability guards.
 
 ### Capture Queue / Source Controls
+
+The focused launcher moves (8px) with arrow keys or (32px) with Shift plus an arrow, using the same viewport bounds as pointer dragging. Enter and Space still open the queue; movement never opens it or starts capture. Script-generated keys are ignored. The accessible description explains movement and activation. A first-focus `Skip to content` link bypasses the result sidebar without changing the hash-owned capture route. Focusable tab panels expose a two-pixel inset outline; forced-colors mode uses the system Highlight outline for focused controls, including inputs whose shadow ring would otherwise disappear.
 
 The source-page queue opens through explicit launcher activation; closing it keeps accepted tasks running. Its (48px) circular launcher uses secondary fill and the existing floating shadow. The queue dialog uses (16px) padding, flat rows with (16px) vertical insets, shared outcome badges, reasons and secondary diagnostics. Task actions include supported retry preparation, opening the result and Refresh status. This production queue does not render the sample's static percentage/progress example.
 

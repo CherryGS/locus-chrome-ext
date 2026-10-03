@@ -22,6 +22,7 @@ import { WorkspaceSettings } from "./WorkspaceSettings";
 import type { ResultFeedback } from "./feedback";
 
 export function ResultsApp() {
+  const workspace = useRef<HTMLElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsReturnFocus = useRef<HTMLElement | null>(null);
   const settingsTrigger = useRef<HTMLButtonElement | null>(null);
@@ -101,6 +102,17 @@ export function ResultsApp() {
           style={{ "--sidebar-width": "var(--workspace-sidebar-width)" } as CSSProperties}
           className="results-workspace h-svh min-h-0 overflow-hidden"
         >
+          <a
+            href="#capture-workspace"
+            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-card focus-visible:p-3"
+            onClick={(event) => {
+              // The hash belongs to capture routing; bypass navigation must only move focus.
+              event.preventDefault();
+              workspace.current?.focus();
+            }}
+          >
+            Skip to content
+          </a>
           <LibrarySidebar
             view={navigation.view}
             onView={navigation.changeView}
@@ -108,7 +120,12 @@ export function ResultsApp() {
             onSettings={() => changeSettings(true)}
             settingsTrigger={settingsTrigger}
           />
-          <SidebarInset className="h-svh min-w-0 overflow-hidden">
+          <SidebarInset
+            ref={workspace}
+            id="capture-workspace"
+            tabIndex={-1}
+            className="h-svh min-w-0 overflow-hidden"
+          >
             {state.collectionError && (
               <div className="shrink-0 border-b p-3">
                 <Failure

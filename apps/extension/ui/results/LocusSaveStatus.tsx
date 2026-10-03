@@ -31,7 +31,7 @@ export function LocusSaveDetails({
     );
   if (transferActive(transfer))
     return (
-      <Alert>
+      <Alert role="status">
         <AlertTitle>Saving to Locus</AlertTitle>
         <AlertDescription>{transfer.message}</AlertDescription>
       </Alert>
@@ -39,7 +39,7 @@ export function LocusSaveDetails({
   return (
     <div className="flex flex-col gap-2">
       {transfer.state === "configuration-required" ? (
-        <Alert>
+        <Alert role="note">
           <AlertTitle>Locus setup required</AlertTitle>
           <AlertDescription>
             Configure the Locus connection, then return here to continue this

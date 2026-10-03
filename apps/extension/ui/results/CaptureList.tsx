@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   ArrowDownWideNarrowIcon,
   FileTextIcon,
@@ -73,6 +74,7 @@ export function CaptureList({
   onRetry: () => void;
   onSelect: (id: string) => void;
 }) {
+  const descriptionId = useId();
   return (
     <section
       aria-label="Capture list"
@@ -207,6 +209,7 @@ export function CaptureList({
             >
               {items.map((item) => {
                 const status = getCaptureStatus(item);
+                const rowId = `${descriptionId}-${encodeURIComponent(item.id)}`;
                 return (
                   <div role="listitem" key={item.id}>
                     <Item
@@ -215,6 +218,7 @@ export function CaptureList({
                           type="button"
                           data-capture-id={item.id}
                           aria-label={`Open capture ${item.label}`}
+                          aria-describedby={`${rowId}-source ${rowId}-status`}
                           aria-pressed={selected === item.id}
                           onClick={() => onSelect(item.id)}
                         />
@@ -224,7 +228,10 @@ export function CaptureList({
                       className="capture-list-item text-left"
                     >
                       <ItemContent className="min-w-0">
-                        <div className="flex items-center justify-between gap-2">
+                        <div
+                          id={`${rowId}-source`}
+                          className="flex items-center justify-between gap-2"
+                        >
                           <span className="text-xs text-muted-foreground">
                             {sourceName(item.sourceUrl)}
                           </span>
@@ -240,6 +247,7 @@ export function CaptureList({
                           {item.label}
                         </ItemTitle>
                         <p
+                          id={`${rowId}-status`}
                           data-capture-state={status}
                           className={cn(
                             "flex items-start gap-1.5 text-xs leading-relaxed [&_svg]:mt-0.5 [&_svg]:size-3 [&_svg]:shrink-0",
@@ -325,7 +333,7 @@ export function CaptureList({
           )}
         </div>
       </ScrollArea>
-      <footer className="shrink-0 border-t px-4 py-3 text-xs text-muted-foreground">
+      <footer role="status" className="shrink-0 border-t px-4 py-3 text-xs text-muted-foreground">
         {items
           ? `${items.length} ${items.length === 1 ? "capture" : "captures"}${query ? " matching your search" : ""}`
           : failed

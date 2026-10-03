@@ -51,6 +51,15 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   const inspect = async kind => { await row(kind).click(); await page.getByRole('heading', { name: `Inbox fixture ${kind}`, exact: true }).waitFor(); };
   const closeToasts = async () => { while (await page.getByRole('button', { name: 'Close toast', exact: true }).count()) await page.getByRole('button', { name: 'Close toast', exact: true }).last().click(); await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]')); };
   await row('failed').waitFor();
+  await page.getByRole('link', { name: 'Skip to content', exact: true }).focus();
+  const routeBeforeSkip = await page.evaluate(() => location.hash);
+  await page.keyboard.press('Enter');
+  assert.equal(await page.evaluate(() => document.activeElement === document.querySelector('main')), true, 'Skip bypasses sidebar navigation');
+  assert.equal(await page.evaluate(() => location.hash), routeBeforeSkip, 'Skip never changes the selected capture route');
+  assert.equal(await row('failed').evaluate(button => {
+    const descriptions = button.getAttribute('aria-describedby')?.split(' ').map(id => document.getElementById(id));
+    return descriptions?.length === 2 && descriptions.every(Boolean) && descriptions[1].textContent.includes('Save failed');
+  }), true, 'Focusing a summary exposes its source and status description');
   assert.equal(await row('saved').count(), 0);
   assert.equal(await row('legacy').count(), 1);
   assert.equal(await row('retention').count(), 1);
@@ -117,6 +126,7 @@ export async function verifyInboxUi({ context, extensionId, work }) {
 
   await inspect('partial');
   await page.getByRole('tab', { name: /^Activity/ }).click();
+  assert.equal(await page.getByRole('tabpanel', { name: 'Activity', exact: true }).getByRole('listitem').count(), 2, 'Capture and storage have list-item semantics');
   assert.equal(await page.getByRole('button', { name: 'Check and continue save', exact: true }).count(), 0);
   await inspect('legacy');
   await page.getByRole('tab', { name: /^Activity/ }).click();

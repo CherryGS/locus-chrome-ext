@@ -42,7 +42,7 @@ export function CaptureActivity({
       <section className="flex flex-col gap-3">
         <h3 className="font-medium">Capture & storage</h3>
         <ItemGroup>
-          <Item variant="outline">
+          <Item role="listitem" variant="outline">
             <ItemMedia variant="icon">
               <AcquisitionIcon />
             </ItemMedia>
@@ -65,7 +65,7 @@ export function CaptureActivity({
               </ItemDescription>
             </ItemContent>
           </Item>
-          <Item variant="outline">
+          <Item role="listitem" variant="outline">
             <ItemContent>
               <ItemTitle>
                 Local copy · {retentionLabel(result.retention.state)}
@@ -87,9 +87,9 @@ export function CaptureActivity({
             No export requested for this capture.
           </p>
         )}
-        <ItemGroup>
+        <ItemGroup role={deliveries.length ? "list" : undefined}>
           {deliveries.map((delivery) => (
-            <Item key={delivery.id} variant="outline">
+            <Item role="listitem" key={delivery.id} variant="outline">
               <ItemMedia variant="icon">
                 <DownloadIcon />
               </ItemMedia>

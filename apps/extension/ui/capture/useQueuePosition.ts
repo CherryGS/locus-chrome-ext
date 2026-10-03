@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 
 /** Page-session placement only: navigation never carries another site's position. */
 export function useQueuePosition(visible: boolean) {
@@ -60,6 +66,34 @@ export function useQueuePosition(visible: boolean) {
       return blocked;
     },
     handlers: {
+      onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+        if (
+          !event.nativeEvent.isTrusted ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          drag.current
+        )
+          return;
+        const directions: Record<string, readonly [number, number]> = {
+          ArrowLeft: [-1, 0],
+          ArrowRight: [1, 0],
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 1],
+        };
+        const direction = directions[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = event.currentTarget.getBoundingClientRect();
+        const step = event.shiftKey ? 32 : 8;
+        setPosition((previous) =>
+          bound(
+            (previous?.x ?? rect.x) + direction[0] * step,
+            (previous?.y ?? rect.y) + direction[1] * step,
+          ),
+        );
+      },
       onPointerDown(event: PointerEvent<HTMLButtonElement>) {
         if (
           !event.nativeEvent.isTrusted ||

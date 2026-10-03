@@ -53,6 +53,15 @@ export async function verifyQueueModal({ page, until, work, label, update }) {
   await until(() => launcher.boundingBox(), box => box.x < moved.x - 60, 'touch drag moves launcher');
   await touch.send('Emulation.setTouchEmulationEnabled', { enabled: false }); await touch.detach();
   moved = await launcher.boundingBox(); assert.equal(await page.getByRole('dialog').count(), 0, 'Touch drag suppresses click');
+  await launcher.focus(); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Shift+ArrowUp');
+  const keyboardMoved = await launcher.boundingBox();
+  assert.equal(keyboardMoved.x, Math.max(8, moved.x - 8), 'Arrow moves launcher by eight pixels');
+  assert.equal(keyboardMoved.y, Math.max(8, moved.y - 32), 'Shift arrow moves faster');
+  assert.equal(await page.getByRole('dialog').count(), 0, 'Repositioning never opens queue');
+  assert.equal(await launcher.evaluate(button => button.getRootNode().activeElement === button), true, 'Repositioning preserves focus');
+  await launcher.evaluate(button => button.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
+  assert.deepEqual(await launcher.boundingBox(), keyboardMoved, 'Scripted keys do not reposition launcher');
+  moved = keyboardMoved;
   await launcher.focus(); await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Capture queue' }); await dialog.waitFor();
   const settle = () => dialog.evaluate(async element => { await Promise.all([element, element.getRootNode().querySelector('[data-slot="dialog-overlay"]')].flatMap(node => node.getAnimations().map(animation => animation.finished.catch(() => {})))); });

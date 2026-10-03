@@ -267,6 +267,7 @@ export function CaptureQueuePanel({
   const launcher = useQueuePosition(view.visible);
   const dialogId = useId();
   const statusId = useId();
+  const movementId = useId();
   if (!view.visible) return null;
   const preparations = Object.values(view.drafts).filter(
     (item) => item.busy || item.error,
@@ -308,11 +309,11 @@ export function CaptureQueuePanel({
         size="icon"
         className="pointer-events-auto fixed size-12 touch-none select-none rounded-full transition-none shadow-lg"
         aria-label="Expand capture queue"
-        aria-describedby={statusId}
+        aria-describedby={`${statusId} ${movementId}`}
         aria-haspopup="dialog"
-        aria-controls={dialogId}
+        aria-controls={open ? dialogId : undefined}
         aria-expanded={open}
-        title={`${detail} · Click to open tasks · drag to move`}
+        title={`${detail} · Click or Enter to open tasks · drag or arrow keys to move`}
         onClick={(event) => {
           if (
             event.nativeEvent.isTrusted &&
@@ -340,6 +341,9 @@ export function CaptureQueuePanel({
         )}
         <span id={statusId} className="sr-only">
           {count} tasks · {detail}
+        </span>
+        <span id={movementId} className="sr-only">
+          Arrow keys move this button; hold Shift to move faster. Enter or Space opens the queue.
         </span>
       </Button>
       <Dialog
@@ -375,6 +379,7 @@ export function CaptureQueuePanel({
             </DialogDescription>
           </DialogHeader>
           <div
+            role="group"
             className="flex shrink-0 flex-wrap gap-2"
             aria-label="Task counts"
           >
