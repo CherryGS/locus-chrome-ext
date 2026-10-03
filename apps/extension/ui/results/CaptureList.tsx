@@ -90,8 +90,8 @@ export function CaptureList({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Retry reads"
-              title="Retry reads"
+              aria-label="Retry loading"
+              title="Retry loading"
               onClick={onRetry}
             >
               <RefreshCwIcon />
@@ -310,15 +310,15 @@ export function CaptureList({
                 <EmptyMedia variant="icon">
                   <FileTextIcon />
                 </EmptyMedia>
-                <EmptyTitle>Library could not be read</EmptyTitle>
+                <EmptyTitle>Could not load captures</EmptyTitle>
                 <EmptyDescription>
-                  Try reading again. This does not mean your captures were
-                  removed.
+                  Select Retry loading to check again. A loading error does not
+                  mean your captures were cleared.
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button variant="outline" onClick={onRetry}>
-                  Retry reads
+                  Retry loading
                 </Button>
               </EmptyContent>
             </Empty>

@@ -38,7 +38,7 @@ try {
   assert.equal(await page.getByRole('region', { name: 'Capture inspection', exact: true }).locator(':scope > header [role="alert"]').count(), 0, 'Long setup explanations live in Activity');
   assert.equal(await page.locator('[data-capture-diagnostic]').count(), 0, 'Historical missing settings must not render as an error');
   assert.equal(await page.locator('[data-capture-state="failed"]').count(), 0);
-  assert.equal(await page.locator('.capture-outcome-strip dd').filter({hasText:'Retained'}).locator('svg.lucide-inbox').count(), 1, 'Local retention stays neutral in the independent strip');
+  assert.equal(await page.locator('.capture-outcome-strip dd').filter({hasText:'Saved locally'}).locator('svg.lucide-inbox').count(), 1, 'Local retention stays neutral in the independent strip');
   assert.deepEqual(requests, [], 'The result page does not fetch remote content');
   while (await page.getByRole('button', { name: 'Close toast', exact: true }).count()) await page.getByRole('button', { name: 'Close toast', exact: true }).last().click();
   await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]'));

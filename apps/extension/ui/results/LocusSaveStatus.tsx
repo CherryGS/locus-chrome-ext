@@ -26,7 +26,7 @@ export function LocusSaveDetails({
         {transfer.entityIds?.length
           ? ` · ${transfer.entityIds.length} ${transfer.entityIds.length === 1 ? "entry" : "entries"}`
           : ""}
-        . Local retention is shown separately.
+        . The local copy is shown separately.
       </p>
     );
   if (transferActive(transfer))

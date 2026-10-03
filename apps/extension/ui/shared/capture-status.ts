@@ -38,7 +38,7 @@ export const captureStates = {
     tone: "info",
   },
   importing: {
-    label: "Importing",
+    label: "Capturing",
     description: "The selected content and files are still being acquired.",
     tone: "info",
   },

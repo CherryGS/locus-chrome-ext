@@ -278,7 +278,7 @@ try {
   await beforeWorker.evaluate(()=>{globalThis.__locusDisposableWorkerMarker=true;});
   const workerControl=await context.newCDPSession(observer);
   await workerControl.send('ServiceWorker.enable');await workerControl.send('ServiceWorker.stopAllWorkers');
-  await observer.getByRole('button',{name:'Retry reads',exact:true}).click();await observer.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
+  await observer.getByRole('button',{name:'Retry loading',exact:true}).click();await observer.getByRole('button',{name:'Export ZIP',exact:true}).waitFor();
   await until(async()=>{const worker=context.serviceWorkers().find(worker=>worker.url().includes(extensionId));if(!worker)return false;return worker.evaluate(()=>globalThis.__locusDisposableWorkerMarker!==true).catch(()=>false);},Boolean,'worker actually recreated');
   assert.equal((await databaseRows(observer,'results')).find(row=>row.id===mediaId).assets.every(asset=>asset.acquisition.state==='acquired'),true);
   checks.push('Worker stop/wake preserves surviving offscreen results without resubmitting capture');
@@ -298,11 +298,11 @@ try {
 
   // Clear target stays pinned even when result routing changes while dialog open.
   const retainedSource=await context.newPage();await retainedSource.goto('https://x.com/renamed/status/101');await retainedSource.locator('[data-locus-action] button').waitFor();await retainedSource.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/renamed/status/101';});await pause(300);await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','source identity survives username change');
-  await observer.getByRole('button',{name:'Clear result',exact:true}).click();
+  await observer.getByRole('button',{name:'Clear capture',exact:true}).click();
   await observer.evaluate(id=>{location.hash=id;},textId);
   await observer.getByRole('button',{name:'Cancel',exact:true}).click();
   assert.equal((await databaseRows(observer,'results')).length,2);
-  await observer.goto(`chrome-extension://${extensionId}/results.html#${mediaId}`);await observer.getByRole('button',{name:'Clear result',exact:true}).click();await observer.getByRole('button',{name:'Confirm clear',exact:true}).click();
+  await observer.goto(`chrome-extension://${extensionId}/results.html#${mediaId}`);await observer.getByRole('button',{name:'Clear capture',exact:true}).click();await observer.getByRole('button',{name:'Clear capture',exact:true}).click();
   await until(()=>databaseRows(observer,'results'),rows=>!rows.some(r=>r.id===mediaId),'confirmed clear');
   await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='uncaptured','cleared source returns to not captured',20_000);await retainedSource.close();
   assert.ok((await readFile(nativeItem.filename)).length>0);

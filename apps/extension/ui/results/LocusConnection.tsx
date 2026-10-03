@@ -155,16 +155,16 @@ export function LocusConnection({
               setTokenError("");
               setMessage("");
             }}
-            placeholder={
-              configured
-                ? "Leave blank to keep the Token at the saved address"
-                : "Paste the Token from Locus Settings"
-            }
             disabled={busy}
             aria-invalid={!!tokenError}
-            aria-describedby={tokenError ? "locus-token-error" : undefined}
+            aria-describedby={tokenError ? "locus-token-help locus-token-error" : "locus-token-help"}
             autoComplete="off"
           />
+          <FieldDescription id="locus-token-help">
+            {configured
+              ? "Leave blank to reuse the saved Token at the saved Locus address."
+              : "Copy the Token from Locus Settings → External access."}
+          </FieldDescription>
           {tokenError && (
             <FieldDescription id="locus-token-error" role="alert">
               {tokenError}
@@ -173,7 +173,7 @@ export function LocusConnection({
         </Field>
         <Field>
           <Button type="submit" disabled={busy}>
-            {busy ? "Connecting…" : "Connect and save"}
+            {busy ? "Connecting…" : "Connect to Locus"}
           </Button>
           <FieldDescription role="status">
             {message ||

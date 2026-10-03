@@ -11,12 +11,12 @@ export function CaptureOutcomeStrip({ result, locus, queued }: { result: Capture
   const acquired = availability(result);
   const capture: Fact = queued ? { text: "Queued", tone: "info" }
     : acquired.complete ? { text: "Complete", tone: "success" }
-    : acquired.pending ? { text: "Acquiring", tone: "info" }
+    : acquired.pending ? { text: "Capturing", tone: "info" }
     : acquired.acquired ? { text: "Partial", tone: "warning" }
     : { text: "Unavailable", tone: "destructive" };
-  const local: Fact = result.retention.state === "failed" ? { text: "Not retained", tone: "destructive" }
+  const local: Fact = result.retention.state === "failed" ? { text: "Not saved locally", tone: "destructive" }
     : result.retention.state === "pending" ? { text: "Saving locally", tone: "info" }
-    : result.retention.revision === result.revision ? { text: "Retained", tone: "outline" }
+    : result.retention.revision === result.revision ? { text: "Saved locally", tone: "outline" }
     : { text: `Revision ${result.retention.revision}`, tone: "warning" };
   const save: Fact = !locus ? { text: "No attempt", tone: "outline" }
     : locus.state === "complete" ? { text: "Saved", tone: "success" }

@@ -207,7 +207,7 @@ function QueueTasks({
             {task.summary.retention.state === "failed" && (
               <TechnicalFailure
                 collapsed
-                title="Retention failed"
+                title="Local copy not saved"
                 message={
                   task.summary.retention.reason ??
                   "Current content is not saved locally."

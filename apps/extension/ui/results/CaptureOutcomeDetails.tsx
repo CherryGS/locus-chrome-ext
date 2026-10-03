@@ -53,10 +53,10 @@ export function CaptureOutcomeDetails({
       {readError && (
         <div className="flex flex-col items-start gap-2">
           <Failure
-            title="Result read failed"
-            message={`${readError}. Existing preview content may be older. Retry reads to try again.`}
+            title="Could not load capture"
+            message={`${readError}. The preview may be outdated. Select Retry loading to try again.`}
           />
-          <Button variant="outline" size="sm" disabled={busy} onClick={onRetry}>Retry reads</Button>
+          <Button variant="outline" size="sm" disabled={busy} onClick={onRetry}>Retry loading</Button>
         </div>
       )}
       {actionError && (
@@ -64,14 +64,14 @@ export function CaptureOutcomeDetails({
       )}
       {result.retention.state === "failed" && (
         <Failure
-          title="Current content is not saved"
-          message={`${result.retention.reason ?? "Persistence failed"}. Only committed revision ${result.retention.revision} is recoverable after restart. Available content can still be exported.`}
+          title="Local copy not saved"
+          message={`${result.retention.reason ?? "Local saving failed"}. Only previously saved content can be recovered after restarting Chrome. Available content can still be exported.`}
         />
       )}
       {result.retention.state === "pending" && (
         <Pending
-          title="Saving current content"
-          message={`${result.retention.reason ?? "Persistence is pending"}. Only committed revision ${result.retention.revision} is recoverable after restart. Available content can still be exported.`}
+          title="Saving local copy"
+          message={`${result.retention.reason ?? "Local saving is in progress"}. Only previously saved content can be recovered after restarting Chrome. Available content can still be exported.`}
         />
       )}
       {deliveryConcern && (

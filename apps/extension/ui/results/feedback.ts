@@ -68,7 +68,7 @@ export function createFeedbackObserver() {
           resultId: item.id,
           title:
             captureState === "retention-failed"
-              ? "Local retention failed"
+              ? "Local copy not saved"
               : captureState === "unresolved"
                 ? "Capture status unavailable"
                 : "Capture incomplete",

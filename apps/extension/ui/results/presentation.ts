@@ -31,11 +31,11 @@ export function resultView(item: ResultSummary): Exclude<LibraryView, "all"> {
   return item.locus ? "progress" : "inbox";
 }
 export function resultHint(item: ResultSummary): string {
-  if (item.unresolvedReason) return "Read problem · retry reads";
+  if (item.unresolvedReason) return "Read problem · retry loading";
   if (item.retention.state === "failed")
     return item.locus?.state === "complete"
-      ? "Saved to Locus · local copy not retained"
-      : "Local copy not retained · inspect available content";
+      ? "Saved to Locus · local copy not saved"
+      : "Local copy not saved · inspect available content";
   if (item.queuePosition !== undefined)
     return `Waiting · position ${item.queuePosition}`;
   if (["partial", "unavailable"].includes(item.acquisition))
@@ -52,7 +52,7 @@ export function resultHint(item: ResultSummary): string {
       ? "Capture and Locus save in progress"
       : "Capture in progress";
   return item.retention.revision !== item.revision
-    ? "Current revision not retained · retry reads"
+    ? "Latest version not saved locally · retry loading"
     : "Locally staged · available for export";
 }
 export function acquisitionLabel(state: string) {

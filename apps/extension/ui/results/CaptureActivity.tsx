@@ -48,7 +48,7 @@ export function CaptureActivity({
             </ItemMedia>
             <ItemContent>
               <ItemTitle>
-                Acquisition ·{" "}
+                Capture ·{" "}
                 {state.complete
                   ? "Complete"
                   : state.pending
@@ -68,12 +68,12 @@ export function CaptureActivity({
           <Item variant="outline">
             <ItemContent>
               <ItemTitle>
-                Retention · {retentionLabel(result.retention.state)}
+                Local copy · {retentionLabel(result.retention.state)}
               </ItemTitle>
               <ItemDescription>
                 {result.retention.state === "retained"
                   ? `Revision ${result.retention.revision} is saved on this device.`
-                  : `Only committed revision ${result.retention.revision} can be recovered after restart.`}
+                  : "Only previously saved content can be recovered after restarting Chrome."}
                 {result.retention.reason && ` ${result.retention.reason}`}
               </ItemDescription>
             </ItemContent>

@@ -112,8 +112,8 @@ export function ResultsApp() {
             {state.collectionError && (
               <div className="shrink-0 border-b p-3">
                 <Failure
-                  title="Collection access problem"
-                  message={`${state.collectionError}. Independently readable captures remain available. Use Retry reads.`}
+                  title="Could not load captures"
+                  message={`${state.collectionError}. Independently readable captures remain available. Use Retry loading.`}
                 />
               </div>
             )}

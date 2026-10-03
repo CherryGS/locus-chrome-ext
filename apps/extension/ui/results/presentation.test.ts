@@ -19,9 +19,9 @@ const saved = {
 describe("derived Inbox membership", () => {
   it("keeps confirmed Locus saving distinct from a failed local copy in compact summaries", () => {
     expect(resultHint({...saved, retention: {state: 'failed', revision: 1}}))
-      .toBe('Saved to Locus · local copy not retained');
+      .toBe('Saved to Locus · local copy not saved');
     expect(resultHint({...base, retention: {state: 'failed', revision: 1}}))
-      .toBe('Local copy not retained · inspect available content');
+      .toBe('Local copy not saved · inspect available content');
   });
   it.each([
     [base, "inbox"],
@@ -81,7 +81,7 @@ describe("live feedback", () => {
       observe(
         collection([{ ...base, retention: { state: "failed", revision: 0 } }]),
       )[0]?.title,
-    ).toBe("Local retention failed");
+    ).toBe("Local copy not saved");
   });
   it("announces setup as information without hiding failed retention", () => {
     const observe = createFeedbackObserver();
@@ -104,7 +104,7 @@ describe("live feedback", () => {
       ),
     ).toMatchObject([
       { title: "Locus setup required", type: "info" },
-      { title: "Local retention failed", type: "warning" },
+      { title: "Local copy not saved", type: "warning" },
     ]);
   });
   it("does not turn accepted export into confirmed completion or repeat polling notices", () => {

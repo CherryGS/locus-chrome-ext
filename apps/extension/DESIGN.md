@@ -172,7 +172,7 @@ Signal shelf is the accepted dark-only visual world implemented in the productio
 
 This Operate environment uses a fixed UI sans hierarchy and functional Lucide vectors. Capture, Local copy and Locus save appear as independent facts above content, with persistent explanations and supported recovery before secondary diagnostics. Dark native controls initialize without a theme switch. Existing host operations, ownership and capabilities remain the behavioral authority.
 
-Implementation evidence is `assets/tailwind.css`, the results components, `CaptureQueuePanel` and shared status controls. The production review folder records viewport and fixture checks, including the corrected in-place Retry reads action. Typecheck, lint and MV3 build passed after the correction; 394 unit tests passed earlier. HTTP localhost previews loaded real production components with disposable in-memory host fixtures. The browser URL policy blocked installed-extension inspection: native Chrome/source mounting, downloads, grants and live Locus delivery remain unverified, and updated browser assertions were not executed. These checks establish scoped UI evidence, not a whole-product certification. Review PNGs are nonshipping; no new shipping raster was added.
+Implementation evidence is `assets/tailwind.css`, the results components, `CaptureQueuePanel` and shared status controls. The production review folder records viewport and fixture checks, including the corrected in-place Retry loading action. Typecheck, lint and MV3 build passed after the correction; 394 unit tests passed earlier. HTTP localhost previews loaded real production components with disposable in-memory host fixtures. The browser URL policy blocked installed-extension inspection: native Chrome/source mounting, downloads, grants and live Locus delivery remain unverified, and updated browser assertions were not executed. These checks establish scoped UI evidence, not a whole-product certification. Review PNGs are nonshipping; no new shipping raster was added.
 
 **Key Characteristics:**
 
@@ -265,7 +265,7 @@ Native Bilibili toolbar and cover controls retain (6px) corners as a bounded hos
 
 Compact primitives establish one clear priority: yellow-green primary, blue secondary, quiet ghost, boundary-led outline and tinted destructive. The link variant supports contextual actions.
 
-Default buttons are (32px) high, with (10px) horizontal padding, (6px) gap and (10px) radius. Small buttons are (28px), use (4px) gap and (8px) radius; extra-small buttons are (24px). Default, small and extra-small vector sizes are (16 / 14 / 12px). Default inline icons reduce their adjacent edge to (8px); small inline icons use (6px). Inspector export and in-place Retry reads use the small outline variant.
+Default buttons are (32px) high, with (10px) horizontal padding, (6px) gap and (10px) radius. Small buttons are (28px), use (4px) gap and (8px) radius; extra-small buttons are (24px). Default, small and extra-small vector sizes are (16 / 14 / 12px). Default inline icons reduce their adjacent edge to (8px); small inline icons use (6px). Inspector export and in-place Retry loading use the small outline variant.
 
 Dark outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover. Secondary hover mixes foreground at 5%; ghost gains muted 50% tint. Destructive uses 20% failure fill, increasing to 30%, with a 40% failure focus ring. Primitive focus adds a (3px) ring at 50% ring opacity and a ring-colored border; workspace button/link focus also has a (2px) outline and (3px) offset. Press translates down (1px), except popup triggers. Disabled controls have 50% opacity and suppress pointer interaction.
 
@@ -279,6 +279,8 @@ Settings is the real connection/access dialog, opening Connection by default and
 
 Connection validation marks only the affected address or Token field, associates its error text with the input and focuses the first invalid field. Request failures remain a form-level status. A blank Token only reuses credentials at the saved address. Capture notifications with a View capture action, and error notifications, remain until dismissed; ordinary actionless success notices retain the provider's default timeout.
 
+Interface copy uses `Capture` / `Capturing` for obtaining content, `Local copy` / `Saved locally` for device storage, and `Saved to Locus` for confirmed receiver saving. The connection action is `Connect to Locus`; it does not send existing captures. Token source/reuse instructions remain visible as field help after typing. `Retry loading` rereads existing captures without reacquisition, and `Clear capture` names the local removal action in both its trigger and confirmation. Recovery copy states that only previously saved content can be recovered after restarting Chrome.
+
 ### Navigation
 
 A mineral-blue rail provides Inbox, In progress, Saved and All captures, counts and Settings. Buttons measure (38px) high with (10px) gaps and (12px) counts. Active navigation uses sidebar-accent and `aria-current="page"`; hover uses the same local sidebar material. Responsive collapse and the mobile sheet preserve explicit access. The production rail does not inherit the sample's extra connection summary or synthetic toolbar.
@@ -291,9 +293,9 @@ Flat summaries present source/time, label, and one status sentence with its func
 
 Shared status uses text, a (12px) functional vector and tone: Inbox for staging, Check for confirmed Locus save, TriangleAlert for partial, CircleAlert for failure and CircleHelp for unresolved state. Active acquisition/saving uses motion-safe LoaderCircle; queued uses Clock3. The inspector fact strip uses Clock for informational facts and follows its independent fact vocabulary.
 
-The signature definition list has three equal columns, a top boundary, (18px) top inset, (16px) wide gap and (22px) top margin. Badges are at least (24px) high, wrap words and retain labels. Below 768px gaps become (8px), captions/badges (11px), and badge horizontal padding (5px). Complete / Not retained / Saved is a valid combination.
+The signature definition list has three equal columns, a top boundary, (18px) top inset, (16px) wide gap and (22px) top margin. Badges are at least (24px) high, wrap words and retain labels. Below 768px gaps become (8px), captions/badges (11px), and badge horizontal padding (5px). Complete / Not saved locally / Saved is a valid combination.
 
-Persistent recovery sits beside content before tabs. When read failure leaves an older snapshot visible, its warning includes an actionable Retry reads button wired to the existing read operation. Retention explanations identify the committed revision recoverable after restart; available content can still be exported. Original-save continuation and connection setup follow existing capability guards.
+Persistent recovery sits beside content before tabs. When read failure leaves an older snapshot visible, its warning includes an actionable Retry loading button wired to the existing read operation. Retention explanations identify the committed revision recoverable after restart; available content can still be exported. Original-save continuation and connection setup follow existing capability guards.
 
 ### Capture Queue / Source Controls
 
@@ -310,7 +312,7 @@ Source activation captures the whole default scope without a media-picker step, 
 - **Do** preserve the dark-blue material, yellow-green action priority and semantic token roles on target surfaces.
 - **Do** show status as a word, a functional vector icon and a semantic color; keep staging neutral.
 - **Do** keep the three independent outcomes readable together, including when local retention fails after Locus succeeds.
-- **Do** place persistent reasons and supported recovery beside affected content, including Retry reads beside an older preview.
+- **Do** place persistent reasons and supported recovery beside affected content, including Retry loading beside an older preview.
 - **Do** preserve explicit narrow Back/focus return, named-clear confirmation, keyboard activation and reduced-motion handling.
 - **Do** keep summary search honest: it matches capture labels and source URLs.
 - **Do** preserve existing shadcn/Base UI interaction semantics and bounded source-host geometry.

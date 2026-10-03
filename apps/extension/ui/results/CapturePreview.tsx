@@ -209,7 +209,7 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
               {readErrors[asset.id] && (
                 <Failure
                   title="File read failed"
-                  message={`${readErrors[asset.id]}. Retry reads to try again; acquisition has not changed.`}
+                  message={`${readErrors[asset.id]}. Select Retry loading to read this file again. Its capture outcome has not changed.`}
                 />
               )}
               {blobs[asset.id] && (

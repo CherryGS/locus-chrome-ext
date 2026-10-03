@@ -144,8 +144,8 @@ export function CaptureInspector({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Clear result"
-                title="Clear result"
+                aria-label="Clear capture"
+                title="Clear capture"
                 disabled={!!busy}
                 onClick={onClear}
               >
@@ -186,9 +186,9 @@ export function CaptureInspector({
             /></div>}
       {!result && readError && (
         <div className="shrink-0 p-4">
-          <Failure title="Result read failed" message={readError} />
+          <Failure title="Could not load capture" message={readError} />
           <Button variant="link" size="sm" onClick={onRetry}>
-            Retry reads
+            Retry loading
           </Button>
         </div>
       )}

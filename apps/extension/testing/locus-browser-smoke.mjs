@@ -58,7 +58,7 @@ try{
   const results=await context.newPage();await results.goto(`chrome-extension://${extensionId}/results.html`);
   await results.getByRole('button',{name:'Settings',exact:true}).click();
   await results.getByLabel('Locus address',{exact:true}).fill(`http://127.0.0.1:${port}`);await results.getByLabel('Token',{exact:true}).fill(credential.token);
-  await results.getByRole('button',{name:'Connect and save'}).click();await results.getByText('Locus connection verified',{exact:true}).waitFor();
+  await results.getByRole('button',{name:'Connect to Locus'}).click();await results.getByText('Locus connection verified',{exact:true}).waitFor();
   // Offscreen documents are not Playwright pages; route their site fixtures via
   // their own CDP target. Loopback traffic continues to the real Locus server.
   const cdp=await context.browser().newBrowserCDPSession();
