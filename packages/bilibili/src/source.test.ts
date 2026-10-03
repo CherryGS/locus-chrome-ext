@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignment, projectBilibili } from './projection';
+import { assignment, IncompleteBilibiliAssignment, projectBilibili } from './projection';
 import { normalizeBilibili, selectBilibili } from './source';
 import { partUrl, bilibiliResource } from './urls';
 const url = 'https://www.bilibili.com/video/BV145PxzCEoE/?p=2';
@@ -31,6 +31,13 @@ describe('Bilibili initial current-part source', () => {
     expect(retained).not.toContain('private=');
   });
   it('captures removed script text as bounded JSON without evaluating trailing page code', () => { expect(assignment('window.__INITIAL_STATE__={"p":2};document.currentScript.remove()', '__INITIAL_STATE__')).toEqual({ p: 2 }); expect(() => assignment('window.__playinfo__={"p":(()=>2)()}', '__playinfo__')).toThrow(); });
+  it.each(['window.__INITIAL_STATE__=', 'window.__INITIAL_STATE__=  ', 'window.__INITIAL_STATE__={"p":', 'window.__INITIAL_STATE__={"title":"unfinished\\'])('identifies a retryable JSON prefix: %s', script => {
+    expect(() => assignment(script, '__INITIAL_STATE__')).toThrow(IncompleteBilibiliAssignment);
+  });
+  it.each(['window.__INITIAL_STATE__=undefined', 'window.__INITIAL_STATE__={"p":oops}', 'window.__INITIAL_STATE__={"p":1,}'])('keeps malformed complete sources terminal: %s', script => {
+    try { assignment(script, '__INITIAL_STATE__'); throw new Error('Expected invalid source'); }
+    catch (error) { expect(error).not.toBeInstanceOf(IncompleteBilibiliAssignment); expect(String(error)).not.toContain('Expected invalid source'); }
+  });
   it('requires explicit login and exact root/selected-part binding', () => { const f = fixture(); expect(() => projectBilibili(f.initial, f.play, url, false)).toThrow('Sign in'); f.initial.cid = '36508468243'; expect(f.candidate).toThrow('CID'); f.initial.cid = '36531930223'; f.initial.p = 1; expect(f.candidate).toThrow('selected part'); });
   it('rejects unsafe numeric IDs before attribution', () => { const f = fixture(); Object.assign(f.initial, { aid: 9007199254740992 }); expect(f.candidate).toThrow('identifier'); });
   it('preserves explicit empty text and does not reinterpret absent/unknown description as empty', () => { const f = fixture(); Object.assign(f.initial.videoData, { desc: '', desc_v2: null }); expect(f.candidate().text).toBe('Synthetic title\n\n'); Object.assign(f.initial.videoData, { desc: 'excerpt', desc_v2: [{ type: 2, raw_text: 'unknown' }] }); const c = f.candidate(); expect(c.payload).toBeNull(); expect(c.media[1]!.tracks).toBeDefined(); });

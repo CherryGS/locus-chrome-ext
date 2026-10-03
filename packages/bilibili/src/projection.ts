@@ -4,14 +4,20 @@ type Obj = Record<string, unknown>;
 export const object = (value: unknown): Obj => value && typeof value === 'object' && !Array.isArray(value) ? value as Obj : {};
 const pick = (value: unknown, keys: string[]) => Object.fromEntries(keys.map(key => [key, object(value)[key] ?? null]));
 export function identity(value: unknown): string { if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return String(value); if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) return value; throw new Error('Unsafe or missing source identifier'); }
+/** A loading script can expose a JSON prefix before its remaining text arrives. */
+export class IncompleteBilibiliAssignment extends Error {
+  constructor() { super('Incomplete Bilibili initial JSON'); this.name = 'IncompleteBilibiliAssignment'; }
+}
 /** Read only the JSON assignment, including a script node removed before observer delivery. */
 export function assignment(script: string, name: '__INITIAL_STATE__' | '__playinfo__'): unknown | undefined {
   if (script.length > 4 * 1024 * 1024) throw new Error('Bilibili initial script exceeds source limit');
   const start = new RegExp(`(?:window\\.)?${name}\\s*=\\s*`).exec(script); if (!start) return;
-  const from = start.index + start[0].length; if (script[from] !== '{') throw new Error('Unverified Bilibili JSON assignment');
+  const from = start.index + start[0].length;
+  if (from === script.length) throw new IncompleteBilibiliAssignment();
+  if (script[from] !== '{') throw new Error('Unverified Bilibili JSON assignment');
   let depth = 0, quoted = false, escaped = false;
   for (let i = from; i < script.length; i++) { const c = script[i]; if (quoted) { if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === '"') quoted = false; } else if (c === '"') quoted = true; else if (c === '{' || c === '[') { if (++depth > 64) throw new Error('Bilibili JSON depth limit'); } else if (c === '}' || c === ']') { if (--depth === 0) return JSON.parse(script.slice(from, i + 1)); } }
-  throw new Error('Incomplete Bilibili initial JSON');
+  throw new IncompleteBilibiliAssignment();
 }
 export function projectBilibili(initial: unknown, playinfo: unknown, requested: string, login: unknown) {
   const root = object(initial), video = object(root.videoData), play = object(playinfo), data = object(play.data), target = partUrl(requested);

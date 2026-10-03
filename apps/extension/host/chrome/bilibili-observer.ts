@@ -1,12 +1,12 @@
-import { assignment, projectBilibili, BILIBILI_SOURCE_LIMIT, object } from '@locus/bilibili/projection';
+import { assignment, projectBilibili, BILIBILI_SOURCE_LIMIT, IncompleteBilibiliAssignment, object } from '@locus/bilibili/projection';
 import { BILI_CHANNEL, biliIdentity, sameBiliDocument } from './bilibili-protocol';
 
 export function observeBilibiliSource() {
   const identity = biliIdentity(location.href); if (!identity || window !== window.top) return;
   let initial: unknown, play: unknown, stopped = false, authorized = false, started = false, scannedBytes = 0, pendingError = '';
-  const seen = new WeakSet<HTMLScriptElement>(); const controller = new AbortController();
+  const seen = new WeakMap<HTMLScriptElement, { content: string; incomplete: boolean }>(); const controller = new AbortController();
   function post(value: object) { window.postMessage({ channel: BILI_CHANNEL, token: identity!.token, ...value }, location.origin); }
-  function stop() { if (stopped) return; stopped = true; observer.disconnect(); clearTimeout(timer); controller.abort(); window.removeEventListener('message', message); window.removeEventListener('pagehide', stop); }
+  function stop() { if (stopped) return; stopped = true; observer.disconnect(); clearTimeout(timer); controller.abort(); document.removeEventListener('DOMContentLoaded', loaded); window.removeEventListener('message', message); window.removeEventListener('pagehide', stop); }
   function fail(reason: string) { if (stopped) return; if (!authorized) { pendingError = reason; observer.disconnect(); return; } post({ op: 'source', error: reason }); stop(); }
   async function complete() {
     if (stopped || pendingError || !authorized || started || initial === undefined || play === undefined) return; started = true;
@@ -26,18 +26,31 @@ export function observeBilibiliSource() {
     } catch (error) { fail(error instanceof Error ? error.message.replace(/https?:\/\/\S+/g, '[source URL]') : 'Bilibili source unavailable'); }
   }
   function script(node: HTMLScriptElement) {
-    if (stopped || pendingError || seen.has(node) || node.src) return; const content = node.textContent ?? ''; if (!content.includes('__INITIAL_STATE__') && !content.includes('__playinfo__')) return; seen.add(node);
+    if (stopped || pendingError || node.src) return; const content = node.textContent ?? ''; if (!content.includes('__INITIAL_STATE__') && !content.includes('__playinfo__')) return;
+    const previous = seen.get(node);
+    if (previous?.content === content && !(previous.incomplete && (document.readyState !== 'loading' || !node.isConnected))) return;
+    const current = { content, incomplete: false }; seen.set(node, current);
     try {
-      scannedBytes += content.length; if (scannedBytes > 8 * 1024 * 1024) throw new Error('Bilibili source collection limit');
+      // Count appended text once; rewritten text still consumes the collection
+      // budget. An unchanged incomplete prefix is retried at parser completion.
+      scannedBytes += previous && content.startsWith(previous.content) ? content.length - previous.content.length : content.length;
+      if (scannedBytes > 8 * 1024 * 1024) throw new Error('Bilibili source collection limit');
       const a = assignment(content, '__INITIAL_STATE__'), b = assignment(content, '__playinfo__');
       if (a !== undefined) { if (initial !== undefined && JSON.stringify(initial) !== JSON.stringify(a)) throw new Error('Conflicting Bilibili initial sources'); initial = a; }
       if (b !== undefined) { if (play !== undefined && JSON.stringify(play) !== JSON.stringify(b)) throw new Error('Conflicting Bilibili media sources'); play = b; }
       void complete();
-    } catch (error) { fail(error instanceof Error ? error.message : 'Invalid Bilibili initial source'); }
+    } catch (error) {
+      // Document-start observers can run between streamed HTML chunks. Only a
+      // still-connected loading script may supply more text; malformed JSON,
+      // removed incomplete scripts and final document text remain failures.
+      if (error instanceof IncompleteBilibiliAssignment && document.readyState === 'loading' && node.isConnected) { current.incomplete = true; return; }
+      fail(error instanceof Error ? error.message : 'Invalid Bilibili initial source');
+    }
   }
   function scan(node: Node) { if (node instanceof HTMLScriptElement) script(node); if (node instanceof Element || node instanceof Document) for (const item of node.querySelectorAll('script')) script(item); }
-  const observer = new MutationObserver(records => { for (const record of records) { for (const node of record.addedNodes) scan(node); for (const node of record.removedNodes) scan(node); if (record.target instanceof HTMLScriptElement) script(record.target); } });
+  const observer = new MutationObserver(records => { for (const record of records) { for (const node of record.addedNodes) scan(node); for (const node of record.removedNodes) scan(node); const target = record.target instanceof HTMLScriptElement ? record.target : record.target.parentElement; if (target instanceof HTMLScriptElement) script(target); } });
+  function loaded() { scan(document); }
   function message(event: MessageEvent) { if (event.source !== window || event.origin !== location.origin || event.data?.channel !== BILI_CHANNEL || event.data?.token !== identity!.token) return; if (event.data.op === 'stop') stop(); if (event.data.op === 'authorize' && !stopped) { authorized = true; if (pendingError) { fail(pendingError); return; } scan(document); void complete(); } }
   const timer = setTimeout(() => { if (authorized) fail('Bilibili signed-in initial source unavailable before timeout'); else stop(); }, 25_000);
-  observer.observe(document, { subtree: true, childList: true, characterData: true }); window.addEventListener('message', message); window.addEventListener('pagehide', stop); scan(document); post({ op: 'observer-ready' });
+  observer.observe(document, { subtree: true, childList: true, characterData: true }); document.addEventListener('DOMContentLoaded', loaded, { once: true }); window.addEventListener('message', message); window.addEventListener('pagehide', stop); scan(document); post({ op: 'observer-ready' });
 }

@@ -69,6 +69,20 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(read, predicate, label, ms = 40000) { const deadline = Date.now() + ms; let value; do { value = await read(); if (predicate(value)) return value; await pause(100); } while (Date.now() < deadline); throw new Error(`${label}: ${JSON.stringify(value)}`); }
 let context, worker, resultPage, extensionId, sessionLogin = true, navRequests = 0, hold;
 const checks = []; const routing = []; const renderErrors = [];
+function chunkedSourceFixture(initial, play) {
+  // Keep the parser loading while source text arrives over several observer
+  // deliveries, including CharacterData changes and removal of the final node.
+  return `<script>
+    for (const [name, value] of ${JSON.stringify([['INITIAL_STATE__', initial], ['playinfo__', play]])}) {
+      const source = document.createElement('script'); source.type = 'application/json';
+      const content = 'window.__' + name + '=' + JSON.stringify(value);
+      const cut = Math.floor(content.length / 3), text = document.createTextNode(content.slice(0, cut));
+      source.append(text); document.head.append(source);
+      setTimeout(() => text.appendData(content.slice(cut, cut * 2)), 25);
+      setTimeout(() => { source.append(document.createTextNode(content.slice(cut * 2))); source.remove(); }, 50);
+    }
+    </script><script src="/fixture-source-ready.js"></script>`;
+}
 function fixture(p, watchlater = false) {
   const toolbar = ['like', 'coin', 'fav', 'share'].map((name, i) => `<div data-v-abc123="" class="toolbar-left-item-wrap"><div data-v-abc123="" class="video-${name} video-toolbar-left-item"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M12 4h12v28H12Z"/></svg><span data-v-abc123="" class="video-toolbar-item-text">${i + 12}</span></div></div>`).join('');
   const cid = String(100000 + p), track = (id, codecs) => {
@@ -83,7 +97,12 @@ function fixture(p, watchlater = false) {
   if (p === 12 || p === 14) { Object.assign(play.data.dash, { audio: null, dolby: { type: 0, audio: null }, flac: null }); }
   if (p === 12) { const media = aspectMedia.get(p); initial.videoData.pages[p - 1].duration = Math.ceil(media.duration); play.data.timelength = media.duration * 1000; }
   if(p===8&&real){initial.videoData.pages[7].duration=Math.ceil(real.duration);play.data.timelength=real.duration*1000;Object.assign(play.data.dash.video[0],{width:real.width,height:real.height,codecs:real.codec});}
-  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report,#playlistToolbar{display:flex;gap:20px;margin:32px 0}.video-toolbar-right{display:flex;align-items:center;margin-left:auto}.video-toolbar-right-item{display:flex;align-items:center;gap:6px;height:24px}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style><script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script><div id="app" data-server-rendered="true"><h1>${watchlater ? `<a href="${base}">Synthetic Bilibili P${p}</a>` : `Synthetic Bilibili P${p}`}</h1><input aria-label="Outside browsing input"><div id="${watchlater ? 'playlistToolbar' : 'arc_toolbar_report'}" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right"><div data-v-abc123="" class="video-complaint video-toolbar-right-item"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3 2 21h20Z"/></svg><span class="video-toolbar-item-text">稿件举报</span></div></div></div>${bilibiliNativeFixture(p, watchlater ? bvid : undefined)}<main>Independent page browsing</main></div>`;
+  const sourceScripts = p === 15 ? '<script type="application/json">window.__INITIAL_STATE__={"p":</script>' : p === 16 ? `<script>
+    const source = document.createElement('script'); source.type = 'application/json';
+    source.textContent = 'window.__' + 'INITIAL_STATE__={"p":'; document.head.append(source);
+    setTimeout(() => source.remove(), 25);
+    </script><script src="/fixture-source-ready.js"></script>` : p === 2 && !watchlater ? chunkedSourceFixture(initial, play) : `<script>window.__INITIAL_STATE__=${JSON.stringify(initial)};document.currentScript.remove();</script><script>window.__playinfo__=${JSON.stringify(play)};</script>`;
+  return `<!doctype html><meta charset="UTF-8"><title>Synthetic Bilibili P${p}</title><style>body{font:16px sans-serif;margin:40px;background:#fafafa}#arc_toolbar_report,#playlistToolbar{display:flex;gap:20px;margin:32px 0}.video-toolbar-right{display:flex;align-items:center;margin-left:auto}.video-toolbar-right-item{display:flex;align-items:center;gap:6px;height:24px}.video-toolbar-left-main{display:flex;align-items:center}.toolbar-left-item-wrap{margin-right:18px}.video-toolbar-left-item{display:flex;align-items:center;gap:6px;width:100px;height:36px}.video-toolbar-item-text{font:500 14px/28px sans-serif}main{height:1400px}</style>${sourceScripts}<div id="app" data-server-rendered="true"><h1>${watchlater ? `<a href="${base}">Synthetic Bilibili P${p}</a>` : `Synthetic Bilibili P${p}`}</h1><input aria-label="Outside browsing input"><div id="${watchlater ? 'playlistToolbar' : 'arc_toolbar_report'}" class="video-toolbar-container"><div class="video-toolbar-left"><div class="video-toolbar-left-main">${toolbar}</div></div><div class="video-toolbar-right"><div data-v-abc123="" class="video-complaint video-toolbar-right-item"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3 2 21h20Z"/></svg><span class="video-toolbar-item-text">稿件举报</span></div></div></div>${bilibiliNativeFixture(p, watchlater ? bvid : undefined)}<main>Independent page browsing</main></div>`;
 }
 async function rows() { return resultPage.evaluate(() => new Promise((resolve, reject) => { const open = indexedDB.open('locus-results-v1'); open.onerror = () => reject(open.error); open.onsuccess = () => { const db = open.result; if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; } const tx = db.transaction('results'), req = tx.objectStore('results').getAll(); req.onsuccess = () => resolve(req.result); tx.oncomplete = () => db.close(); }; })); }
 async function routeOwner() {
@@ -118,6 +137,7 @@ try {
   context.on('page', page => page.on('pageerror', error => { if (/NotFoundError|removeChild/.test(String(error))) renderErrors.push(String(error)); }));
   worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker'); extensionId = new URL(worker.url()).host;
   await context.route('https://www.bilibili.com/**', route => route.fulfill({ contentType: 'text/html', body: new URL(route.request().url()).pathname === '/' ? bilibiliListingFixture('home', base) : new URL(route.request().url()).pathname === '/v/popular/all' ? bilibiliListingFixture('generic', base) : fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1)) }));
+  await context.route('https://www.bilibili.com/fixture-source-ready.js', async route => { await pause(100); await route.fulfill({ contentType: 'text/javascript', body: '' }); });
   await context.route('https://www.bilibili.com/watchlater/list', route => route.fulfill({ contentType: 'text/html', body: bilibiliListingFixture('watchlater', base) }));
   await context.route('https://www.bilibili.com/list/watchlater/**', route => route.fulfill({ contentType: 'text/html', body: fixture(Number(new URL(route.request().url()).searchParams.get('p') ?? 1), true) }));
   await context.route('https://www.bilibili.com/fixture-native.mp4*', route => route.fulfill({ contentType: 'video/mp4', body: video }));
@@ -144,6 +164,7 @@ try {
   assert((await success.page.locator('[data-locus-bilibili-action="toolbar"]').getAttribute('aria-description')).includes('Configure Locus'));
   checks.push('Bilibili video/audio progress uses the shared ring; missing Locus connection is reported separately from complete local acquisition');
   const selected = complete.find(row => row.id === success.id); assert.equal(selected.records[0].payload.source.cid, '100002'); assert.equal(selected.records[0].payload.part.index, 2); assert.equal(selected.records[0].payload.description, 'Complete & description\n@Synthetic collaborator Second line'); assert.equal(JSON.stringify(selected).includes('unrelatedAccount'), false);
+  checks.push('Chunked initial/media JSON survives repeated text mutations while loading and final script removal; the bound P2 source completes');
   assert.equal(selected.records[0].payload.representation.videoSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002_t6-1-64.m4s');
   assert.equal(selected.records[0].payload.representation.audioSource, 'https://synthetic.bilivideo.com/upgcxcode/1/2/100002/100002-1-30280.m4s');
   checks.push('Suffixed video and unsuffixed audio preserve selected CID and exact mirror paths through source binding, approved CDN leases and byte acquisition');
@@ -328,6 +349,19 @@ try {
   await until(() => worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), rules => rules.length === 0, 'DNR cleanup');
   const sessions = await worker.evaluate(() => chrome.storage.session.get(null)); assert.equal(sessions['locus-bilibili-probes-v1']?.length ?? 0, 0); assert.equal(sessions['locus-bilibili-cdn-leases-v1']?.length ?? 0, 0);
   checks.push('Session denial creates no capture; all temporary source tabs and DNR leases cleaned');
+  const beforeTruncated = (await rows()).length;
+  for (const part of [15, 16]) {
+    const page = await context.newPage(); await page.goto(`${base}?p=${part}`);
+    await page.getByRole('button', { name: `Locus capture P${part}`, exact: true }).click();
+    await page.getByRole('button', { name: 'Expand capture queue', exact: true }).click();
+    const diagnostic = page.locator('[data-capture-diagnostic]').filter({ hasText: 'Incomplete Bilibili initial JSON' });
+    await diagnostic.locator('summary').click({ timeout: 5000 });
+    await diagnostic.locator('pre').waitFor({ timeout: 5000 });
+    assert.equal((await rows()).length, beforeTruncated);
+    await until(() => context.pages().filter(page => page.url().includes('#__locus_bili_probe=')).length, count => count === 0, 'truncated-source probe cleanup', 5000);
+    await page.close();
+  }
+  checks.push('Unchanged truncated JSON fails at document completion or script removal without waiting for the source timeout or creating a capture');
   assert.deepEqual(renderErrors,[], 'No React node-removal errors during ordinary source updates or UI teardown');
   await writeFile(path.join(work, 'evidence.json'), JSON.stringify({ status: 'PASS', checks, outputSha256: createHash('sha256').update(output).digest('hex'), files: await readdir(work) }, null, 2)); console.log(JSON.stringify({ status: 'PASS', work, checks }, null, 2));
 } catch (error) { await writeFile(path.join(work, 'failure.txt'), error.stack ?? String(error)); console.error(`Bilibili smoke failed; evidence: ${work}\n${error.stack ?? String(error)}`); process.exitCode = 1; }
