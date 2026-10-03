@@ -71,6 +71,9 @@
   --workspace-selected: #28485e; --workspace-selected-ink: #eaf2f7;
   --workspace-focus: #a0c5dc; --workspace-caption: #b4c8d5;
   --workspace-motion: 160ms; --workspace-ease: cubic-bezier(.22,1,.36,1);
+  --duration-fast: 250ms; --duration-quick: 150ms; --duration-medium: 350ms;
+  --ease-smooth-out: cubic-bezier(.22,1,.36,1);
+  --scale-large: .96; --scale-medium: .97; --scale-tiny: .99;
   --chart-1: var(--info); --chart-2: var(--success); --chart-3: var(--primary);
   --chart-4: var(--warning); --chart-5: var(--destructive);
   --sidebar-primary: var(--primary); --sidebar-primary-foreground: var(--primary-foreground);
