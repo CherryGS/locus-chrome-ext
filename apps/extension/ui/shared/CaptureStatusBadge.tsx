@@ -54,16 +54,19 @@ export function CaptureStatusBadge({ state }: { state: CaptureState }) {
 }
 
 /** Retained bytes are a separate fact even when acquisition or delivery failed. */
-function StagingBadge({
+export function CaptureStagingBadge({
   result,
+  state,
 }: {
   result: Pick<CaptureResult, "retention" | "revision">;
+  state: CaptureState;
 }) {
   if (
     result.retention.state !== "retained" ||
     result.retention.revision !== result.revision
   )
     return null;
+  if (state === "saved") return <CaptureStatusBadge state={state} />;
   return (
     <Badge
       variant="outline"
@@ -80,17 +83,21 @@ function StagingBadge({
 export function CaptureOutcomeBadges({
   state,
   result,
+  showStaging = true,
 }: {
   state: CaptureState;
   result: Pick<CaptureResult, "retention" | "revision">;
+  showStaging?: boolean;
 }) {
   const { retention, revision } = result;
   return (
     <>
-      <CaptureStatusBadge state={state} />
+      {(state !== "saved" || showStaging) && (
+        <CaptureStatusBadge state={state} />
+      )}
       {state !== "saved" &&
         (retention.state === "retained" && retention.revision === revision ? (
-          <StagingBadge result={result} />
+          showStaging && <CaptureStagingBadge result={result} state={state} />
         ) : (
           <Badge
             variant={

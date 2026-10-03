@@ -27,8 +27,9 @@ import type { LocusTransfer } from "@/host/locus/model";
 import { CaptureOutcomeDetails } from "./CaptureOutcomeDetails";
 import { LocusSaveStatus } from "./LocusSaveStatus";
 import { CaptureDetails } from "./CaptureDetails";
+import { CaptureSourceSummary } from "./CaptureSourceSummary";
 import { Failure } from "./ResultNotice";
-import { deliveryLabels, safeSource, sourceName } from "./presentation";
+import { deliveryLabels, safeSource } from "./presentation";
 
 export function CaptureInspector({
   selected,
@@ -99,10 +100,12 @@ export function CaptureInspector({
             >
               <ArrowLeftIcon />
             </Button>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">
-                {result ? sourceName(result.sourceUrl) : "Your library"}
-              </p>
+            <div className="flex min-w-0 flex-col gap-1">
+              {result && captureStatus ? (
+                <CaptureSourceSummary result={result} state={captureStatus} />
+              ) : (
+                <p className="text-xs text-muted-foreground">Your library</p>
+              )}
               <h2 className="line-clamp-2 break-words text-sm font-semibold">
                 {result?.label ??
                   (selected ? "Selected capture" : "Capture preview")}
@@ -151,15 +154,22 @@ export function CaptureInspector({
             </div>
           )}
         </div>
-        {result && captureStatus && (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <CaptureOutcomeBadges state={captureStatus} result={result} />
-            <LocusSaveStatus
-              transfer={currentLocus}
-              onDetails={() => setTab("activity")}
-            />
-          </div>
-        )}
+        {result &&
+          captureStatus &&
+          (captureStatus !== "saved" ||
+            (currentLocus && currentLocus.state !== "complete")) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <CaptureOutcomeBadges
+                state={captureStatus}
+                result={result}
+                showStaging={false}
+              />
+              <LocusSaveStatus
+                transfer={currentLocus}
+                onDetails={() => setTab("activity")}
+              />
+            </div>
+          )}
         {result &&
           (readError || actionError || result.retention.state === "failed") && (
             <div className="flex flex-wrap items-center gap-2 text-xs">

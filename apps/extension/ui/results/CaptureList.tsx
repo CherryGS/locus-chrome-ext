@@ -16,6 +16,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Item, ItemGroup, ItemContent, ItemTitle } from "@/components/ui/item";
 import { CaptureOutcomeBadges } from "@/ui/shared/CaptureStatusBadge";
+import { CaptureSourceSummary } from "./CaptureSourceSummary";
 import { getCaptureStatus } from "@/ui/shared/capture-status";
 import {
   Empty,
@@ -42,7 +43,6 @@ import {
   recentTime,
   exactTime,
   resultHint,
-  sourceName,
   viewLabels,
   type LibraryView,
 } from "./presentation";
@@ -224,9 +224,7 @@ export function CaptureList({
                     >
                       <ItemContent className="min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {sourceName(item.sourceUrl)}
-                          </span>
+                          <CaptureSourceSummary result={item} state={status} />
                           <time
                             className="shrink-0 text-xs text-muted-foreground"
                             dateTime={item.createdAt}
@@ -238,9 +236,15 @@ export function CaptureList({
                         <ItemTitle className="line-clamp-2 break-words">
                           {item.label}
                         </ItemTitle>
-                        <div className="flex flex-wrap gap-1.5">
-                          <CaptureOutcomeBadges state={status} result={item} />
-                        </div>
+                        {status !== "saved" && (
+                          <div className="flex flex-wrap gap-1.5">
+                            <CaptureOutcomeBadges
+                              state={status}
+                              result={item}
+                              showStaging={false}
+                            />
+                          </div>
+                        )}
                         <p className="text-xs leading-relaxed text-muted-foreground">
                           {resultHint(item)}
                         </p>
@@ -272,7 +276,7 @@ export function CaptureList({
                 </EmptyTitle>
                 <EmptyDescription>
                   {allCount === 0
-                        ? "Enable a source in Settings → General, then use its capture action."
+                    ? "Enable a source in Settings → General, then use its capture action."
                     : query
                       ? "Try another search or workspace view."
                       : view === "inbox"
