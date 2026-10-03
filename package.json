@@ -1,11 +1,4 @@
 {
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.21.0",
-      "onFail": "error"
-    }
-  },
   "type": "module",
   "private": true,
   "name": "locus-chrome-ext",

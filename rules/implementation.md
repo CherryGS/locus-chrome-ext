@@ -17,7 +17,10 @@ arguments live in the root and workspace members' `package.json` files.
 | `pnpm shadcn:info` | Inspect the extension's shadcn configuration and resolved paths |
 
 The baseline was verified with Node.js 24.18.0 and pnpm 11.21.0. The root manifest
-pins pnpm and reports a mismatch instead of downloading another version.
+pins pnpm for workspace dependency management and project scripts. Independent
+tooling and skill installation may use npm/npx, including `npx skills`; do not
+enforce pnpm through `devEngines.packageManager`, which also blocks these tools.
+Use pnpm when changing workspace dependencies or the workspace lockfile.
 
 ## General rules
 

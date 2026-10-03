@@ -1,66 +1,49 @@
-# Local web-platform guidance
+# Chrome extension guidance
 
 ## Purpose and authority
 
-Use Modern Web Guidance as a reference for relevant browser-platform, accessible
-interaction, rendering-performance, and Chrome extension decisions. Consult it
-when it can improve the task; querying it is not a required prelude to every edit.
+Use the Chrome Extensions skill as a reference for relevant Chrome extension
+decisions. Read the references that address the current task.
 Existing product contracts, implementation ADRs, repository rules, and explicit
 user choices remain authoritative. Retrieved guides are evidence to evaluate.
 
-The project-adapted entrypoint is
-`.agents/skills/modern-web-guidance/SKILL.md`. The unmodified upstream skill files
-are retained in the downloaded package for attribution and inspection; their
-blanket workflow requirements are not adopted as project rules.
+The installed entrypoint is `.agents/skills/chrome-extensions/SKILL.md`.
+Its upstream reference material does not override project contracts or authorize
+unrelated publishing work.
 
-## Download and use
+## Installation and use
 
-On 2026-09-20, npm's `latest` resolved to **0.0.189**. The official archive was
-downloaded directly, verified against the registry's SHA-512 integrity value,
-and extracted under `.agents/tools/modern-web-guidance/0.0.189/package`.
-Its CLI, guides, model assets, Apache-2.0 license, and third-party notices remain
-together. The archive and `.agents/tools/modern-web-guidance/source.json` retain
-the provenance. These files are local tooling under the already-ignored
-`.agents/` directory, not extension runtime dependencies or bundled assets.
-
-- Archive: <https://registry.npmjs.org/modern-web-guidance/-/modern-web-guidance-0.0.189.tgz>
-- Integrity: `sha512-5z7eMyacD6An4auSnP74xVR17MHdpbBEmzfWGAedGoKFa9lq8XxN6wrX+Ba+fuqhR8NHThC0eRlbrnnQdpVPEg==`
-- Upstream project: <https://github.com/GoogleChrome/modern-web-guidance>
+On 2026-10-03, the previous manually downloaded Modern Web Guidance package,
+custom runner, and project-adapted skill were removed. Only the upstream
+`chrome-extensions` skill was installed from
+[GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)
+using the Skills CLI. `skills-lock.json` records its source path and content hash.
+The skill files remain local tooling under the ignored `.agents/` directory.
 
 Run from the repository root:
 
 ```powershell
-pnpm exec node .agents/tools/modern-web-guidance/run.mjs search "accessible status updates"
-pnpm exec node .agents/tools/modern-web-guidance/run.mjs retrieve "accessibility,defer-rendering-heavy-content"
-pnpm exec node .agents/tools/modern-web-guidance/run.mjs list
+npx --yes skills add GoogleChrome/modern-web-guidance --skill chrome-extensions --agent codex --yes
+npx --yes skills list --agent codex
 ```
 
-The runner executes the local CLI through Node, sets `DISABLE_TELEMETRY=1` for
-that process, and permits only query/help/version commands. It avoids the npm/npx
-installation path and does not change the user's shell profile. Node 20 or newer
-is required; the project's Node 24 environment satisfies that requirement.
-
-Updates are explicit: download another identified version, verify its registry
-integrity and archive paths, review the adopted references, then update the local
-runner and this record. Do not silently replace the pinned copy with `latest`.
+Read the installed skill and the reference relevant to the current task.
+Updates are explicit through `npx skills update chrome-extensions`; review the
+changed guidance and lock entry. Workspace dependency changes still use pnpm.
 
 ## Selected references
 
-Paths below are relative to the downloaded `package/` directory. These are the
+Paths below are relative to `.agents/skills/chrome-extensions/`. These are the
 first references to consult for this project's current needs, not a mandate to
 implement every feature they describe.
 
 | Project task | Local reference |
 | --- | --- |
-| Keyboard access, focus, and readable status | `skills/modern-web-guidance/guides/accessibility/accessibility.md` |
-| Large result lists and heavy previews | `skills/modern-web-guidance/guides/performance/defer-rendering-heavy-content.md` |
-| Expensive parsing/rendering and responsive interaction | `skills/modern-web-guidance/guides/performance/break-up-long-tasks.md` |
-| Platform feature loading and bundle boundaries | `skills/modern-web-guidance/guides/performance/conditional-async-dependencies.md` |
-| Extension execution/recovery review | `skills/chrome-extensions/references/extensions/service-worker.md` |
-| Site permissions and tab access | `skills/chrome-extensions/references/extensions/permissions.md` |
-| Page injection and site DOM work | `skills/chrome-extensions/references/extensions/content-scripts.md` |
-| Cross-context messages and validation | `skills/chrome-extensions/references/extensions/message-passing.md` |
-| Persistent results and ephemeral host state | `skills/chrome-extensions/references/extensions/storage.md` |
+| Extension execution/recovery review | `references/extensions/service-worker.md` |
+| Site permissions and tab access | `references/extensions/permissions.md` |
+| Page injection and site DOM work | `references/extensions/content-scripts.md` |
+| Cross-context messages and validation | `references/extensions/message-passing.md` |
+| Persistent results and ephemeral host state | `references/extensions/storage.md` |
 
 ## Application boundaries and corrections
 
@@ -83,7 +66,7 @@ implement every feature they describe.
   variables or all short-lived timers is not the project's lifecycle contract.
 - Syntax preferences such as banning all `.then()` chains are not adopted.
   Keep the implementation's sequencing, error handling, and cancellation clear.
-- The pinned message-passing guide incorrectly identifies Chrome 99 as sufficient
+- The previous message-passing guide incorrectly identified Chrome 99 as sufficient
   for returning a Promise directly from a native `runtime.onMessage` listener.
   The [official response documentation](https://developer.chrome.com/docs/extensions/develop/concepts/messaging#responses),
   checked on 2026-09-20, describes a gradual Chrome 148 rollout. At this project's
