@@ -7,6 +7,8 @@
 
 # Local Impeccable decision-page runtime state.
 **/.impeccable/questions/
+**/.impeccable/design-build/
+**/.impeccable/review/
 
 node_modules
 dist

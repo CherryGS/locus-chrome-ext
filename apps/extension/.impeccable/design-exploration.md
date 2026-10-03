@@ -89,7 +89,9 @@ expanded into a design sample and specification before production implementation
 DESIGN.md and its sidecar must be grounded in that reviewed sample, not presented
 as a description of the unchanged current production UI.
 
-## Open choice
+## Selected direction
 
-The user has not selected a visual direction. Do not infer a selection from the
-seed, the model pick or silence. Keep production changes out of this round.
+The user explicitly selected Signal shelf in chat. The local decision board
+recorded `assigned`, build path `code`, with no workflow flip. The next delivery
+is a reviewed interactive design sample and its extension-wide specification;
+production changes follow this design delivery.
