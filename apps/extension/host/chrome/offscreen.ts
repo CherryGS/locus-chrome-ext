@@ -10,6 +10,7 @@ import {
   availability,
   errorMessage,
   interrupt,
+  isTerminalDelivery,
   type CaptureResult,
   type Delivery,
   type Snapshot,
@@ -65,6 +66,17 @@ export function startOffscreen() {
   let requests = 0;
   let closing = false;
   let lastUse = Date.now();
+  function canClose(requestAllowance = 0) {
+    return requests === requestAllowance &&
+      !jobs.size && !active.size && !locusActive.size && !locusWaiting.size &&
+      !exports.size && !grants.size && !candidates.size &&
+      ![...live.values()].some(snapshot => snapshot.result.retention.state !== "retained");
+  }
+  function releaseCaptureSlot(id: string) {
+    active.delete(id);
+    working.delete(id);
+    if (assemblyJob === id) assemblyJob = undefined;
+  }
   const changed = () => {
     if (disposed) return;
     lastUse = Date.now();
@@ -485,9 +497,7 @@ export function startOffscreen() {
       transfers.delete(id);
       // Saving has its own bounded queue. Retained/live bytes stay owned until
       // it ends, but acquisition buffers and the Bilibili assembly lease do not.
-      active.delete(id);
-      working.delete(id);
-      if (assemblyJob === id) assemblyJob = undefined;
+      releaseCaptureSlot(id);
       changed();
       pump();
       if (!disposed && !controller.signal.aborted && live.has(id))
@@ -511,10 +521,8 @@ export function startOffscreen() {
           state: "failed",
           message: "Capture did not complete. Nothing was sent to Locus",
         }).catch(() => {});
-      active.delete(id);
+      releaseCaptureSlot(id);
       transfers.delete(id);
-      working.delete(id);
-      if (assemblyJob === id) assemblyJob = undefined;
       jobs.delete(id);
       if (snapshot.result.retention.state === "retained") live.delete(id);
       changed();
@@ -542,7 +550,7 @@ export function startOffscreen() {
       );
       const confirmed = [backing.delivery, saved].find(
         (row) =>
-          row && ["complete", "interrupted", "failed"].includes(row.state),
+          row && isTerminalDelivery(row.state),
       );
       if (confirmed) {
         if (backing.url) URL.revokeObjectURL(backing.url);
@@ -623,7 +631,7 @@ export function startOffscreen() {
       if (
         [...exports.values()].filter(
           (e) =>
-            !["complete", "failed", "interrupted"].includes(e.delivery.state),
+            !isTerminalDelivery(e.delivery.state),
         ).length >= 2
       )
         throw new Error(
@@ -631,7 +639,8 @@ export function startOffscreen() {
         );
       const snapshot = await read(id);
       if (!snapshot) throw new Error("Result no longer exists");
-      if (!availability(snapshot.result).acquired)
+      const state = availability(snapshot.result);
+      if (!state.acquired)
         throw new Error("No acquired content is available to export yet");
       const delivery: Delivery = {
         id: crypto.randomUUID(),
@@ -639,7 +648,7 @@ export function startOffscreen() {
         revision: snapshot.result.revision,
         createdAt: new Date().toISOString(),
         state: "packaging",
-        partial: !availability(snapshot.result).complete,
+        partial: !state.complete,
       };
       void packageExport(snapshot, delivery);
       return delivery.id;
@@ -688,15 +697,15 @@ export function startOffscreen() {
       (sender.url && sender.url !== chrome.runtime.getURL("background.js"))
     )
       return;
+    const passive =
+      message.op === "lease-live" ||
+      message.op === "source-status" ||
+      message.op === "live-status" ||
+      message.op === "capture-tasks";
     requests++;
     void (async () => {
       try {
         if (closing) throw new Error("Execution owner is closing; retry");
-        const passive =
-          message.op === "lease-live" ||
-          message.op === "source-status" ||
-          message.op === "live-status" ||
-          message.op === "capture-tasks";
         if (!passive) await recover();
         let value: unknown;
         switch (message.op) {
@@ -896,9 +905,7 @@ export function startOffscreen() {
             const backing = exports.get(delivery.id);
             if (backing) {
               backing.delivery = delivery;
-              if (
-                ["complete", "interrupted", "failed"].includes(delivery.state)
-              ) {
+              if (isTerminalDelivery(delivery.state)) {
                 if (backing.url) URL.revokeObjectURL(backing.url);
                 terminalReports.set(delivery.id, delivery);
                 exports.delete(delivery.id);
@@ -909,19 +916,7 @@ export function startOffscreen() {
             break;
           }
           case "prepare-close": {
-            const unsaved = [...live.values()].some(
-              (s) => s.result.retention.state !== "retained",
-            );
-            value =
-              !jobs.size &&
-              !active.size &&
-              !locusActive.size &&
-              !locusWaiting.size &&
-              !exports.size &&
-              !grants.size &&
-              !candidates.size &&
-              !unsaved &&
-              requests === 1;
+            value = canClose(1);
             if (value) closing = true;
             break;
           }
@@ -945,13 +940,7 @@ export function startOffscreen() {
         });
       } finally {
         requests--;
-        if (
-          message.op !== "lease-live" &&
-          message.op !== "source-status" &&
-          message.op !== "live-status" &&
-          message.op !== "capture-tasks"
-        )
-          lastUse = Date.now();
+        if (!passive) lastUse = Date.now();
       }
     })();
     return true;
@@ -963,15 +952,7 @@ export function startOffscreen() {
       if (candidate.expiresAt < Date.now()) candidates.delete(token);
     if (
       Date.now() - lastUse > 60_000 &&
-      !requests &&
-      !jobs.size &&
-      !active.size &&
-      !locusActive.size &&
-      !locusWaiting.size &&
-      !exports.size &&
-      !grants.size &&
-      !candidates.size &&
-      ![...live.values()].some((s) => s.result.retention.state !== "retained")
+      canClose()
     )
       void coordinator("idle").catch(() => {});
   }, 15_000);

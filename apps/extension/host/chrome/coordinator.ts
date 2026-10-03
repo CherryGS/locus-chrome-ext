@@ -411,11 +411,9 @@ export function startCoordinator() {
             );
             // Passive indicators never create or keep alive a Blob owner.
             const ownerExists = (await contexts()).length > 0;
-            const transfers = await database.locusTransfers();
+            const transfers = new Map((await database.locusTransfers()).map(transfer => [transfer.resultId, transfer]));
             for (const row of stored) {
-              const transfer = transfers.find(
-                (item) => item.resultId === row.summary?.id,
-              );
+              const transfer = row.summary && transfers.get(row.summary.id);
               if (row.summary && transfer)
                 row.summary.locus =
                   !ownerExists && transferActive(transfer)
@@ -494,9 +492,7 @@ export function startCoordinator() {
               const current = (await contexts()).length
                 ? await sendOwner("live-status", { id: message.id })
                 : null;
-              const transfer = (await database.locusTransfers()).find(
-                (item) => item.resultId === message.id,
-              );
+              const transfer = await database.locusTransfer(message.id);
               const locus = transfer
                 ? { state: transfer.state, message: transfer.message }
                 : undefined;
@@ -509,13 +505,14 @@ export function startCoordinator() {
                 locus.message =
                   "Save execution ended. Check the original result before continuing";
               }
+              const storedSummary = !current && stored ? summarizeResult(stored) : null;
               value =
                 current ??
-                (stored
+                (storedSummary
                   ? {
-                      ...summarizeResult(stored),
+                      ...storedSummary,
                       locus,
-                      ...(summarizeResult(stored).acquisition === "pending"
+                      ...(storedSummary.acquisition === "pending"
                         ? {
                             unresolvedReason:
                               "Capture execution is unavailable. Open the result to inspect interrupted work.",

@@ -1,4 +1,4 @@
-import { errorMessage, type Delivery } from "@locus/capture-core/model";
+import { errorMessage, isTerminalDelivery, type Delivery } from "@locus/capture-core/model";
 import type { ResultDatabase } from "./database";
 
 interface DeliveryHost {
@@ -45,12 +45,7 @@ export function createNativeDeliveryCoordinator({
     return query;
   }
   async function queryDelivery(delivery: Delivery) {
-    if (
-      delivery.state === "complete" ||
-      delivery.state === "failed" ||
-      delivery.state === "interrupted"
-    )
-      return;
+    if (isTerminalDelivery(delivery.state)) return;
     if (!delivery.dispatch && delivery.downloadId === undefined) {
       // Packaging/ready backing is not evidence that native initiation happened.
       // Ask the actual owner before inferring loss, and never reissue downloads.

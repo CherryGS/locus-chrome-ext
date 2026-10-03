@@ -1,5 +1,5 @@
 import type { ResultSummary } from "@/host/chrome/protocol";
-import { availability, type CaptureResult } from "@locus/capture-core/model";
+import { acquisitionState, type CaptureResult } from "@locus/capture-core/model";
 
 export type CaptureState =
   | "uncaptured"
@@ -118,17 +118,10 @@ export function getResultCaptureStatus(
   locus?: ResultSummary["locus"],
   observation: Pick<ResultSummary, "queuePosition" | "unresolvedReason"> = {},
 ): CaptureState {
-  const state = availability(result);
   return getCaptureStatus({
     ...result,
     locus,
     ...observation,
-    acquisition: state.complete
-      ? "complete"
-      : state.pending
-        ? "pending"
-        : state.acquired
-          ? "partial"
-          : "unavailable",
+    acquisition: acquisitionState(result),
   });
 }

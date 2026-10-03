@@ -31,6 +31,23 @@ async function message(op:string, values:Record<string,unknown>={}, origin='resu
 }
 function delivery(): Delivery { return {id:crypto.randomUUID(),resultId:crypto.randomUUID(),revision:1,createdAt:new Date().toISOString(),state:'packaging',partial:false}; }
 describe('wakeable native delivery coordination',()=>{
+  it('preserves script identities, execution worlds and exact per-site probe scopes', async () => {
+    permissions.mockResolvedValue(true);
+    startCoordinator(); await message('activate');
+    const scripts = new Map(vi.mocked(chrome.scripting.registerContentScripts).mock.calls.flatMap(([items]) => items).map(script => [script.id, script]));
+    const twitter = ['https://x.com/*', 'https://twitter.com/*'];
+    expect([...scripts.keys()]).toEqual(['locus-twitter', 'locus-probe-main', 'locus-probe-bridge', 'locus-bilibili', 'locus-bilibili-main', 'locus-bilibili-bridge']);
+    for (const site of ['twitter', 'bilibili']) {
+      expect(scripts.get(`locus-${site}`)).toEqual({
+        id: `locus-${site}`, matches: site === 'twitter' ? twitter : ['https://www.bilibili.com/*', 'https://space.bilibili.com/*', 'https://search.bilibili.com/*'],
+        js: [`content-scripts/${site}.js`], runAt: 'document_idle', persistAcrossSessions: true,
+      });
+      for (const [name, world] of [['main', 'MAIN'], ['bridge', 'ISOLATED']]) {
+        const id = `${site === 'twitter' ? 'locus-probe' : 'locus-bilibili'}-${name}`;
+        expect(scripts.get(id)).toEqual({ id, matches: site === 'twitter' ? twitter : ['https://www.bilibili.com/*'], js: [`content-scripts/${site}-probe-${name}.js`], runAt: 'document_start', world, persistAcrossSessions: true });
+      }
+    }
+  });
   it('never exposes the saved Locus Token through settings reads or source messages',async()=>{
     const database=new ResultDatabase();await database.saveLocusConnection({origin:'http://127.0.0.1:46321',token:'private-secret'});await database.close();
     startCoordinator();expect(await message('locus-settings')).toEqual({origin:'http://127.0.0.1:46321',configured:true});
@@ -105,8 +122,9 @@ describe('wakeable native delivery coordination',()=>{
   });
   it('uses a keyed metadata read for passive exact result status',async()=>{
     startCoordinator();await message('reconcile');contexts.mockResolvedValue([]);const database=new ResultDatabase(),snapshot=syntheticSnapshot();await database.commit(snapshot);
-    const metadata=vi.spyOn(ResultDatabase.prototype,'metadata'),list=vi.spyOn(ResultDatabase.prototype,'list'),read=vi.spyOn(ResultDatabase.prototype,'read');send.mockClear();
-    expect((await message('status',{id:snapshot.result.id})).id).toBe(snapshot.result.id);expect(metadata).toHaveBeenCalledWith(snapshot.result.id);expect(list).not.toHaveBeenCalled();expect(read).not.toHaveBeenCalled();expect(send).not.toHaveBeenCalled();await database.close();
+    const metadata=vi.spyOn(ResultDatabase.prototype,'metadata'),list=vi.spyOn(ResultDatabase.prototype,'list'),read=vi.spyOn(ResultDatabase.prototype,'read');
+    const transfer=vi.spyOn(ResultDatabase.prototype,'locusTransfer'),transfers=vi.spyOn(ResultDatabase.prototype,'locusTransfers');send.mockClear();
+    expect((await message('status',{id:snapshot.result.id})).id).toBe(snapshot.result.id);expect(metadata).toHaveBeenCalledWith(snapshot.result.id);expect(transfer).toHaveBeenCalledWith(snapshot.result.id);expect(transfers).not.toHaveBeenCalled();expect(list).not.toHaveBeenCalled();expect(read).not.toHaveBeenCalled();expect(send).not.toHaveBeenCalled();await database.close();
   });
   it('bounds and authorizes page source summary lookup before contacting the owner',async()=>{
     startCoordinator();await message('reconcile');

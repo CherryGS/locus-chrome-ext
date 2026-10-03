@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { samples } from '../shared/sample-data';

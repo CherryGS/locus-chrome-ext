@@ -21,9 +21,23 @@ export interface Delivery {
   dispatch?: 'attempted';
 }
 export function availability(result: CaptureResult) {
-  const portions = [...result.records, ...result.assets];
-  const acquired = portions.filter(p => p.acquisition.state === 'acquired').length;
-  return { acquired, pending: portions.some(p => p.acquisition.state === 'pending'), complete: portions.length > 0 && acquired === portions.length };
+  let acquired = 0, pending = false;
+  for (const portions of [result.records, result.assets]) {
+    for (const portion of portions) {
+      if (portion.acquisition.state === 'acquired') acquired++;
+      else if (portion.acquisition.state === 'pending') pending = true;
+    }
+  }
+  const total = result.records.length + result.assets.length;
+  return { acquired, pending, complete: total > 0 && acquired === total };
+}
+export function acquisitionState(result: CaptureResult) {
+  const state = availability(result);
+  return state.complete ? 'complete' : state.pending ? 'pending' : state.acquired ? 'partial' : 'unavailable';
+}
+/** Unverified delivery can still consume its backing; only confirmed endings release it. */
+export function isTerminalDelivery(state: Delivery['state']): boolean {
+  return state === 'complete' || state === 'interrupted' || state === 'failed';
 }
 export function interrupt(result: CaptureResult): CaptureResult {
   const copy = structuredClone(result);

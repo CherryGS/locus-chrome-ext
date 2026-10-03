@@ -11,8 +11,8 @@ describe('transactional results', () => {
     const database=new ResultDatabase(name),snapshot=syntheticSnapshot();await database.commit(snapshot);
     const transfer={resultId:snapshot.result.id,revision:1,state:'uploading' as const,message:'Uploading',uploads:[]};await database.saveLocusTransfer(transfer);
     await database.close();const reopened=new ResultDatabase(name);expect(await (await reopened.read(snapshot.result.id))!.blobs.file!.text()).toBe('synthetic bytes');
-    expect(await reopened.locusTransfers()).toEqual([transfer]);await reopened.clear(snapshot.result.id);
-    await expect(reopened.saveLocusTransfer({...transfer,state:'complete'})).rejects.toThrow('cleared');expect(await reopened.locusTransfers()).toEqual([]);await reopened.close();
+    expect(await reopened.locusTransfers()).toEqual([transfer]);expect(await reopened.locusTransfer(snapshot.result.id)).toEqual(transfer);await reopened.clear(snapshot.result.id);
+    await expect(reopened.saveLocusTransfer({...transfer,state:'complete'})).rejects.toThrow('cleared');expect(await reopened.locusTransfers()).toEqual([]);expect(await reopened.locusTransfer(snapshot.result.id)).toBeUndefined();await reopened.close();
   });
   it('projects only legacy initial configuration failures before any execution owner starts', async () => {
     const name = crypto.randomUUID(), database = new ResultDatabase(name), snapshot = syntheticSnapshot();
@@ -21,6 +21,7 @@ describe('transactional results', () => {
     await database.saveLocusTransfer(original); await database.close();
     const reopened = new ResultDatabase(name);
     expect((await reopened.locusTransfers())[0]).toMatchObject({ state: 'configuration-required', resultId: original.resultId, importRequest: original.importRequest });
+    expect(await reopened.locusTransfer(original.resultId)).toEqual((await reopened.locusTransfers())[0]);
     expect(await (await reopened.read(original.resultId))!.blobs.file!.text()).toBe('synthetic bytes');
     for (const evidence of [
       { importRequest: { id: 'original', dispatched: true } },
@@ -31,6 +32,7 @@ describe('transactional results', () => {
     ]) {
       await reopened.saveLocusTransfer({ ...original, ...evidence });
       expect((await reopened.locusTransfers())[0]?.state).toBe('failed');
+      expect((await reopened.locusTransfer(original.resultId))?.state).toBe('failed');
     }
     await reopened.close();
   });

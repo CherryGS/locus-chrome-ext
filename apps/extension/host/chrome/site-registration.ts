@@ -9,6 +9,36 @@ interface RegistrationHost {
   ) => Promise<unknown>;
 }
 
+const pageMatches: Record<CaptureSite, string[]> = {
+  twitter: ["https://x.com/*", "https://twitter.com/*"],
+  bilibili: BILIBILI_PAGE_ORIGINS,
+};
+
+function siteScripts(site: CaptureSite): chrome.scripting.RegisteredContentScript[] {
+  const probePrefix = site === "twitter" ? "locus-probe" : "locus-bilibili";
+  const probeMatches = site === "twitter" ? pageMatches.twitter : ["https://www.bilibili.com/*"];
+  return [
+    {
+      id: `locus-${site}`,
+      matches: pageMatches[site],
+      js: [`content-scripts/${site}.js`],
+      runAt: "document_idle",
+      persistAcrossSessions: true,
+    },
+    ...([
+      ["main", "MAIN"],
+      ["bridge", "ISOLATED"],
+    ] as const).map(([name, world]) => ({
+      id: `${probePrefix}-${name}`,
+      matches: probeMatches,
+      js: [`content-scripts/${site}-probe-${name}.js`],
+      runAt: "document_start" as const,
+      world,
+      persistAcrossSessions: true,
+    })),
+  ];
+}
+
 /** Serialize registration changes while leaving permission-withdrawal interruption independent. */
 export function createSiteRegistration({
   hasOwner,
@@ -17,60 +47,9 @@ export function createSiteRegistration({
   const sites: CaptureSite[] = ["twitter", "bilibili"];
   let registrations = Promise.resolve();
   let scriptChanges = Promise.resolve();
-  const probeScripts: chrome.scripting.RegisteredContentScript[] = [
-    {
-      id: "locus-probe-main",
-      matches: ["https://x.com/*", "https://twitter.com/*"],
-      js: ["content-scripts/twitter-probe-main.js"],
-      runAt: "document_start",
-      world: "MAIN",
-      persistAcrossSessions: true,
-    },
-    {
-      id: "locus-probe-bridge",
-      matches: ["https://x.com/*", "https://twitter.com/*"],
-      js: ["content-scripts/twitter-probe-bridge.js"],
-      runAt: "document_start",
-      world: "ISOLATED",
-      persistAcrossSessions: true,
-    },
-  ];
   function synchronizeScripts(enabled: boolean, site: CaptureSite = "twitter") {
     const next = scriptChanges.then(async () => {
-      const matches =
-        site === "twitter"
-          ? ["https://x.com/*", "https://twitter.com/*"]
-          : BILIBILI_PAGE_ORIGINS;
-      const sourceMatches = ["https://www.bilibili.com/*"];
-      const desired = [
-        {
-          id: "locus-" + site,
-          matches,
-          js: ["content-scripts/" + site + ".js"],
-          runAt: "document_idle",
-          persistAcrossSessions: true,
-        } as chrome.scripting.RegisteredContentScript,
-        ...(site === "twitter"
-          ? probeScripts
-          : ([
-              {
-                id: "locus-bilibili-main",
-                matches: sourceMatches,
-                js: ["content-scripts/bilibili-probe-main.js"],
-                runAt: "document_start",
-                world: "MAIN",
-                persistAcrossSessions: true,
-              },
-              {
-                id: "locus-bilibili-bridge",
-                matches: sourceMatches,
-                js: ["content-scripts/bilibili-probe-bridge.js"],
-                runAt: "document_start",
-                world: "ISOLATED",
-                persistAcrossSessions: true,
-              },
-            ] as chrome.scripting.RegisteredContentScript[])),
-      ];
+      const desired = siteScripts(site);
       const existing = await chrome.scripting.getRegisteredContentScripts({
         ids: desired.map((script) => script.id),
       });
@@ -104,10 +83,7 @@ export function createSiteRegistration({
     });
     await synchronizeScripts(enabled, site);
     const tabs = await chrome.tabs.query({
-      url:
-        site === "twitter"
-          ? ["https://x.com/*", "https://twitter.com/*"]
-          : BILIBILI_PAGE_ORIGINS,
+      url: pageMatches[site],
     });
     for (const tab of tabs)
       if (

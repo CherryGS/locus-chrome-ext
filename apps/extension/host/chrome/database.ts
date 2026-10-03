@@ -25,13 +25,19 @@ export class ResultDatabase {
       req.onblocked = () => { blocked = true; this.connection = undefined; reject(new Error('Storage upgrade blocked by another extension view')); };
     });
   }
-  async list(): Promise<CaptureResult[]> {
-    const db = await this.open(); const tx = db.transaction('results'); const end = done(tx);
-    const values = await request(tx.objectStore('results').getAll()); await end; return values;
+  private async query<T>(store: string, read: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+    const db = await this.open();
+    const tx = db.transaction(store);
+    const end = done(tx);
+    const value = await request(read(tx.objectStore(store)));
+    await end;
+    return value;
+  }
+  list(): Promise<CaptureResult[]> {
+    return this.query('results', store => store.getAll());
   }
   async metadata(id: string): Promise<CaptureResult | null> {
-    const db=await this.open();const tx=db.transaction('results');const end=done(tx);
-    const result=await request<CaptureResult | undefined>(tx.objectStore('results').get(id));await end;return result??null;
+    return await this.query<CaptureResult | undefined>('results', store => store.get(id)) ?? null;
   }
   async read(id: string): Promise<Snapshot | null> {
     const db = await this.open(); const tx = db.transaction(['results', 'blobs']); const end = done(tx);
@@ -69,8 +75,7 @@ export class ResultDatabase {
     for (const asset of result?.assets ?? []) tx.objectStore('blobs').delete([id, asset.id]);
     await end;
   }
-  async isCleared(id: string) { const db = await this.open(); const tx = db.transaction('guards'); const end = done(tx); const guard = await request(tx.objectStore('guards').get(id)); await end; return !!guard; }
-  async deliveries(): Promise<Delivery[]> { const db = await this.open(); const tx = db.transaction('deliveries'); const end = done(tx); const rows = await request(tx.objectStore('deliveries').getAll()); await end; return rows; }
+  deliveries(): Promise<Delivery[]> { return this.query('deliveries', store => store.getAll()); }
   async saveDelivery(delivery: Delivery): Promise<Delivery> {
     const db = await this.open(); const tx = db.transaction('deliveries', 'readwrite'); const end = done(tx);
     const previous = await request<Delivery | undefined>(tx.objectStore('deliveries').get(delivery.id));
@@ -80,17 +85,20 @@ export class ResultDatabase {
     tx.objectStore('deliveries').put(current, current.id); await end; return current;
   }
   async locusTransfers(): Promise<LocusTransfer[]> {
-    const db = await this.open(), tx = db.transaction('locus-transfers'), end = done(tx);
-    const values = await request<LocusTransfer[]>(tx.objectStore('locus-transfers').getAll()); await end; return values.map(normalizeTransfer);
+    const values = await this.query<LocusTransfer[]>('locus-transfers', store => store.getAll());
+    return values.map(normalizeTransfer);
+  }
+  async locusTransfer(id: string): Promise<LocusTransfer | undefined> {
+    const value = await this.query<LocusTransfer | undefined>('locus-transfers', store => store.get(id));
+    return value && normalizeTransfer(value);
   }
   async saveLocusTransfer(value: LocusTransfer) {
     const db = await this.open(), tx = db.transaction(['locus-transfers', 'guards'], 'readwrite'), end = done(tx);
     if (await request(tx.objectStore('guards').get(value.resultId))) { await end; throw new ClearedError(); }
     tx.objectStore('locus-transfers').put(value, value.resultId); await end;
   }
-  async locusConnection(): Promise<LocusConnection | undefined> {
-    const db = await this.open(), tx = db.transaction('settings'), end = done(tx);
-    const value = await request<LocusConnection | undefined>(tx.objectStore('settings').get('locus')); await end; return value;
+  locusConnection(): Promise<LocusConnection | undefined> {
+    return this.query('settings', store => store.get('locus'));
   }
   async saveLocusConnection(value: LocusConnection) {
     // Extension-origin IndexedDB is not exposed through content-script storage.

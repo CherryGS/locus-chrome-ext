@@ -34,6 +34,22 @@ async function consume<T>(operation: string, id?: string): Promise<T> {
 }
 async function begin() { const inspection = await command('inspect',{url:candidate.sourceUrl, owner:'tab:doc'}); return command('capture',{token:inspection.token, selected:['media-1','media-2'], owner:'tab:doc'}); }
 describe('offscreen producer lifetime', () => {
+  it.each(['complete', 'interrupted', 'failed'])('keeps unverified export backing until confirmed %s', async state => {
+    mocks.archive.mockResolvedValue({ blob: new Blob(['archive']), partial: false });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+    const accepted = await begin();
+    await vi.waitFor(async () => expect(await command('capture-tasks')).toEqual([]));
+    const id = await consume<string>('export', accepted.id);
+    await vi.waitFor(async () => expect((await command('export-state', { id }))?.state).toBe('starting'));
+    const backing = await command('export-state', { id });
+    await command('delivery', { delivery: { ...backing, state: 'unverified' } });
+    expect(revoke).not.toHaveBeenCalled();
+    expect(await command('prepare-close')).toBe(false);
+    await command('delivery', { delivery: { ...backing, state } });
+    expect(revoke).toHaveBeenCalledWith(backing.url);
+    expect(await command('export-state', { id })).toBeNull();
+    expect(await command('prepare-close')).toBe(true);
+  });
   it.each(['twitter', 'bilibili'])('does not start a new Locus transfer for an old staged %s result', async site => {
     const snapshot = syntheticSnapshot(); snapshot.result.site = site;
     const database = new ResultDatabase(); await database.commit(snapshot);
