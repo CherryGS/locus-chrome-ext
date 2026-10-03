@@ -3,6 +3,7 @@
 /.agents
 /.claude
 /.codegraph
+/.codex/hooks.json
 
 node_modules
 dist
