@@ -184,9 +184,9 @@ export function CapturePreview({ snapshot }: { snapshot: Snapshot }) {
                     <FileIcon />
                   )}
                 </ItemMedia>
-                <ItemContent>
+                <ItemContent className="min-w-0">
                   <ItemTitle>{title}</ItemTitle>
-                  <ItemDescription>
+                  <ItemDescription className="[overflow-wrap:anywhere]">
                     {asset.mime
                       ? `${asset.mime} · ${fileSize(asset.size)}`
                       : asset.id}

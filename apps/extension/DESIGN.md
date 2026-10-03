@@ -210,6 +210,10 @@ The palette combines dark-blue working layers, yellow-green action priority and 
 
 ## Typography
 
+Inspector and source-record titles use balanced wrapping without clamping the full inspected title. Narrow metadata record/file identities wrap within their row at a unitless (1.5) line height, while summary rows retain their compact clamp and recover the complete value through inspection. File-description fallback IDs may break anywhere rather than enlarge the card. Alert prose uses pretty wrapping; diagnostic and JSON blocks retain ordinary wrapping and exact copyable text. Unsupported wrapping refinements degrade to normal browser wrapping.
+
+Capture-list times/counts, activity counts, and queue counts explicitly use tabular numbers; the existing Windows typeface already rendered the tested digits equally. Link underlines use font-derived position/thickness with ink skipping. Existing font stack, sizes, weights, paragraph measure and preserved source line breaks remain authoritative.
+
 **UI and Reading Font:** Segoe UI Variable, Segoe UI, system-ui, sans-serif. This task surface has no separate decorative display role.
 
 The fixed ramp is (12 / 14 / 16 / 18 / 24px). Size, weight and spacing establish hierarchy; headings do not grow fluidly with viewport width.

@@ -121,7 +121,9 @@ export function CaptureMetadata({
               >
                 <ItemContent className="min-w-0 gap-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <ItemTitle>Record {record.id}</ItemTitle>
+                    <ItemTitle className="capture-metadata-identity min-w-0 max-w-full line-clamp-none [overflow-wrap:anywhere]">
+                      Record {record.id}
+                    </ItemTitle>
                     <Badge variant="outline">
                       {acquisitionLabel(record.acquisition.state)}
                     </Badge>
@@ -178,7 +180,9 @@ export function CaptureMetadata({
             >
               <ItemContent className="min-w-0 gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <ItemTitle>{asset.id}</ItemTitle>
+                  <ItemTitle className="capture-metadata-identity min-w-0 max-w-full line-clamp-none [overflow-wrap:anywhere]">
+                    {asset.id}
+                  </ItemTitle>
                   <Badge variant="outline">
                     {acquisitionLabel(asset.acquisition.state)}
                   </Badge>
