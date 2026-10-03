@@ -14,6 +14,7 @@
     "test:browser:locus": "node testing/locus-browser-smoke.mjs",
     "test:browser": "node testing/browser-smoke.mjs",
     "test:browser:bilibili": "node testing/bilibili-smoke.mjs",
+    "test:browser:performance": "node testing/capture-performance.mjs --verify-concurrency",
     "probe:bilibili-media": "node testing/bilibili-media-probe/run.mjs",
     "postinstall": "wxt prepare"
   },

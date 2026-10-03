@@ -126,6 +126,7 @@ async function capture(id) {
   assert.equal(geometry.count,1);assert.equal(geometry.afterBookmark,true);assert.equal(geometry.beforeShare,true);assert.equal(geometry.rowHeight,20);assert.equal(geometry.articleHeight,geometry.baseline);assert.equal(geometry.buttonClasses,geometry.replyClasses);assert.equal(geometry.iconSize,geometry.nativeIconSize);
   if(id==='100'){await page.evaluate(()=>{const quote=document.createElement('article');quote.dataset.fixtureQuote='true';quote.innerHTML='<button data-testid="reply">Nested quoted reply</button>';document.querySelector('article').prepend(quote);});await pause(200);assert.equal(await page.locator('[data-locus-action]').count(),1);await page.locator('[data-fixture-quote]').evaluate(quote=>quote.remove());}
   if(id==='101'){await page.locator('article').screenshot({path:path.join(work,'capture-collapsed-wide.png')});await page.setViewportSize({width:390,height:844});await page.locator('article').screenshot({path:path.join(work,'capture-collapsed-narrow.png')});await page.setViewportSize({width:1280,height:900});}
+  await until(()=>action.getAttribute('data-locus-state'),state=>state==='uncaptured','passive source lookup settles before activation');
   await action.evaluate(button=>button.click());await pause(100);assert.equal(await action.getAttribute('data-locus-state'),'uncaptured','Script cannot initiate capture');
   const tabs=context.pages().length;
   await action.focus();await page.keyboard.press('Shift+Enter');
@@ -165,9 +166,10 @@ async function verifyLoggedInAction() {
   await page.locator('[data-task-id]').filter({hasText:'@synthetic · 103'}).waitFor();
   assert.equal(await page.getByRole('checkbox').count(),0,'Modified activation does not open media picking');
   await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();
+  await page.getByRole('dialog').waitFor({state:'hidden'});
   await page.evaluate(()=>{const row=document.querySelector('[role="group"]');const next=row.cloneNode(true);next.querySelector('[data-locus-action]').remove();next.querySelector('[data-testid="like"]').setAttribute('data-testid','unlike');row.replaceWith(next);});
   await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'RNW unlike row replacement');assert.equal(await action.count(),1);
-  await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();
+  assert.equal(await page.getByRole('dialog').count(),0,'Replacing a native row must preserve the minimized queue');
   await page.evaluate(()=>{document.querySelector('a[href$="/103/analytics"]').href='/different/status/999/analytics';});await until(()=>page.locator('[data-locus-action]').count(),count=>count===0,'contradictory own analytics must not bind quoted subject');
   await page.evaluate(()=>{document.querySelector('a[href$="/999/analytics"]').href='/synthetic/status/103/analytics';});await action.waitFor();assert.equal(await action.count(),1);
   assert.equal(await page.evaluate(()=>window.fixtureNavigations),0);await page.close();
@@ -257,7 +259,9 @@ try {
   let rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.some(row=>row.sourceUrl.endsWith('/100')),'text-only retention');
   const textRow=rows.find(row=>row.sourceUrl.endsWith('/100'));const textId=textRow.id; assert.equal(textRow.assets.length,0); assert.equal(textRow.records[0].payload.fullText,'Synthetic post 100\nFull message');
   await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','missing-connection status restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.getByRole('button',{name:'Expand capture queue',exact:true}).click();
-  await source.locator('[data-task-id="'+textId+'"] [data-slot="item-actions"] button').click();
+  // Reload restores passive source status; terminal tasks belong to the result
+  // library rather than being recreated as this page's active queue entries.
+  await resultPage.getByRole('button',{name:'Open capture @synthetic · 100',exact:true}).click();
   resultPage=await until(async()=>context.pages().find(page=>page.url()===`chrome-extension://${extensionId}/results.html#${textId}`),Boolean,'explicit result opens in an existing or new tab');
   await resultPage.waitForLoadState();
   checks.push('Actual article control + initial-source loader + text-only capture; script clicks rejected, trusted keyboard start and explicit result opening work');
@@ -297,12 +301,13 @@ try {
   checks.push('Native ZIP download confirmed complete; exported MP4 bytes and JSON/JSONL paths match');
 
   // Clear target stays pinned even when result routing changes while dialog open.
+  const beforeClearIds=(await databaseRows(observer,'results')).map(row=>row.id).sort();
   const retainedSource=await context.newPage();await retainedSource.goto('https://x.com/renamed/status/101');await retainedSource.locator('[data-locus-action] button').waitFor();await retainedSource.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/renamed/status/101';});await pause(300);await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','source identity survives username change');
   await observer.getByRole('button',{name:'Clear capture',exact:true}).click();
   await observer.evaluate(id=>{location.hash=id;},textId);
   await observer.getByRole('button',{name:'Cancel',exact:true}).click();
-  assert.equal((await databaseRows(observer,'results')).length,2);
-  await observer.goto(`chrome-extension://${extensionId}/results.html#${mediaId}`);await observer.getByRole('button',{name:'Clear capture',exact:true}).click();await observer.getByRole('button',{name:'Clear capture',exact:true}).click();
+  assert.deepEqual((await databaseRows(observer,'results')).map(row=>row.id).sort(),beforeClearIds);
+  await observer.goto(`chrome-extension://${extensionId}/results.html#${mediaId}`);await observer.getByRole('button',{name:'Clear capture',exact:true}).click();await observer.getByRole('alertdialog').getByRole('button',{name:'Clear capture',exact:true}).click();
   await until(()=>databaseRows(observer,'results'),rows=>!rows.some(r=>r.id===mediaId),'confirmed clear');
   await until(()=>retainedSource.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='uncaptured','cleared source returns to not captured',20_000);await retainedSource.close();
   assert.ok((await readFile(nativeItem.filename)).length>0);

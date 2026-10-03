@@ -5,7 +5,7 @@ import {
   selectBilibili,
   type BilibiliCandidate,
 } from "@locus/bilibili/source";
-import { acquireBilibili } from "./bilibili-media";
+import { acquireBilibili, LIMITS } from "./bilibili-media";
 import { acquireMedia, loadTwitter } from "./network";
 import { coordinator } from "./protocol";
 import type { AcquisitionProgress } from "./capture-progress";
@@ -13,6 +13,15 @@ import type { CaptureSite } from "./sites";
 
 export type CaptureCandidate = TwitterCandidate | BilibiliCandidate;
 export type MediaLease = Parameters<typeof acquireBilibili>[2];
+
+/** Known Bilibili output caps let admission wait for retained upload bytes to
+ * leave memory, rather than acquiring a video that cannot fit beside them. */
+export function bilibiliOutputBudget(candidate: CaptureCandidate, pending: string[]) {
+  if (!("site" in candidate)) return 0;
+  return candidate.media
+    .filter(media => pending.includes(media.id))
+    .reduce((sum, media) => sum + (media.kind === "cover" ? 16 * 1048576 : LIMITS.outputBytes), 0);
+}
 
 /** Offscreen-only site dispatch: normalization stays in packages, byte execution stays here. */
 export async function loadCaptureCandidate(

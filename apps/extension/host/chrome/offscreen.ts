@@ -2,6 +2,7 @@ import {
   loadCaptureCandidate,
   selectCaptureCandidate,
   acquireCaptureAsset,
+  bilibiliOutputBudget,
   type CaptureCandidate,
   type MediaLease,
 } from "./site-capture";
@@ -27,9 +28,13 @@ export function startOffscreen() {
   const database = new ResultDatabase();
   const locusTransfers = new Map<string, LocusTransfer>();
   const locusActive = new Map<string, AbortController>();
+  const locusWaiting = new Map<
+    string,
+    { controller: AbortController; start: (granted: boolean) => void }
+  >();
   const live = new Map<string, Snapshot>();
   const active = new Map<string, AbortController>();
-  const transfers = new Map<string, AcquisitionProgress>();
+  const transfers = new Map<string, Map<string, AcquisitionProgress>>();
   type Job = {
     id: string;
     candidate: CaptureCandidate;
@@ -85,10 +90,17 @@ export function startOffscreen() {
   }
   async function sendToLocus(snapshot: Snapshot) {
     const id = snapshot.result.id;
-    if (locusActive.has(id)) return;
+    if (locusActive.has(id) || locusWaiting.has(id)) return;
     const controller = new AbortController();
-    locusActive.set(id, controller);
     try {
+      const granted = await new Promise<boolean>((start) => {
+        locusWaiting.set(id, { controller, start });
+        controller.signal.addEventListener("abort", () => {
+          if (locusWaiting.delete(id)) start(false);
+        }, { once: true });
+        pumpLocus();
+      });
+      if (!granted || disposed || controller.signal.aborted) return;
       const transfer =
         locusTransfers.get(id) ?? newTransfer(id, snapshot.result.revision);
       await transferToLocus(
@@ -104,6 +116,17 @@ export function startOffscreen() {
     } finally {
       locusActive.delete(id);
       changed();
+      pumpLocus();
+      if (!jobs.has(id)) pump();
+    }
+  }
+  function pumpLocus() {
+    if (disposed || closing) return;
+    for (const [id, job] of locusWaiting) {
+      if (locusActive.size >= 2) break;
+      locusWaiting.delete(id);
+      locusActive.set(id, job.controller);
+      job.start(true);
     }
   }
   const liveBytes = () =>
@@ -128,11 +151,22 @@ export function startOffscreen() {
         waiting.shift();
         continue;
       }
+      const pendingAssets = snapshot.result.assets.filter(
+        (asset) => asset.acquisition.state === "pending",
+      );
+      const outputBudget = bilibiliOutputBudget(
+        job.candidate,
+        pendingAssets.map(asset => asset.id),
+      );
+      if (
+        liveBytes() + outputBudget > 512 * 1048576 &&
+        (locusActive.size || locusWaiting.size)
+      ) return;
       if (
         liveBytes() >= 512 * 1048576 &&
         availability(snapshot.result).pending
       ) {
-        if (!active.size) {
+        if (!active.size && !locusActive.size && !locusWaiting.size) {
           const blocked = waiting
             .splice(0)
             .map((id) => jobs.get(id))
@@ -141,7 +175,7 @@ export function startOffscreen() {
             job.controller.abort();
             void abandon(
               job,
-              "Capture could not start: unsaved live content uses the 512 MiB owner memory limit. Export any needed content, then clear those results before starting a new capture.",
+              "Capture could not start within the 512 MiB owner memory limit. Export any needed content, then clear unsaved results before starting a new capture.",
             );
           }
         }
@@ -152,7 +186,9 @@ export function startOffscreen() {
       // Reserve working buffers as well as live retained/unsaved Blobs. Bilibili
       // includes input copies, mux writes, output copies and verification reads;
       // the single assembly lease prevents simultaneous large working sets.
-      const reserve = (site === "bilibili" ? 1024 : 256) * 1048576;
+      const pending = pendingAssets.length;
+      const reserve =
+        (site === "bilibili" ? 1024 : 256 * Math.min(2, pending)) * 1048576;
       if (
         liveBytes() +
           [...working.values()].reduce((a, b) => a + b, 0) +
@@ -346,9 +382,14 @@ export function startOffscreen() {
       if (controller.signal.aborted || !live.has(id))
         throw new Error("Site access removed or capture cleared");
       let size = 0;
-      for (const asset of snapshot.result.assets) {
-        if (!live.has(id)) break;
-        if (asset.acquisition.state !== "pending") continue;
+      const progressByAsset = new Map<string, AcquisitionProgress>();
+      transfers.set(id, progressByAsset);
+      // Downloads overlap; publication remains serialized so each committed
+      // revision contains exactly its acquired bytes, including on disk failure.
+      let publication = Promise.resolve();
+      const acquire = async (asset: CaptureResult["assets"][number]) => {
+        let acquired: Blob | undefined;
+        let failure: unknown;
         try {
           if (controller.signal.aborted)
             throw new Error("Site access removed or capture cleared");
@@ -360,12 +401,12 @@ export function startOffscreen() {
             controller.signal,
             AbortSignal.timeout(site === "bilibili" ? 120_000 : 180_000),
           ]);
-          transfers.set(id, { receivedBytes: 0, totalBytes: null });
+          progressByAsset.set(asset.id, { receivedBytes: 0, totalBytes: null });
           const progress = (value: AcquisitionProgress) => {
             if (!disposed && !controller.signal.aborted && live.has(id))
-              transfers.set(id, value);
+              progressByAsset.set(asset.id, value);
           };
-          const blob = await acquireCaptureAsset(
+          acquired = await acquireCaptureAsset(
             candidate,
             asset.id,
             signal,
@@ -376,41 +417,79 @@ export function startOffscreen() {
           if (disposed) return;
           if (controller.signal.aborted || !live.has(id))
             throw new Error("Site access removed or capture cleared");
-          if (size + blob.size > 512 * 1048576)
-            throw new Error("Capture exceeds the 512 MiB capability limit");
-          if (liveBytes() + blob.size > 512 * 1048576)
-            throw new Error(
-              "Live capture content exceeds the 512 MiB owner memory limit. Finish or clear unsaved content before another capture.",
-            );
-          size += blob.size;
-          snapshot.blobs[asset.id] = blob;
-          asset.mime = blob.type;
-          asset.size = blob.size;
-          asset.acquisition = { state: "acquired" };
         } catch (error) {
-          asset.acquisition = {
-            state: "unavailable",
-            reason: diagnosticError(
-              "CAPTURE_ASSET_FAILED",
-              "capture.acquire",
-              "Selected asset could not be acquired",
-              {
-                resultId: id,
-                site,
-                sourceUrl: candidate.sourceUrl,
-                assetId: asset.id,
-                aborted: controller.signal.aborted,
-              },
-              error,
-            ).message,
-          };
-        } finally {
-          transfers.delete(id);
+          failure = error;
+          acquired = undefined;
         }
-        if (disposed) return;
-        snapshot.result.revision++;
-        await retain(snapshot);
-      }
+        const committed = publication.then(async () => {
+          if (disposed) return;
+          if (!live.has(id)) throw new ClearedError();
+          try {
+            if (controller.signal.aborted)
+              throw new Error("Site access removed or capture cleared");
+            if (!acquired) throw failure;
+            if (size + acquired.size > 512 * 1048576)
+              throw new Error("Capture exceeds the 512 MiB capability limit");
+            if (liveBytes() + acquired.size > 512 * 1048576)
+              throw new Error(
+                "Live capture content exceeds the 512 MiB owner memory limit. Finish or clear unsaved content before another capture.",
+              );
+            size += acquired.size;
+            snapshot.blobs[asset.id] = acquired;
+            asset.mime = acquired.type;
+            asset.size = acquired.size;
+            asset.acquisition = { state: "acquired" };
+          } catch (error) {
+            asset.acquisition = {
+              state: "unavailable",
+              reason: diagnosticError(
+                "CAPTURE_ASSET_FAILED",
+                "capture.acquire",
+                "Selected asset could not be acquired",
+                {
+                  resultId: id,
+                  site,
+                  sourceUrl: candidate.sourceUrl,
+                  assetId: asset.id,
+                  aborted: controller.signal.aborted,
+                },
+                error,
+              ).message,
+            };
+          }
+          progressByAsset.delete(asset.id);
+          snapshot.result.revision++;
+          await retain(snapshot);
+          if (site === "twitter") {
+            const pending = snapshot.result.assets.filter(
+              (asset) => asset.acquisition.state === "pending",
+            ).length;
+            working.set(id, 256 * Math.min(2, pending) * 1048576);
+            pump();
+          }
+        });
+        publication = committed.catch(() => {});
+        await committed;
+      };
+      let next = 0;
+      const assets = snapshot.result.assets.filter(
+        (asset) => asset.acquisition.state === "pending",
+      );
+      const worker = async () => {
+        while (!disposed && live.has(id) && next < assets.length)
+          await acquire(assets[next++]!);
+      };
+      const workers = await Promise.allSettled([worker(), worker()]);
+      for (const result of workers)
+        if (result.status === "rejected") throw result.reason;
+      transfers.delete(id);
+      // Saving has its own bounded queue. Retained/live bytes stay owned until
+      // it ends, but acquisition buffers and the Bilibili assembly lease do not.
+      active.delete(id);
+      working.delete(id);
+      if (assemblyJob === id) assemblyJob = undefined;
+      changed();
+      pump();
       if (!disposed && !controller.signal.aborted && live.has(id))
         await sendToLocus(snapshot);
     } catch (error) {
@@ -433,6 +512,7 @@ export function startOffscreen() {
           message: "Capture did not complete. Nothing was sent to Locus",
         }).catch(() => {});
       active.delete(id);
+      transfers.delete(id);
       working.delete(id);
       if (assemblyJob === id) assemblyJob = undefined;
       jobs.delete(id);
@@ -510,7 +590,7 @@ export function startOffscreen() {
         locus: locusTransfers.get(id),
       };
     if (operation === "locus-continue") {
-      if (jobs.has(id) || locusActive.has(id)) return true;
+      if (jobs.has(id) || locusActive.has(id) || locusWaiting.has(id)) return true;
       if (!locusTransfers.has(id))
         throw new Error(
           "No existing Locus save for this capture. Start a new capture explicitly",
@@ -527,10 +607,11 @@ export function startOffscreen() {
         await database.clear(id);
         live.delete(id);
         locusActive.get(id)?.abort();
+        locusWaiting.get(id)?.controller.abort();
         locusTransfers.delete(id);
         jobs.get(id)?.controller.abort();
         removeWaiting(id);
-        if (!active.has(id)) jobs.delete(id);
+        if (!active.has(id) && !locusActive.has(id)) jobs.delete(id);
         changed();
         return true;
       } finally {
@@ -711,7 +792,7 @@ export function startOffscreen() {
               );
             if (waiting.length >= 20 || jobs.size >= 22)
               throw new Error(
-                "Capture queue is full: two running and twenty waiting. Wait for a task to finish.",
+                "Capture queue is full. Wait for a capture or save to finish, then try again.",
               );
             if (liveBytes() >= 512 * 1048576)
               throw new Error(
@@ -772,7 +853,10 @@ export function startOffscreen() {
                   (!message.site ||
                     sourceSelection(jobs.get(id)!.candidate.sourceUrl).site ===
                       message.site) &&
-                  (active.has(id) || waiting.includes(id)),
+                  (active.has(id) ||
+                    waiting.includes(id) ||
+                    locusActive.has(id) ||
+                    locusWaiting.has(id)),
               )
               .map((id) => live.get(id))
               .filter((snapshot): snapshot is Snapshot => !!snapshot)
@@ -832,6 +916,7 @@ export function startOffscreen() {
               !jobs.size &&
               !active.size &&
               !locusActive.size &&
+              !locusWaiting.size &&
               !exports.size &&
               !grants.size &&
               !candidates.size &&
@@ -882,6 +967,7 @@ export function startOffscreen() {
       !jobs.size &&
       !active.size &&
       !locusActive.size &&
+      !locusWaiting.size &&
       !exports.size &&
       !grants.size &&
       !candidates.size &&
@@ -895,6 +981,7 @@ export function startOffscreen() {
     channel.close();
     for (const job of jobs.values()) job.controller.abort();
     for (const controller of locusActive.values()) controller.abort();
+    for (const job of locusWaiting.values()) job.controller.abort();
     void database.close();
   };
 }

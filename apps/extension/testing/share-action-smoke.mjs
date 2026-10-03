@@ -35,8 +35,10 @@ export async function verifyShareActions({ context, until, checks, loggedInFixtu
   await action.waitFor();
   assert.equal(await page.locator('[data-locus-action]').evaluate(slot => slot.nextElementSibling.classList.contains('r-share')), true);
   await action.click({ modifiers: ['Shift'] });
+  await page.getByRole('button', { name: 'Expand capture queue', exact: true }).click();
   await page.getByText('@synthetic · 505', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Minimize capture queue', exact: true }).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   // Reorder the native share slot, then replace the whole action bar.
   await page.locator('.r-row').evaluate(row => row.prepend(row.querySelector('.r-share')));
   await until(() => page.locator('[data-locus-action]').evaluate(slot => slot.nextElementSibling.classList.contains('r-share')), Boolean, 'follow reordered share');
@@ -46,6 +48,7 @@ export async function verifyShareActions({ context, until, checks, loggedInFixtu
   // Recycled tweet identity is resolved from its own permalink, never page URL.
   await page.locator('a').filter({ has: page.locator('time') }).last().evaluate(link => { link.href = '/synthetic/status/506'; });
   await action.click({ modifiers: ['Shift'] });
+  await page.getByRole('button', { name: 'Expand capture queue', exact: true }).click();
   await page.getByText('@synthetic · 506', { exact: true }).waitFor();
   await page.close();
   const revoked = await context.newPage();

@@ -39,7 +39,7 @@ export async function verifyProgressRing({ context, until, checks, work }) {
     const height = await page.locator('article').evaluate(article => article.getBoundingClientRect().height);
     await action.click();
     if (id === '701') {
-      const first = await until(() => action.getAttribute('data-locus-percent'), value => value !== null && value !== 'indeterminate' && Number(value) > 0 && Number(value) < 50, 'live byte percentage');
+      const first = await until(() => action.getAttribute('data-locus-percent'), value => value !== null && value !== 'indeterminate' && Number(value) > 0 && Number(value) < 100, 'live byte percentage with concurrent media');
       const visual = await action.evaluate(button => {
         const ring = button.querySelector('[data-locus-progress]');
         return { percent: button.dataset.locusPercent, text: ring.querySelector('text').textContent, offset: ring.querySelector('circle:last-of-type').getAttribute('stroke-dashoffset'), visible: getComputedStyle(ring).display !== 'none', label: button.getAttribute('aria-label') };

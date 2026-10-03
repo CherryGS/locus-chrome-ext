@@ -2,6 +2,20 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
+export async function dismissToasts(page) {
+  // Base UI marks its visual dismiss button aria-hidden. Use the actual
+  // pointer control and exclude toasts already running their exit transition.
+  const active = page.locator('[data-slot="toast"]:not([data-ending-style])');
+  while (await active.count()) {
+    const front = active.first(), node = await front.elementHandle();
+    await front.locator('[data-slot="toast-close"]').click();
+    // The exiting front toast still covers older dismiss buttons.
+    await page.waitForFunction(node => !node.isConnected, node);
+    await node.dispose();
+  }
+  await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]'));
+}
+
 export async function verifyInboxUi({ context, extensionId, work }) {
   const page = await context.newPage();
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -49,7 +63,7 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   const row = kind => page.getByRole('button', { name: `Open capture Inbox fixture ${kind}`, exact: true });
   const retry = () => page.getByRole('button', { name: 'Retry loading', exact: true }).first().click();
   const inspect = async kind => { await row(kind).click(); await page.getByRole('heading', { name: `Inbox fixture ${kind}`, exact: true }).waitFor(); };
-  const closeToasts = async () => { while (await page.getByRole('button', { name: 'Close toast', exact: true }).count()) await page.getByRole('button', { name: 'Close toast', exact: true }).last().click(); await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]')); };
+  const closeToasts = () => dismissToasts(page);
   await row('failed').waitFor();
   await page.getByRole('link', { name: 'Skip to content', exact: true }).focus();
   const routeBeforeSkip = await page.evaluate(() => location.hash);
@@ -101,8 +115,10 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   await dialog.getByRole('button', { name: 'Connect to Locus' }).click();
   await dialog.waitFor({ state: 'hidden' });
   await page.getByText('Locus connection verified', { exact: true }).waitFor();
-  await closeToasts();
   assert.equal(await page.getByRole('button', { name: 'Connection settings', exact: true }).evaluate(button => button === document.activeElement), true, 'Connection setup returns to its initiating recovery action');
+  // Check modal focus restoration before a pointer click moves focus to the
+  // notification's separate dismiss control.
+  await closeToasts();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   assert.equal(await dialog.getByLabel('Token', { exact: true }).inputValue(), '');
   await dialog.getByRole('tab', { name: 'General', exact: true }).click();
@@ -167,34 +183,42 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   await page.getByText('Could not load capture', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Show in Inbox', exact: true }).click();
   await row('saved').waitFor();
-  assert.match(await row('saved').innerText(), /Status unavailable/);
+  assert.match(await row('saved').innerText(), /Read problem · retry loading/);
   await page.evaluate(() => { __inbox.readFailure = false; }); await retry();
   await page.getByText('Could not load capture', { exact: true }).waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: 'All captures', exact: true }).click();
   await inspect('legacy');
   await page.getByRole('button', { name: 'Clear capture', exact: true }).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('alertdialog').waitFor({ state: 'hidden' });
   assert.equal(await page.evaluate(() => __inbox.calls.filter(call => call.operation === 'clear').length), 0);
   await page.evaluate(() => { __inbox.clearFailure = true; });
   await page.getByRole('button', { name: 'Clear capture', exact: true }).click();
-  await page.getByRole('button', { name: 'Clear capture', exact: true }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Clear capture', exact: true }).click();
   await page.getByRole('alertdialog').getByText('Could not clear capture', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('alertdialog').waitFor({ state: 'hidden' });
   await page.evaluate(() => { __inbox.clearFailure = false; __inbox.hold = true; });
   await page.getByRole('button', { name: 'Clear capture', exact: true }).click();
-  await page.getByRole('button', { name: 'Clear capture', exact: true }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Clear capture', exact: true }).click();
   await page.evaluate(() => { location.hash = 'inbox-partial'; __inbox.hold = false; __inbox.held.splice(0).forEach(release => release()); });
   await page.getByRole('heading', { name: 'Inbox fixture partial', exact: true }).waitFor();
+  await page.getByRole('alertdialog').waitFor({ state: 'hidden' });
   assert.equal(await row('legacy').count(), 0);
   await closeToasts();
   await page.screenshot({ path: path.join(work, 'inbox-partial-desktop.png') });
+  // The preceding hash change was programmatic. Establish the explicit row
+  // activation whose focus is expected to return after narrow inspection.
+  await row('partial').click();
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: path.join(work, 'inbox-partial-mobile.png') });
   await page.getByRole('button', { name: 'Back to captures', exact: true }).click();
   await search.waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Open capture Inbox fixture partial');
   assert.equal(await row('partial').evaluate(button => button === document.activeElement), true, 'Narrow Back returns focus to the row explicitly opened by the user');
   await row('partial').press('Enter');
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Back to captures');
   assert.equal(await page.getByRole('button', { name: 'Back to captures', exact: true }).evaluate(button => button === document.activeElement), true, 'Explicit narrow selection focuses Back');
   await page.getByRole('button', { name: 'Back to captures', exact: true }).click();
   await page.screenshot({ path: path.join(work, 'inbox-list-mobile.png') });

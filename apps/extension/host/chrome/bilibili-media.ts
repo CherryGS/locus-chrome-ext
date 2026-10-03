@@ -111,19 +111,30 @@ export async function remuxBilibili(video: Blob, audio: Blob | undefined, expect
 }
 
 export async function acquireBilibili(media: BilibiliMedia, signal: AbortSignal, lease: (url: string, role: 'cover' | 'track', cid: string) => Promise<() => Promise<void>>, onProgress?: (progress: FractionProgress) => void) {
-  // Video and audio receive equal weight within the output video. Actual byte
-  // fractions advance each track; remux/validation/retention still gate 100%.
-  const observe = (index: number, count: number): TransferObserver => value => onProgress?.({ fraction: value.totalBytes === null ? null : (index + Math.min(1, value.receivedBytes / value.totalBytes)) / count });
-  const get = async (input: string, role: 'cover' | 'track', progress: TransferObserver) => {
-    const url = bilibiliResource(input, role, role === 'track' ? media.sourceId : undefined); signal.throwIfAborted(); const release = await lease(url, role, media.sourceId);
-    try { signal.throwIfAborted(); return await boundedBody(await fetch(url, { credentials: 'omit', redirect: 'error', signal }), role === 'cover' ? 16 * 1048576 : LIMITS.inputBytes, progress); }
+  // Both concurrent tracks retain equal weight; an unknown active length keeps
+  // the video indeterminate. Remux/validation/retention still gate completion.
+  const trackFractions: (number | null)[] = media.kind === 'cover' || !media.tracks?.audio ? [null] : [null, null];
+  const observe = (index: number): TransferObserver => value => {
+    trackFractions[index] = value.totalBytes === null ? null : Math.min(1, value.receivedBytes / value.totalBytes);
+    onProgress?.({ fraction: trackFractions.some(value => value === null) ? null : trackFractions.reduce<number>((sum, value) => sum + value!, 0) / trackFractions.length });
+  };
+  const get = async (input: string, role: 'cover' | 'track', progress: TransferObserver, fetchSignal = signal) => {
+    const url = bilibiliResource(input, role, role === 'track' ? media.sourceId : undefined); fetchSignal.throwIfAborted(); const release = await lease(url, role, media.sourceId);
+    try { fetchSignal.throwIfAborted(); return await boundedBody(await fetch(url, { credentials: 'omit', redirect: 'error', signal: fetchSignal }), role === 'cover' ? 16 * 1048576 : LIMITS.inputBytes, progress); }
     catch (error) { throw diagnosticError('BILI_RESOURCE_FAILED', 'bilibili.resource.fetch', 'Bilibili resource acquisition failed', { assetId: media.id, kind: media.kind, sourceId: media.sourceId, resource: url, track: media.tracks?.video.url === url ? 'video' : media.tracks?.audio?.url === url ? 'audio' : 'cover', limitBytes: role === 'cover' ? 16 * 1048576 : LIMITS.inputBytes, aborted: signal.aborted }, error); }
     finally { await release(); }
   };
-  if (media.kind === 'cover') { if (!media.url) throw new Error('Cover source unavailable'); const response = await get(media.url, 'cover', observe(0, 1)),head=new Uint8Array(await response.slice(0,16).arrayBuffer());const ascii=(from:number,n:number)=>String.fromCharCode(...head.slice(from,from+n));const mime=head[0]===255&&head[1]===216?'image/jpeg':head[0]===137&&ascii(1,3)==='PNG'?'image/png':ascii(0,3)==='GIF'?'image/gif':ascii(0,4)==='RIFF'&&ascii(8,4)==='WEBP'?'image/webp':null;if(!mime)throw new Error('Cover bytes have an unsupported encoding');const blob=response.slice(0,response.size,mime);await validateMedia(blob, false); return blob; }
+  if (media.kind === 'cover') { if (!media.url) throw new Error('Cover source unavailable'); const response = await get(media.url, 'cover', observe(0)),head=new Uint8Array(await response.slice(0,16).arrayBuffer());const ascii=(from:number,n:number)=>String.fromCharCode(...head.slice(from,from+n));const mime=head[0]===255&&head[1]===216?'image/jpeg':head[0]===137&&ascii(1,3)==='PNG'?'image/png':ascii(0,3)==='GIF'?'image/gif':ascii(0,4)==='RIFF'&&ascii(8,4)==='WEBP'?'image/webp':null;if(!mime)throw new Error('Cover bytes have an unsupported encoding');const blob=response.slice(0,response.size,mime);await validateMedia(blob, false); return blob; }
   if (!media.tracks) throw new Error(media.reason ?? 'Complete video source unavailable');
-  const video = await get(media.tracks.video.url, 'track', observe(0, media.tracks.audio ? 2 : 1));
-  const audio = media.tracks.audio ? await get(media.tracks.audio.url, 'track', observe(1, 2)) : undefined;
+  const group = new AbortController(), fetchSignal = AbortSignal.any([signal, group.signal]);
+  const track = (url: string, index: number) => get(url, 'track', observe(index), fetchSignal).catch(error => { group.abort(error); throw error; });
+  const tracks = await Promise.allSettled([
+    track(media.tracks.video.url, 0),
+    media.tracks.audio ? track(media.tracks.audio.url, 1) : Promise.resolve(undefined),
+  ]);
+  // Drain both fetches and release both leases before leaving the assembly job.
+  if (group.signal.aborted) throw group.signal.reason;
+  const [video, audio] = tracks.map(result => { if (result.status === 'rejected') throw result.reason; return result.value; });
   onProgress?.({ fraction: 1 });
-  return remuxBilibili(video, audio, media.tracks.duration, signal, media.tracks);
+  return remuxBilibili(video!, audio, media.tracks.duration, signal, media.tracks);
 }

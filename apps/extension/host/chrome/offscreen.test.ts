@@ -9,7 +9,7 @@ import { projectBilibili } from '@locus/bilibili/projection';
 import { syntheticSnapshot } from '@/testing/result-fixture';
 
 const mocks = vi.hoisted(() => ({ acquire: vi.fn(), load: vi.fn(), coordinator: vi.fn(), archive: vi.fn(), acquireBili: vi.fn() }));
-vi.mock('./bilibili-media',()=>({acquireBilibili:mocks.acquireBili}));
+vi.mock('./bilibili-media',()=>({acquireBilibili:mocks.acquireBili,LIMITS:{outputBytes:160*1048576}}));
 vi.mock('./network', () => ({ acquireMedia: mocks.acquire, loadTwitter: mocks.load }));
 vi.mock('./protocol', async original => ({ ...await original<typeof import('./protocol')>(), coordinator: mocks.coordinator }));
 vi.mock('./archive', () => ({ createArchive: mocks.archive }));
@@ -41,17 +41,18 @@ describe('offscreen producer lifetime', () => {
     expect(await database.locusTransfers()).toEqual([]); await database.close();
   });
   it('publishes live byte progress without committing stream chunks', async () => {
-    let release!: (blob: Blob) => void;
-    let progress!: (value: { receivedBytes: number; totalBytes: number | null }) => void;
-    mocks.acquire.mockImplementationOnce((_media, _signal, observe) => { progress = observe;return new Promise<Blob>(resolve => { release = resolve; }); });
-    const accepted = await begin();await vi.waitFor(() => expect(progress).toBeTypeOf('function'));
+    const releases: ((blob: Blob) => void)[] = [];
+    const progress: ((value: { receivedBytes: number; totalBytes: number | null }) => void)[] = [];
+    mocks.acquire.mockImplementation((_media, _signal, observe) => { progress.push(observe);return new Promise<Blob>(resolve => { releases.push(resolve); }); });
+    const accepted = await begin();await vi.waitFor(() => expect(progress).toHaveLength(2));
     const commit = vi.spyOn(ResultDatabase.prototype, 'commit');
-    progress({ receivedBytes: 40, totalBytes: 100 });
+    progress[1]!({ receivedBytes: 0, totalBytes: 100 });
+    progress[0]!({ receivedBytes: 40, totalBytes: 100 });
     expect((await command('capture-tasks'))[0].progress.percent).toBe(20);
-    progress({ receivedBytes: 80, totalBytes: 100 });
+    progress[0]!({ receivedBytes: 80, totalBytes: 100 });
     expect((await command('status', { id: accepted.id })).progress.percent).toBe(40);
     expect(commit).not.toHaveBeenCalled();
-    release(new Blob(['media'], { type: 'image/jpeg' }));
+    for (const release of releases) release(new Blob(['media'], { type: 'image/jpeg' }));
     await vi.waitFor(async () => expect((await command('status', { id: accepted.id })).progress.percent).toBe(100));
   });
   it('interrupts only the withdrawn site and cannot retain late Bilibili bytes after rapid regrant',async()=>{

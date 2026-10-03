@@ -14,7 +14,7 @@ function stages(value: unknown): { state: string; reason?: string }[] {
 }
 
 export function newTransfer(resultId: string, revision: number): LocusTransfer {
-  return { resultId, revision, state: 'waiting', message: 'Waiting for complete capture before saving to Locus', uploads: [] };
+  return { resultId, revision, state: 'waiting', message: 'Waiting to save the complete capture to Locus', uploads: [] };
 }
 
 /** Persist intent before every mutation. Re-entry observes dispatched requests;

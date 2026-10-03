@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { verifyInboxUi } from './inbox-ui-smoke.mjs';
+import { dismissToasts, verifyInboxUi } from './inbox-ui-smoke.mjs';
 
 if (!process.env.LOCUS_CHROME_PATH) throw new Error('Set LOCUS_CHROME_PATH to Chrome for Testing');
 const work = await mkdtemp(path.join(tmpdir(), 'locus-inbox-ui-'));
@@ -40,8 +40,7 @@ try {
   assert.equal(await page.locator('[data-capture-state="failed"]').count(), 0);
   assert.equal(await page.locator('.capture-outcome-strip dd').filter({hasText:'Saved locally'}).locator('svg.lucide-inbox').count(), 1, 'Local retention stays neutral in the independent strip');
   assert.deepEqual(requests, [], 'The result page does not fetch remote content');
-  while (await page.getByRole('button', { name: 'Close toast', exact: true }).count()) await page.getByRole('button', { name: 'Close toast', exact: true }).last().click();
-  await page.waitForFunction(() => !document.querySelector('[data-slot="toast"]'));
+  await dismissToasts(page);
   await page.screenshot({path:path.join(work,'historical-configuration-staging.png'),animations:'disabled'});
   await page.getByRole('tab', {name:'Activity',exact:true}).click();
   await page.getByRole('button', {name:'Continue save',exact:true}).waitFor();
