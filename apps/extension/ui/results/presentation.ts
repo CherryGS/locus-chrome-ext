@@ -33,7 +33,9 @@ export function resultView(item: ResultSummary): Exclude<LibraryView, "all"> {
 export function resultHint(item: ResultSummary): string {
   if (item.unresolvedReason) return "Read problem · retry reads";
   if (item.retention.state === "failed")
-    return "Not retained · export available content";
+    return item.locus?.state === "complete"
+      ? "Saved to Locus · local copy not retained"
+      : "Local copy not retained · inspect available content";
   if (item.queuePosition !== undefined)
     return `Waiting · position ${item.queuePosition}`;
   if (["partial", "unavailable"].includes(item.acquisition))
@@ -42,7 +44,7 @@ export function resultHint(item: ResultSummary): string {
     return "Save unverified · check the original save";
   if (item.locus?.state === "failed") return "Save failed · review next steps";
   if (item.locus?.state === "configuration-required")
-    return "Staged locally · configure Locus, then continue";
+    return "Configure Locus to continue this save";
   if (resultView(item) === "saved")
     return "Confirmed in Locus · local copy retained";
   if (resultView(item) === "progress")

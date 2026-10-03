@@ -3,7 +3,7 @@ import { CaptureStagingBadge } from "@/ui/shared/CaptureStatusBadge";
 import type { CaptureState } from "@/ui/shared/capture-status";
 import { sourceName } from "./presentation";
 
-/** The list and inspector keep local staging beside the source, separate from delivery. */
+/** The inspector keeps local staging beside the source, separate from delivery. */
 export function CaptureSourceSummary({
   result,
   state,

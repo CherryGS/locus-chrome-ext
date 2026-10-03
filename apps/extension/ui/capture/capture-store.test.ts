@@ -64,13 +64,27 @@ describe("page capture queue observer", () => {
     expect(store.sourceResult("100")?.progress?.percent).toBe(70);
   });
 
-  it("suspends polling during an access outage and resumes with the existing draft", async () => {
+  it("exposes an initially empty queue without inspecting or capturing a source", async () => {
     vi.useFakeTimers();
-    request.mockImplementation((op: string) =>
-      Promise.resolve(op === "inspect" ? inspection("100") : []),
-    );
+    request.mockResolvedValue([]);
     const store = create();
-    store.select("https://x.com/synthetic/status/100");
+    expect(store.snapshot().visible).toBe(false);
+    store.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.snapshot()).toMatchObject({visible: true, expanded: false, tasks: []});
+    store.showQueue();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.snapshot().expanded).toBe(true);
+    expect(request.mock.calls.every(([op]) => op === "capture-tasks")).toBe(true);
+  });
+
+  it("suspends polling during an access outage and resumes with existing preparation", async () => {
+    vi.useFakeTimers();
+    request.mockImplementation((op: string) => op === "inspect"
+      ? Promise.resolve(inspection("100"))
+      : op === "capture" ? Promise.reject(new Error("Synthetic rejected submission")) : Promise.resolve([]));
+    const store = create();
+    await store.quickCapture("https://x.com/synthetic/status/100");
     store.start();
     await vi.advanceTimersByTimeAsync(0);
     const draft = store.snapshot().drafts["100"];
@@ -80,10 +94,7 @@ describe("page capture queue observer", () => {
     expect(request).not.toHaveBeenCalled();
     store.start();
     await vi.advanceTimersByTimeAsync(3000);
-    expect(request.mock.calls.map(([op]) => op)).toEqual([
-      "capture-tasks",
-      "capture-tasks",
-    ]);
+    expect(request.mock.calls.map(([op]) => op)).toEqual(["capture-tasks", "capture-tasks"]);
     expect(store.snapshot().drafts["100"]).toBe(draft);
   });
 
@@ -117,22 +128,15 @@ describe("page capture queue observer", () => {
             : new Promise(() => {}),
     );
     const store = create();
-    store.select(complete.sourceUrl);
-    await vi.waitFor(() =>
-      expect(store.snapshot().drafts["100"]?.inspection).toBeTruthy(),
-    );
-    store.choose("100", "media-0", false);
-    store.choose("100", "media-1", false);
     await store.quickCapture(complete.sourceUrl);
     expect(request.mock.calls.filter(([op]) => op === "inspect")).toHaveLength(
-      2,
+      1,
     );
     expect(request).toHaveBeenCalledWith("capture", {
       token: complete.token,
       selected: ["media-0", "media-1"],
     });
     expect(store.snapshot().expanded).toBe(false);
-    expect(store.snapshot().selected).toBeUndefined();
     expect(store.snapshot().tasks[0]?.summary.id).toBe("direct");
   });
 
@@ -182,28 +186,6 @@ describe("page capture queue observer", () => {
     expect(store.snapshot().expanded).toBe(false);
   });
 
-  it("adopts an in-flight optional inspection when the primary action is requested", async () => {
-    const source = deferred<Inspection>();
-    request.mockImplementation((op: string) =>
-      op === "inspect"
-        ? source.promise
-        : op === "capture"
-          ? Promise.resolve(result("adopted", "100"))
-          : op === "capture-tasks"
-            ? Promise.resolve([])
-            : new Promise(() => {}),
-    );
-    const store = create();
-    store.select("https://x.com/synthetic/status/100");
-    const starting = store.quickCapture("https://x.com/synthetic/status/100");
-    source.resolve(inspection("100"));
-    await starting;
-    expect(request.mock.calls.filter(([op]) => op === "inspect")).toHaveLength(
-      1,
-    );
-    expect(store.snapshot().tasks[0]?.summary.id).toBe("adopted");
-  });
-
   it("does not submit an unaccepted preparation after the page observer stops", async () => {
     const source = deferred<Inspection>();
     request.mockReturnValue(source.promise);
@@ -235,33 +217,17 @@ describe("page capture queue observer", () => {
     expect(store.snapshot().tasks[0]?.summary.id).toBe("running");
   });
 
-  it("keeps the second selection open when an earlier submission finishes", async () => {
+  it("keeps an explicitly opened task modal open when submission finishes", async () => {
     const accepted = deferred<ResultSummary>();
-    request.mockImplementation((op: string, values: { url?: string }) =>
-      op === "inspect"
-        ? Promise.resolve(inspection(values.url!.split("/").at(-1)!))
-        : op === "capture"
-          ? accepted.promise
-          : op === "capture-tasks"
-            ? Promise.resolve([])
-            : new Promise(() => {}),
-    );
+    request.mockImplementation((op: string) => op === "inspect" ? Promise.resolve(inspection("100"))
+      : op === "capture" ? accepted.promise : op === "capture-tasks" ? Promise.resolve([]) : new Promise(() => {}));
     const store = create();
-    store.select("https://x.com/synthetic/status/100");
-    await vi.waitFor(() =>
-      expect(store.snapshot().drafts["100"]?.inspection).toBeTruthy(),
-    );
-    const adding = store.enqueue("100");
-    store.select("https://x.com/synthetic/status/101");
+    const adding = store.quickCapture("https://x.com/synthetic/status/100");
+    await vi.waitFor(() => expect(request).toHaveBeenCalledWith("capture", {token: "token-100", selected: []}));
+    store.showQueue();
     accepted.resolve(result("a", "100"));
     await adding;
-    expect(store.snapshot().selected).toBe("101");
     expect(store.snapshot().expanded).toBe(true);
-    expect(store.snapshot().tasks[0]?.summary.id).toBe("a");
-    await vi.waitFor(() =>
-      expect(store.snapshot().drafts["101"]?.inspection).toBeTruthy(),
-    );
-    store.select("https://x.com/synthetic/status/100");
     expect(store.snapshot().tasks[0]?.summary.id).toBe("a");
   });
 
@@ -278,11 +244,7 @@ describe("page capture queue observer", () => {
     );
     const store = create();
     const refreshing = store.refresh();
-    store.select("https://x.com/synthetic/status/100");
-    await vi.waitFor(() =>
-      expect(store.snapshot().drafts["100"]?.inspection).toBeTruthy(),
-    );
-    await store.enqueue("100");
+    await store.quickCapture("https://x.com/synthetic/status/100");
     current.resolve([result("b", "100", 1)]);
     await refreshing;
     expect(store.snapshot().tasks[0]?.summary.queuePosition).toBeUndefined();
@@ -290,7 +252,7 @@ describe("page capture queue observer", () => {
   });
 
   it("scopes a late null response to its own task after a newer task is accepted", async () => {
-    const old = result("old", "100");
+    const old = {...result("old", "100"), acquisition: "complete"};
     const latest = result("new", "100");
     const held = deferred<ResultSummary | null>();
     let tasks = [old];
@@ -312,11 +274,7 @@ describe("page capture queue observer", () => {
     await vi.waitFor(() =>
       expect(request).toHaveBeenCalledWith("status", { id: "old" }),
     );
-    store.select(old.sourceUrl);
-    await vi.waitFor(() =>
-      expect(store.snapshot().drafts["100"]?.inspection).toBeTruthy(),
-    );
-    await store.enqueue("100");
+    await store.quickCapture(old.sourceUrl);
     held.resolve(null);
     await refreshing;
     expect(store.snapshot().tasks.map((task) => task.summary.id)).toEqual([

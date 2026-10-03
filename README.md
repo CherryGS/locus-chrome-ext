@@ -8,7 +8,7 @@ inspection and ZIP export.
 
 | Site | Entry point | Captured content |
 | --- | --- | --- |
-| Twitter / X | Capture icon in a post's action row | Post text and directly attached images, videos or animations. Shift-click or Shift+Enter opens media selection, including text-only capture. |
+| Twitter / X | Capture icon in a post's action row | Post text and all directly attached images, videos or animations. One activation captures the full post scope; a post without attachments captures its text and metadata. |
 | Bilibili | Ordinary video pages and video cards on the homepage, favorites, search and other supported listings | The selected video part, parent metadata and cover. A card without a part number selects P1. Video and audio are assembled without re-encoding; verified silent videos are supported. |
 
 Capture starts only through an explicit user action. Unsupported source layouts,

@@ -23,3 +23,16 @@ the fix, stacking notifications of unequal heights produced the same
 `ResizeObserver loop completed with undelivered notifications.` error as the user
 report. Content must retain its natural height rather than inherit the stack's
 animated height. Actual extension reload remains a separate manual check.
+
+## Initial queue and full-scope capture
+
+Open http://127.0.0.1:5179/queue-startup.html. The production CaptureStore starts
+against an intercepted, disposable host and exposes the launcher before a capture.
+Open its empty queue and close it; synthetic capture and inspection counts must
+remain zero. A trusted activation of Capture all (synthetic) submits both media
+IDs through the production pipeline with no picker. Modifier activation behaves
+identically. The queue must stay collapsed unless explicitly opened; Escape
+returns focus to the launcher. The source surface uses an open shadow root.
+
+No real acquisition, persistence, permissions or Locus requests occur. Actual
+source-page startup and full-scope capture require manual extension verification.

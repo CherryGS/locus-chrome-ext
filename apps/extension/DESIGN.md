@@ -285,7 +285,7 @@ A mineral-blue rail provides Inbox, In progress, Saved and All captures, counts 
 
 ### Capture Rows / Containers
 
-Flat summaries present source/time, label, relevant outcomes and a short reason. Selected rows use both fill and stroke plus `aria-pressed`; hover uses muted blue. File containers use raised-blue fill and restrained outline. The inspector orders source/actions, heading, independent outcomes, persistent recovery, then Preview / Metadata / Activity. Technical diagnostics remain expandable.
+Flat summaries present source/time, label, and one status sentence with its functional icon and semantic tone. The list omits separate staging/outcome badges that repeat the sentence; detailed independent outcomes remain in the inspector. A confirmed Locus save with failed local retention explicitly keeps both facts in the summary. Selected rows use both fill and stroke plus `aria-pressed`; hover uses muted blue. File containers use raised-blue fill and restrained outline. The inspector orders source/actions, heading, independent outcomes, persistent recovery, then Preview / Metadata / Activity. Technical diagnostics remain expandable.
 
 ### Status and Parallel Outcomes
 
@@ -300,6 +300,8 @@ Persistent recovery sits beside content before tabs. When read failure leaves an
 The source-page queue opens through explicit launcher activation; closing it keeps accepted tasks running. Its (48px) circular launcher uses secondary fill and the existing floating shadow. The queue dialog uses (16px) padding, flat rows with (16px) vertical insets, shared outcome badges, reasons and secondary diagnostics. Task actions include supported retry preparation, opening the result and Refresh status. This production queue does not render the sample's static percentage/progress example.
 
 Source controls share functional capture/status vectors and semantic tones. Native Bilibili controls remain scoped to host slots with existing host geometry and literal dark cover fallbacks. Fixture glyph captures exercise the real vector component; native Twitter/Bilibili DOM mounting remains unverified.
+
+Source activation captures the whole default scope without a media-picker step, including modified clicks. Twitter includes text and every direct attachment; Bilibili retains current-part scope. The queue launcher becomes visible after authorized source startup even when no tasks exist, remains collapsed, and explicitly opens an empty queue. Opening or showing it does not inspect a source or start capture. Queue records expose one result destination: `Open in Inbox` for Locus recovery/setup, or the existing named result icon for other tasks.
 
 ## Do's and Don'ts
 

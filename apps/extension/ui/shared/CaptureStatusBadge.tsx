@@ -26,7 +26,7 @@ const icons = {
   unknown: CircleHelpIcon,
 };
 
-function CaptureStatusIcon({ state }: { state: CaptureState }) {
+export function CaptureStatusIcon({ state }: { state: CaptureState }) {
   const Icon = icons[state];
   const pending =
     state === "checking" || state === "importing" || state === "saving";

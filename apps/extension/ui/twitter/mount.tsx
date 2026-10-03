@@ -1,7 +1,6 @@
 import { createSourceStatusLookup } from "@/ui/capture/source-status-lookup";
 import { createRoot } from "react-dom/client";
 import { CaptureQueuePanel } from "@/ui/capture/CaptureQueuePanel";
-import { CaptureSelection } from "./CaptureSelection";
 import { CaptureStore } from "@/ui/capture/capture-store";
 import {
   createCaptureAction,
@@ -52,9 +51,6 @@ export function mountTwitterControls() {
     <CaptureQueuePanel
       store={store}
       portalContainer={container}
-      renderSelection={(draft) => (
-        <CaptureSelection draft={draft} store={store} />
-      )}
     />,
   );
   let enabled = true;
@@ -108,15 +104,13 @@ export function mountTwitterControls() {
           ? `File size unknown; ${progress.completedFiles} of ${progress.totalFiles} files processed.`
           : `${progress.percent}% of selected files acquired. Locus saving follows complete acquisition.`
         : "";
-    const label = `Locus capture. ${captureStates[state].label}. ${progressMessage} ${message} Click to capture all direct media or view an active task; Shift-click to choose media.`;
+    const label = `Locus capture. ${captureStates[state].label}. ${progressMessage} ${message} Click to capture this post and all direct media, or view an active task.`;
     mounted.action.button.setAttribute("aria-label", label);
     mounted.action.button.title = label;
     mounted.action.button.setAttribute(
       "aria-expanded",
       String(
-        store.snapshot().expanded &&
-          (!store.snapshot().selected ||
-            store.snapshot().selected === postUrl(mounted.url).id),
+        store.snapshot().expanded,
       ),
     );
     if (mounted.action.status.textContent !== message)
@@ -167,8 +161,7 @@ export function mountTwitterControls() {
       mounted.url = current.url;
       attach(mounted, current);
       if (changed) lookup.schedule();
-      if (event.shiftKey) store.select(current.url);
-      else void store.quickCapture(current.url);
+      void store.quickCapture(current.url);
     });
     action.button.addEventListener("keydown", (event) => {
       if (event.repeat && (event.key === "Enter" || event.key === " "))

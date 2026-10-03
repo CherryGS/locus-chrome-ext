@@ -55,16 +55,18 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   assert.equal(await row('legacy').count(), 1);
   assert.equal(await row('retention').count(), 1);
   assert.equal(await page.getByRole('button', {name:'Inbox',exact:true}).locator('svg.lucide-inbox').count(), 1, 'Inbox is a destination, not an error indicator');
-  assert.equal(await row('legacy').getByText('Staged locally', {exact:true}).count(), 1);
+  assert.equal(await row('legacy').getByText('Locally staged · available for export', {exact:true}).count(), 1);
+  assert.equal(await row('legacy').locator('[data-slot="badge"]').count(), 0, 'List status is expressed once rather than duplicated as badges');
   assert.equal(await row('legacy').locator('svg.lucide-inbox').count(), 1);
   assert.equal(await row('legacy').locator('[data-capture-state="failed"]').count(), 0);
   assert.equal(await row('failed').locator('[data-capture-state="failed"]').count(), 1);
-  assert.equal(await row('failed').locator('[data-capture-retention="staged"] svg.lucide-inbox').count(), 1, 'A failed save can coexist with retained local content');
+  assert.equal(await row('failed').locator('[data-capture-state]').count(), 1, 'A failed save has one concise status summary');
   assert.equal(await row('retention').locator('[data-capture-retention="staged"]').count(), 0, 'Retention failure must not claim staging succeeded');
   assert.equal(await page.locator('[data-slot="toast"]').count(), 0, 'No historical toast flood');
   assert.equal(await page.evaluate(() => __inbox.calls.filter(call => call.operation === 'read').length), 0, 'List must not read blobs');
 
   await inspect('failed');
+  assert.equal(await page.locator('.capture-inspector [data-capture-retention="staged"] svg.lucide-inbox').count(), 1, 'Detailed local retention remains independently available beside a failed save');
   await page.getByRole('button', { name: 'Check and continue save', exact: true }).waitFor();
   await page.screenshot({ path: path.join(work, 'inbox-staging-and-error.png') });
   assert.equal(await page.locator('.capture-outcome-strip dt').allTextContents().then(labels => labels.join('|')), 'Capture|Local copy|Locus save');

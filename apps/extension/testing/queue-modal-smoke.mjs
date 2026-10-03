@@ -64,7 +64,7 @@ export async function verifyQueueModal({ page, until, work, label, update }) {
   assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'auto');
   await pressQueueButton(page, dialog.getByRole('button', { name: 'Minimize capture queue', exact: true }));
   await pressQueueButton(page, dialog.getByRole('button', { name: 'Open in Inbox', exact: true }));
-  await pressQueueButton(page, dialog.getByRole('button', { name: 'Open result', exact: true }));
+  assert.equal(await dialog.getByRole('button', { name: 'Open result', exact: true }).count(), 0, 'Inbox recovery uses one destination control');
   const refresh = dialog.getByRole('button', { name: 'Refresh status', exact: true });
   await refresh.evaluate(button => { button.addEventListener('click', () => { button.dataset.pressClicks = String(Number(button.dataset.pressClicks ?? 0) + 1); }); });
   await pressQueueButton(page, refresh, true);

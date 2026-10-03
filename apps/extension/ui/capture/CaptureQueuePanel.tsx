@@ -1,6 +1,5 @@
-import { useId, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useSyncExternalStore } from "react";
 import {
-  ChevronDownIcon,
   ExternalLinkIcon,
   ListOrderedIcon,
   LoaderCircleIcon,
@@ -18,15 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useQueuePosition } from "./useQueuePosition";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import {
   Empty,
   EmptyHeader,
@@ -69,7 +59,7 @@ function QueueTasks({
           <EmptyTitle>Your queue is empty</EmptyTitle>
           <EmptyDescription>
             Use the source page capture action to import the selected content
-            and files. Twitter also supports Shift-click media selection.
+            and all associated files.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -233,7 +223,7 @@ function QueueTasks({
           <ItemActions className="self-end sm:self-center">
             {(task.summary.locus?.state === "failed" ||
               task.summary.locus?.state === "unverified" ||
-              task.summary.locus?.state === "configuration-required") && (
+              task.summary.locus?.state === "configuration-required") ? (
               <Button
                 size="sm"
                 variant="outline"
@@ -242,21 +232,23 @@ function QueueTasks({
                     void store.openResult(task.summary.id);
                 }}
               >
+                <ExternalLinkIcon data-icon="inline-start" />
                 Open in Inbox
               </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Open result"
+                title={`Open result for ${task.summary.label}`}
+                onClick={(event) => {
+                  if (event.nativeEvent.isTrusted)
+                    void store.openResult(task.summary.id);
+                }}
+              >
+                <ExternalLinkIcon />
+              </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Open result"
-              title={`Open result for ${task.summary.label}`}
-              onClick={(event) => {
-                if (event.nativeEvent.isTrusted)
-                  void store.openResult(task.summary.id);
-              }}
-            >
-              <ExternalLinkIcon />
-            </Button>
           </ItemActions>
         </Item>
       ))}
@@ -267,22 +259,17 @@ function QueueTasks({
 export function CaptureQueuePanel({
   store,
   portalContainer,
-  renderSelection,
 }: {
   store: CaptureStore;
   portalContainer: HTMLElement;
-  renderSelection?: (draft: CaptureDraft) => ReactNode;
 }) {
   const view = useSyncExternalStore(store.subscribe, store.snapshot);
   const launcher = useQueuePosition(view.visible);
   const dialogId = useId();
   const statusId = useId();
   if (!view.visible) return null;
-  const draft =
-    view.expanded && view.selected ? view.drafts[view.selected] : undefined;
-  const existing = draft && store.sourceResult(draft.sourceId);
   const preparations = Object.values(view.drafts).filter(
-    (item) => item.autoStart && (item.busy || item.error),
+    (item) => item.busy || item.error,
   );
   const preparing = preparations.filter((item) => item.busy).length;
   const states = view.tasks.map((task) =>
@@ -309,7 +296,7 @@ export function CaptureQueuePanel({
             ? `${saved} saved`
             : "Ready to capture";
   const count = view.tasks.length + preparations.length;
-  const open = view.expanded && !draft;
+  const open = view.expanded;
   return (
     <>
       <Button
@@ -440,96 +427,6 @@ export function CaptureQueuePanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {draft && (
-        <aside
-          aria-label="Locus capture selection"
-          className="pointer-events-auto fixed bottom-4 right-4 w-[23rem] max-w-[calc(100vw-2rem)]"
-        >
-          <Card
-            size="sm"
-            className="flex max-h-[min(75dvh,42rem)] flex-col gap-0 overflow-hidden pb-0"
-          >
-            <CardHeader className="shrink-0 pb-3">
-              <CardTitle>Add capture</CardTitle>
-              <CardDescription>
-                Select a scope, then keep browsing.
-              </CardDescription>
-              <CardAction>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label="Minimize capture queue"
-                  onClick={(event) => {
-                    if (event.nativeEvent.isTrusted) store.minimize();
-                  }}
-                >
-                  <ChevronDownIcon />
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent
-              data-locus-scroll
-              className="min-h-0 overflow-y-auto overscroll-contain pb-4"
-            >
-              {renderSelection?.(draft)}
-            </CardContent>
-            <CardFooter className="shrink-0 flex-wrap justify-between gap-2 border-t py-3">
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(event) => {
-                    if (event.nativeEvent.isTrusted) store.showQueue();
-                  }}
-                >
-                  View queue ({view.tasks.length})
-                </Button>
-                {existing && (
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    aria-label="Open result"
-                    title="Open the existing result for this source"
-                    onClick={(event) => {
-                      if (event.nativeEvent.isTrusted)
-                        void store.openResult(existing.id);
-                    }}
-                  >
-                    <ExternalLinkIcon />
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!!draft.busy}
-                  onClick={(event) => {
-                    if (event.nativeEvent.isTrusted)
-                      void store.inspect(draft.sourceId);
-                  }}
-                >
-                  Inspect again
-                </Button>
-                {draft.inspection && (
-                  <Button
-                    size="sm"
-                    disabled={!!draft.busy}
-                    onClick={(event) => {
-                      if (event.nativeEvent.isTrusted)
-                        void store.enqueue(draft.sourceId);
-                    }}
-                  >
-                    {draft.busy === "enqueue"
-                      ? "Adding…"
-                      : `Add to queue · ${draft.selected.length} media`}
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
-          </Card>
-        </aside>
-      )}
     </>
   );
 }

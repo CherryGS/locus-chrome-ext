@@ -120,19 +120,23 @@ async function results(id='', slowRead=false) {
   });
   await page.goto(`chrome-extension://${extensionId}/results.html${id?'#'+id:''}`);return page;
 }
-async function capture(id, textOnly=false) {
+async function capture(id) {
   const page=await context.newPage();await page.goto(`https://x.com/synthetic/status/${id}`);const action=page.locator('[data-locus-action] button');await action.waitFor();
   const geometry=await page.evaluate(()=>{const row=document.querySelector('.fixture-row'),slot=row.querySelector('[data-locus-action]'),button=slot.querySelector('button'),reply=row.querySelector('[aria-label="Reply"]');return {count:row.querySelectorAll('[data-locus-action]').length,afterBookmark:slot.previousElementSibling===row.querySelector('[aria-label="Bookmark"]'),beforeShare:slot.nextElementSibling===row.querySelector('[aria-label="Share"]'),rowHeight:row.getBoundingClientRect().height,articleHeight:document.querySelector('article').getBoundingClientRect().height,baseline:window.fixtureArticleHeight,buttonClasses:button.className,replyClasses:reply.className,iconSize:button.querySelector('svg').getBoundingClientRect().width,nativeIconSize:reply.querySelector('svg').getBoundingClientRect().width};});
   assert.equal(geometry.count,1);assert.equal(geometry.afterBookmark,true);assert.equal(geometry.beforeShare,true);assert.equal(geometry.rowHeight,20);assert.equal(geometry.articleHeight,geometry.baseline);assert.equal(geometry.buttonClasses,geometry.replyClasses);assert.equal(geometry.iconSize,geometry.nativeIconSize);
   if(id==='100'){await page.evaluate(()=>{const quote=document.createElement('article');quote.dataset.fixtureQuote='true';quote.innerHTML='<button data-testid="reply">Nested quoted reply</button>';document.querySelector('article').prepend(quote);});await pause(200);assert.equal(await page.locator('[data-locus-action]').count(),1);await page.locator('[data-fixture-quote]').evaluate(quote=>quote.remove());}
   if(id==='101'){await page.locator('article').screenshot({path:path.join(work,'capture-collapsed-wide.png')});await page.setViewportSize({width:390,height:844});await page.locator('article').screenshot({path:path.join(work,'capture-collapsed-narrow.png')});await page.setViewportSize({width:1280,height:900});}
-  await action.evaluate(button=>button.click());await pause(100);assert.equal(await page.getByRole('button',{name:'Add to queue',exact:false}).count(),0,'Script cannot inspect a source');
-  await action.focus();await page.keyboard.press('Shift+Enter');const start=page.getByRole('button',{name:/^Add to queue · /});await start.waitFor();assert.equal(await action.evaluate(button=>document.activeElement===button),true,'Inspection must not move focus into the panel');assert.equal(await page.getByRole('dialog').count(),0);
-  if(id==='101'){await page.screenshot({path:path.join(work,'capture-expanded-wide.png')});await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(work,'capture-expanded-narrow.png')});await page.setViewportSize({width:1280,height:900});}
-  const first=page.getByRole('checkbox').first();if(await first.count()){await first.evaluate(checkbox=>checkbox.click());assert.equal(await first.isChecked(),true);await first.focus();await page.keyboard.press('Space');await until(()=>first.isChecked(),value=>!value,'trusted keyboard selection');await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();await action.click({modifiers:["Shift"]});assert.equal(await first.isChecked(),false,'Draft choice survives minimization');await first.click();}
-  if(textOnly)for(const checkbox of await page.getByRole('checkbox').all())await checkbox.uncheck();
-  await start.evaluate(button=>button.click());await pause(100);assert.equal(await page.locator('[data-task-id]').count(),0,'Script cannot enqueue');const tabs=context.pages().length;await start.click();await page.getByRole('button',{name:'Expand capture queue',exact:true}).waitFor();assert.equal(context.pages().length,tabs);await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();const task=page.locator('[data-task-id]').filter({hasText:'@synthetic · '+id});await task.waitFor();
-  await task.getByRole('button',{name:'Open result',exact:true}).evaluate(button=>button.click());await pause(100);assert.equal(context.pages().length,tabs,'Script cannot navigate to results');
+  await action.evaluate(button=>button.click());await pause(100);assert.equal(await action.getAttribute('data-locus-state'),'uncaptured','Script cannot initiate capture');
+  const tabs=context.pages().length;
+  await action.focus();await page.keyboard.press('Shift+Enter');
+  await until(()=>action.getAttribute('data-locus-state'),state=>state!=='uncaptured' && state!=='checking','Trusted modified activation starts full-scope capture');
+  assert.equal(await action.evaluate(button=>document.activeElement===button),true,'Starting capture preserves source focus');
+  assert.equal(await page.getByRole('checkbox').count(),0,'There is no media-picker step');
+  assert.equal(await page.getByRole('dialog').count(),0);
+  assert.equal(context.pages().length,tabs);
+  await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();
+  const task=page.locator('[data-task-id]').filter({hasText:'@synthetic · '+id});await task.waitFor();
+  await task.locator('[data-slot="item-actions"] button').evaluate(button=>button.click());await pause(100);assert.equal(context.pages().length,tabs,'Script cannot navigate to results');
   await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();await page.evaluate(()=>{const row=document.querySelector('.fixture-row'),replacement=row.cloneNode(true);replacement.querySelector('[data-locus-action]')?.remove();row.replaceWith(replacement);});await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'single row action after replacement');
   await page.evaluate(()=>{const article=document.querySelector('article'),replacement=article.cloneNode(true);replacement.querySelector('[data-locus-action]')?.remove();article.replaceWith(replacement);window.installFixtureArticle(replacement);});await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'single article action after replacement');await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();await task.waitFor();assert.equal(await page.evaluate(()=>window.fixtureNavigations),0);
   if(id==='100'){await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/199';});await pause(200);await until(()=>action.getAttribute('data-locus-state'),state=>state==='uncaptured','changed source has independent state');await task.waitFor();await page.locator('[aria-label="Reply"]').evaluate(link=>{link.href='/synthetic/status/100';});await until(()=>action.getAttribute('data-locus-state'),state=>state==='saved','restored exact-source missing-connection state');}
@@ -156,26 +160,36 @@ async function verifyLoggedInAction() {
   await writeFile(path.join(work,'logged-in-presentation.json'),JSON.stringify(presentation,null,2));
   await page.locator('article').screenshot({path:path.join(work,'logged-in-collapsed-wide.png')});await page.setViewportSize({width:390,height:844});await page.locator('article').screenshot({path:path.join(work,'logged-in-collapsed-narrow.png')});await page.setViewportSize({width:1280,height:900});
   await action.evaluate(button=>button.click());assert.equal(await action.getAttribute('aria-expanded'),'false');
-  await action.focus();await page.keyboard.press('Shift+Enter');await page.getByRole('button',{name:'Add to queue · 2 media',exact:true}).waitFor();
-  assert.equal(await page.locator('[data-locus-capture]').evaluate(host=>host.shadowRoot.textContent.includes('@synthetic · 103')),true,'Own timestamp and analytics bind inspection despite earlier quoted timestamp');
-  const checkbox=page.getByRole('checkbox').first();await checkbox.click();await page.getByRole('button',{name:'Add to queue · 1 media',exact:true}).waitFor();await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();
+  await action.focus();await page.keyboard.press('Shift+Enter');
+  await page.getByRole('button',{name:'Expand capture queue',exact:true}).click();
+  await page.locator('[data-task-id]').filter({hasText:'@synthetic · 103'}).waitFor();
+  assert.equal(await page.getByRole('checkbox').count(),0,'Modified activation does not open media picking');
+  await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();
   await page.evaluate(()=>{const row=document.querySelector('[role="group"]');const next=row.cloneNode(true);next.querySelector('[data-locus-action]').remove();next.querySelector('[data-testid="like"]').setAttribute('data-testid','unlike');row.replaceWith(next);});
-  await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'RNW unlike row replacement');await action.click({modifiers:["Shift"]});await page.getByRole('button',{name:'Add to queue · 1 media',exact:true}).waitFor();assert.equal(await checkbox.isChecked(),false);
+  await until(()=>page.locator('[data-locus-action]').count(),count=>count===1,'RNW unlike row replacement');assert.equal(await action.count(),1);
   await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();
   await page.evaluate(()=>{document.querySelector('a[href$="/103/analytics"]').href='/different/status/999/analytics';});await until(()=>page.locator('[data-locus-action]').count(),count=>count===0,'contradictory own analytics must not bind quoted subject');
-  await page.evaluate(()=>{document.querySelector('a[href$="/999/analytics"]').href='/synthetic/status/103/analytics';});await action.waitFor();await action.click({modifiers:["Shift"]});await page.getByRole('button',{name:'Add to queue · 1 media',exact:true}).waitFor();
+  await page.evaluate(()=>{document.querySelector('a[href$="/999/analytics"]').href='/synthetic/status/103/analytics';});await action.waitFor();assert.equal(await action.count(),1);
   assert.equal(await page.evaluate(()=>window.fixtureNavigations),0);await page.close();
-  checks.push('Logged-in RNW action row: localized labels, quoted-link exclusion, neutral 18.75px icon with independent hover, unlike/rerender selection preservation, conflicting analytics rejection, and trusted keyboard opening');
+  checks.push('Logged-in RNW action row: localized labels, quoted-link exclusion, neutral 18.75px icon with independent hover, unlike/rerender source binding, conflicting analytics rejection, and trusted keyboard opening');
 }
-async function verifyFloatingPanel() {
-  const page=await context.newPage();await page.setViewportSize({width:1280,height:900});await page.goto('https://x.com/synthetic/status/104');const action=page.locator('[data-locus-action] button');await action.waitFor();
-  await page.evaluate(()=>{const outside=document.createElement('div');outside.style.cssText='padding:20px;min-height:1700px';outside.innerHTML='<label>Outside note <input aria-label="Outside note"></label> <a href="#outside" id="outside-link">Outside link</a>';document.body.append(outside);window.outsideClicks=0;outside.querySelector('a').onclick=()=>{window.outsideClicks++};window.escapeCount=0;document.addEventListener('keydown',event=>{if(event.key==='Escape')window.escapeCount++});});
-  await action.focus();await page.keyboard.press('Shift+Enter');await page.getByRole('button',{name:'Add to queue · 12 media',exact:true}).waitFor();assert.equal(await action.evaluate(button=>document.activeElement===button),true);assert.equal(await page.getByRole('dialog').count(),0);await page.getByText('Message preview',{exact:true}).click();
-  const geometry=async()=>page.evaluate(()=>{const host=document.querySelector('[data-locus-capture]'),panel=host.shadowRoot.querySelector('aside'),body=host.shadowRoot.querySelector('[data-locus-scroll]'),rect=panel.getBoundingClientRect();return {articleHeight:document.querySelector('article').getBoundingClientRect().height,baseline:window.fixtureArticleHeight,scrolls:body.scrollHeight>body.clientHeight,withinViewport:rect.top>=0&&rect.bottom<=innerHeight&&rect.left>=0&&rect.right<=innerWidth,dark:getComputedStyle(panel).colorScheme,inert:document.querySelectorAll('[inert]').length,locked:['hidden','clip'].includes(getComputedStyle(document.body).overflowY)};});
-  let measured=await geometry();assert.equal(measured.articleHeight,measured.baseline);assert.equal(measured.scrolls,true);assert.equal(measured.withinViewport,true);assert.equal(measured.dark,'dark');assert.equal(measured.inert,0);assert.equal(measured.locked,false);await page.screenshot({path:path.join(work,'capture-long-wide.png')});
-  await page.getByRole('textbox',{name:'Outside note'}).fill('Browsing continues');await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>window.escapeCount),1);assert.equal(await page.getByRole('button',{name:'Minimize capture queue',exact:true}).isVisible(),true);await page.locator('#outside-link').click();assert.equal(await page.evaluate(()=>window.outsideClicks),1);await page.mouse.move(40,500);await page.mouse.wheel(0,450);await until(()=>page.evaluate(()=>scrollY),value=>value>0,'page scroll while panel is open');await page.evaluate(()=>scrollTo(0,0));
-  await page.setViewportSize({width:390,height:844});measured=await geometry();assert.equal(measured.withinViewport,true);assert.equal(measured.scrolls,true);await page.screenshot({path:path.join(work,'capture-long-narrow.png')});await page.locator('[data-locus-scroll]').evaluate(body=>{body.scrollTop=body.scrollHeight;});await page.getByRole('checkbox').last().click();await page.getByRole('button',{name:'Add to queue · 11 media',exact:true}).waitFor();
-  await page.getByRole('button',{name:'Minimize capture queue',exact:true}).click();await action.click({modifiers:["Shift"]});await page.getByRole('button',{name:'Add to queue · 11 media',exact:true}).waitFor();assert.equal(await page.getByRole('checkbox').last().isChecked(),false);await page.close();checks.push('Nonmodal dark panel: long text/12 choices scroll inside viewport bounds, unchanged article height, outside typing/link/scroll/Escape remain usable, no automatic focus/inert/lock, and draft selection survives minimization');
+async function verifyFloatingQueue() {
+  const page=await context.newPage();await page.setViewportSize({width:1280,height:900});await page.goto('https://x.com/synthetic/status/104');
+  const launcher=page.getByRole('button',{name:'Expand capture queue',exact:true});await launcher.waitFor();
+  assert.equal(await launcher.getAttribute('aria-expanded'),'false','Queue entry is available without initiating this source');
+  assert.equal(await page.getByRole('checkbox').count(),0);
+  await page.evaluate(()=>{const outside=document.createElement('div');outside.style.cssText='padding:20px;min-height:1700px';outside.innerHTML='<label>Outside note <input aria-label="Outside note"></label> <a href="#outside" id="outside-link">Outside link</a>';document.body.append(outside);});
+  await page.getByRole('textbox',{name:'Outside note'}).fill('Browsing continues');
+  assert.equal(await page.getByRole('dialog').count(),0,'Background work does not open task inspection');
+  assert.equal(await page.evaluate(()=>document.querySelector('article').getBoundingClientRect().height),await page.evaluate(()=>window.fixtureArticleHeight));
+  await launcher.click();const dialog=page.getByRole('dialog');await dialog.waitFor();
+  await page.setViewportSize({width:390,height:844});
+  const rect=await dialog.boundingBox();assert(rect.x>=0 && rect.y>=0 && rect.x+rect.width<=390 && rect.y+rect.height<=844);
+  await page.screenshot({path:path.join(work,'capture-queue-narrow.png')});
+  await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+  await until(()=>launcher.evaluate(button=>button.getRootNode().activeElement===button),Boolean,'Explicit queue close restores launcher focus');
+  await page.getByRole('textbox',{name:'Outside note'}).fill('Still browsing');await page.locator('#outside-link').click();
+  await page.close();checks.push('Queue entry is available before source capture; browsing stays usable, task inspection is explicit, narrow modal bounds and focus return remain valid, and no media picker exists');
 }
 async function databaseRows(page,store) {return page.evaluate(async store=>{const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('locus-results-v1');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});try{return await new Promise((resolve,reject)=>{const request=db.transaction(store).objectStore(store).getAll();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}finally{db.close();}},store);}
 async function verifyRestoredVideo(page) {
@@ -238,12 +252,12 @@ try {
   await verifyLoggedInAction();
   await verifyFocalActions({context,until,checks,work,loggedInFixture});
   await verifyShareActions({context,until,checks,loggedInFixture});
-  await verifyFloatingPanel();
+  await verifyFloatingQueue();
   let source=await capture('100');
-  let rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.length===1,'text-only retention');
-  const textId=rows[0].id; assert.equal(rows[0].assets.length,0); assert.equal(rows[0].records[0].payload.fullText,'Synthetic post 100\nFull message');
-  await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','missing-connection status restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.locator('[data-locus-action] button').click({modifiers:['Shift']});
-  await source.getByRole('button',{name:'Open result'}).click();
+  let rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.some(row=>row.sourceUrl.endsWith('/100')),'text-only retention');
+  const textRow=rows.find(row=>row.sourceUrl.endsWith('/100'));const textId=textRow.id; assert.equal(textRow.assets.length,0); assert.equal(textRow.records[0].payload.fullText,'Synthetic post 100\nFull message');
+  await source.reload();await until(()=>source.locator('[data-locus-action] button').getAttribute('data-locus-state'),value=>value==='saved','missing-connection status restored after reload');assert.equal(await source.getByRole('dialog').count(),0);await source.locator('article').screenshot({path:path.join(work,'capture-state-saved.png')});await source.getByRole('button',{name:'Expand capture queue',exact:true}).click();
+  await source.locator('[data-task-id="'+textId+'"] [data-slot="item-actions"] button').click();
   resultPage=await until(async()=>context.pages().find(page=>page.url()===`chrome-extension://${extensionId}/results.html#${textId}`),Boolean,'explicit result opens in an existing or new tab');
   await resultPage.waitForLoadState();
   checks.push('Actual article control + initial-source loader + text-only capture; script clicks rejected, trusted keyboard start and explicit result opening work');
@@ -251,8 +265,8 @@ try {
   await source.close();
 
   source=await capture('101');
-  rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.some(r=>r.assets.length===2),'accepted media capture');
-  const mediaId=rows.find(r=>r.assets.length===2).id;
+  rows=await until(()=>databaseRows(resultPage,'results'),rows=>rows.some(r=>r.sourceUrl.endsWith('/101') && r.assets.length===2),'accepted media capture');
+  const mediaId=rows.find(r=>r.sourceUrl.endsWith('/101') && r.assets.length===2).id;
   await source.close();await resultPage.close();
   const observer=await context.newPage(); await observer.goto(`chrome-extension://${extensionId}/results.html#${mediaId}`);
   rows=await until(()=>databaseRows(observer,'results'),rows=>rows.find(r=>r.id===mediaId)?.assets.every(a=>a.acquisition.state==='acquired'),'independent complete media capture');

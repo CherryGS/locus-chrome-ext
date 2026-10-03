@@ -114,10 +114,7 @@ export function mountBilibiliControls() {
               candidate={candidate}
               {...status}
               queueId={host.id}
-              expanded={
-                view.expanded &&
-                (!view.selected || view.selected === candidate.source.id)
-              }
+              expanded={view.expanded}
               activate={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -257,7 +254,9 @@ export function mountBilibiliControls() {
       lastSources = signature;
       lookup.schedule();
     }
-    if (candidates.length) store.start();
+    // Authorization and page readiness already gate this mount. The queue
+    // remains reachable even before asynchronously loaded source cards arrive.
+    store.start();
   }
   const observer = new MutationObserver((records) => {
     if (

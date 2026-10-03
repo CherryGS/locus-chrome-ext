@@ -59,8 +59,9 @@ next action when the workflow cannot complete.
 
 ### Current implementation
 
-- Twitter/X capture preserves post text and directly attached selected media;
-  optional media selection includes text-only capture.
+- Twitter/X capture preserves post text and all directly attached media through
+  one explicit activation, without a separate media-picking step. A post with no
+  attachments still captures text and metadata.
 - Bilibili capture preserves the selected video part, parent metadata and cover
   on supported ordinary-video pages and listings. It assembles available video
   and audio without re-encoding; unsupported source types remain unsupported.

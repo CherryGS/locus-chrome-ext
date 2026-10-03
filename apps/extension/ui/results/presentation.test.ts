@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Collection, ResultSummary } from "@/host/chrome/protocol";
-import { resultView } from "./presentation";
+import { resultHint, resultView } from "./presentation";
 import { createFeedbackObserver } from "./feedback";
 
 const base: ResultSummary = {
@@ -17,6 +17,12 @@ const saved = {
   locus: { state: "complete", message: "Confirmed" },
 } satisfies ResultSummary;
 describe("derived Inbox membership", () => {
+  it("keeps confirmed Locus saving distinct from a failed local copy in compact summaries", () => {
+    expect(resultHint({...saved, retention: {state: 'failed', revision: 1}}))
+      .toBe('Saved to Locus · local copy not retained');
+    expect(resultHint({...base, retention: {state: 'failed', revision: 1}}))
+      .toBe('Local copy not retained · inspect available content');
+  });
   it.each([
     [base, "inbox"],
     [saved, "saved"],

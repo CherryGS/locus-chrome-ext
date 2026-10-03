@@ -16,12 +16,10 @@ export interface CaptureDraft {
   sourceId: string;
   url: string;
   inspection?: Inspection;
-  selected: string[];
   busy: "inspect" | "enqueue" | "";
   error: string;
   enqueueFailed: boolean;
   generation: number;
-  autoStart?: boolean;
 }
 export interface CaptureTask {
   summary: ResultSummary;
@@ -35,7 +33,6 @@ interface PassiveStatus {
 export interface QueueView {
   visible: boolean;
   expanded: boolean;
-  selected?: string;
   drafts: Record<string, CaptureDraft>;
   tasks: CaptureTask[];
   error: string;
@@ -80,6 +77,9 @@ export class CaptureStore {
   }
   start() {
     if (!this.alive || this.timer) return;
+    // Mounts call start only after site authorization/readiness. Queue access
+    // should not depend on a prior capture, and does not open the task modal.
+    this.publish({ visible: true });
     void this.refresh();
     let idleTicks = 0;
     this.timer = setInterval(() => {
@@ -103,9 +103,9 @@ export class CaptureStore {
     this.pause();
     this.listeners.clear();
   }
-  minimize = () => this.publish({ expanded: false, selected: undefined });
+  minimize = () => this.publish({ expanded: false });
   showQueue = () => {
-    this.publish({ visible: true, expanded: true, selected: undefined });
+    this.publish({ visible: true, expanded: true });
     void this.refresh();
   };
   private prepareDraft(url: string) {
@@ -115,7 +115,6 @@ export class CaptureStore {
       draft = {
         sourceId,
         url,
-        selected: [],
         busy: "",
         error: "",
         enqueueFailed: false,
@@ -132,14 +131,6 @@ export class CaptureStore {
     ))
       delete drafts[key];
     this.publish({ drafts });
-    return { sourceId, draft };
-  }
-  select(url: string) {
-    const { sourceId, draft } = this.prepareDraft(url);
-    if (!this.quickStarts.has(sourceId))
-      this.draft(sourceId, { autoStart: false });
-    this.publish({ visible: true, expanded: true, selected: sourceId });
-    if (!draft.inspection && !draft.busy) void this.inspect(sourceId);
   }
   async quickCapture(url: string) {
     const sourceId = sourceSelection(url).id;
@@ -176,13 +167,11 @@ export class CaptureStore {
     this.quickStarts.add(sourceId);
     this.prepareDraft(url);
     this.draft(sourceId, {
-      autoStart: true,
       inspection: undefined,
-      selected: [],
       error: "",
       enqueueFailed: false,
     });
-    this.publish({ visible: true, expanded: false, selected: undefined });
+    this.publish({ visible: true, expanded: false });
     try {
       const ready = await this.inspect(sourceId);
       if (!ready || !this.alive) return;
@@ -221,34 +210,19 @@ export class CaptureStore {
         return false;
       this.draft(sourceId, {
         inspection,
-        selected: inspection.media.map((media) => media.id),
       });
       return true;
     } catch (error) {
       if (this.value.drafts[sourceId]?.generation === generation)
         this.draft(sourceId, {
           error: errorMessage(error),
-          enqueueFailed: !!this.value.drafts[sourceId]?.autoStart,
+          enqueueFailed: true,
         });
       return false;
     } finally {
       if (this.value.drafts[sourceId]?.generation === generation)
         this.draft(sourceId, { busy: "" });
     }
-  }
-  choose(sourceId: string, id: string, checked: boolean) {
-    const draft = this.value.drafts[sourceId];
-    if (
-      !draft?.inspection ||
-      draft.busy ||
-      !draft.inspection.media.some((media) => media.id === id)
-    )
-      return;
-    this.draft(sourceId, {
-      selected: checked
-        ? [...new Set([...draft.selected, id])]
-        : draft.selected.filter((value) => value !== id),
-    });
   }
   async enqueue(sourceId: string) {
     const draft = this.value.drafts[sourceId];
@@ -257,7 +231,7 @@ export class CaptureStore {
     try {
       const summary = await coordinator<ResultSummary>("capture", {
         token: draft.inspection.token,
-        selected: [...draft.selected],
+        selected: draft.inspection.media.map((media) => media.id),
       });
       if (!this.alive) return;
       this.latest.set(sourceId, summary.id);
@@ -266,12 +240,9 @@ export class CaptureStore {
         this.upsert(summary, sourceId);
       this.draft(sourceId, {
         inspection: undefined,
-        selected: [],
         busy: "",
-        autoStart: false,
       });
-      // Do not collapse an editor the user opened for another source meanwhile.
-      if (this.value.selected === sourceId) this.minimize();
+      // Preserve a task modal explicitly opened while submission was pending.
       void this.refresh();
     } catch (error) {
       this.draft(sourceId, {
@@ -377,7 +348,7 @@ export class CaptureStore {
     progress?: ResultSummary["progress"];
   } {
     const draft = this.value.drafts[sourceId];
-    if (draft?.autoStart && draft.busy === "inspect")
+    if (draft?.busy === "inspect")
       return {
         state: "checking",
         message:
