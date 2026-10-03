@@ -70,6 +70,7 @@
   --workspace-reading: #132b3e; --workspace-list: #102638;
   --workspace-selected: #28485e; --workspace-selected-ink: #eaf2f7;
   --workspace-focus: #a0c5dc; --workspace-caption: #b4c8d5;
+  --workspace-media-edge: oklch(1 0 0 / .1);
   --workspace-motion: 160ms; --workspace-ease: cubic-bezier(.22,1,.36,1);
   --duration-fast: 250ms; --duration-quick: 150ms; --duration-medium: 350ms;
   --ease-smooth-out: cubic-bezier(.22,1,.36,1);
@@ -106,6 +107,10 @@
 }
 .capture-inspector [data-slot="item"][data-variant="outline"] {
   background: var(--card);
+}
+.capture-file-preview {
+  outline: 1px solid var(--workspace-media-edge);
+  outline-offset: -1px;
 }
 
 /* Signal shelf work surfaces share tokens with source-page shadow roots. */

@@ -5,6 +5,14 @@ globalThis.chrome = {
 };
     const kinds = ['setup', 'failed', 'unverified', 'legacy', 'saved', 'partial', 'active', 'retention'];
     const rows = kinds.map((kind, index) => ({ id: `inbox-${kind}`, label: `Inbox fixture ${kind}`, sourceUrl: `https://x.com/fixture/status/${1000 + index}`, createdAt: new Date(Date.now() - index * 60_000).toISOString(), revision: 1, acquisition: kind === 'active' ? 'pending' : kind === 'partial' ? 'partial' : 'complete', retention: { state: kind === 'retention' ? 'failed' : 'retained', revision: 1 }, locus: kind === 'legacy' ? undefined : { state: kind === 'active' ? 'uploading' : kind === 'saved' || kind === 'retention' ? 'complete' : kind === 'setup' ? 'configuration-required' : kind === 'unverified' ? 'unverified' : 'failed', message: kind === 'unverified' ? 'Response lost. Inspect the original request before continuing.' : kind === 'failed' ? 'Connection unavailable. Open connection settings.\nstage: upload\nrequest-id: fixture-original' : 'Synthetic delivery evidence' } }));
+    // Opt-in geometry fixture; all bytes are generated in memory, with no source request.
+    const media = {};
+    if (new URLSearchParams(location.search).has('media')) {
+      for (const [id, background, foreground] of [['dark-image', '#132b3e', '#d9e785'], ['light-image', '#eff3f7', '#173044']]) {
+        media[id] = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360"><rect width="960" height="360" fill="${background}"/><circle cx="160" cy="180" r="60" fill="${foreground}"/><path d="M280 150h520m-520 60h360" stroke="${foreground}" stroke-width="8"/></svg>`], {type: 'image/svg+xml'});
+      }
+      rows.push({id: 'inbox-media', label: 'Synthetic dark and light media', sourceUrl: 'https://x.com/fixture/status/2000', createdAt: new Date().toISOString(), revision: 1, acquisition: 'complete', retention: {state: 'retained', revision: 1}});
+    }
     globalThis.__inbox = { rows, deliveries: [], grants: {}, calls: [], held: [], hold: false, readFailure: false, clearFailure: false, connectFailure: true };
     const fixture = globalThis.__inbox;
     navigator.clipboard.writeText = async text => { fixture.copied = text; };
@@ -34,6 +42,11 @@ globalThis.chrome = {
           if (request.operation === 'clear') {
             if (fixture.clearFailure) error = 'Synthetic clear rejected';
             else fixture.rows = fixture.rows.filter(item => item.id !== request.id);
+          }
+          if (request.operation === 'read' && row?.id === 'inbox-media' && value?.snapshot) {
+            value.snapshot.result.records[0].assetIds = Object.keys(media);
+            value.snapshot.result.assets = Object.entries(media).map(([id, blob]) => ({id, recordId: 'post', mime: blob.type, size: blob.size, acquisition: {state: 'acquired'}}));
+            value.snapshot.blobs = media;
           }
           this.onmessage?.(new MessageEvent('message', { data: structuredClone({ requestId, ok: !error, error, value }) }));
         };

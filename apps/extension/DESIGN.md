@@ -255,6 +255,8 @@ Toast content keeps its natural height while the outer toast animates the stack 
 
 ## Shapes
 
+Sorting menus use a derived (12px) outer radius: the existing (8px) radio-item radius plus the menu's (4px) padding. Independent dialog/content surfaces keep their established tokens and asymmetric composition.
+
 Summary rows have gentle (8px) corners. The shared radius base is (10px): default buttons/fields use (10px), small controls and line-tab triggers use (8px), dialogs use (14px), toasts use (18px) and badges use (26px). Badge rounding is a fixed primitive radius; author initials and the (48px) queue launcher use circular geometry. Boundaries are predominantly (1px), with a contrasting selected-row stroke.
 
 Native Bilibili toolbar and cover controls retain (6px) corners as a bounded host-context exception; the cover control measures (28px) square and toolbar height follows the observed host variable with a (24px) fallback. This exception is not the general workspace corner rule. Functional SVG vectors communicate actions/status; decorative raster or text-glyph icons do not define this world.
@@ -262,6 +264,8 @@ Native Bilibili toolbar and cover controls retain (6px) corners as a bounded hos
 ## Components
 
 ### Buttons
+
+Button transitions name color, background-color, border-color, box-shadow, opacity and the existing press translation. Tabs and badges name the same visual properties without translation. Size, position, padding and outlines are not swept into `transition-all`. Existing duration/easing and press geometry remain authoritative, including both explicit translation axes for centered shadow-root dialogs.
 
 Compact primitives establish one clear priority: yellow-green primary, blue secondary, quiet ghost, boundary-led outline and tinted destructive. The link variant supports contextual actions.
 
@@ -286,6 +290,8 @@ Interface copy uses `Capture` / `Capturing` for obtaining content, `Local copy` 
 A mineral-blue rail provides Inbox, In progress, Saved and All captures, counts and Settings. Buttons measure (38px) high with (10px) gaps and (12px) counts. Active navigation uses sidebar-accent and `aria-current="page"`; hover uses the same local sidebar material. Responsive collapse and the mobile sheet preserve explicit access. The production rail does not inherit the sample's extra connection summary or synthetic toolbar.
 
 ### Capture Rows / Containers
+
+Acquired image and video preview frames use a (1px) inset outline with a pure-white 10% media-edge token. The outline adds no layout space and keeps dark image boundaries visible against the reading surface. Rounded media corners and native video controls keep their existing geometry and behavior.
 
 Flat summaries present source/time, label, and one status sentence with its functional icon and semantic tone. The list omits separate staging/outcome badges that repeat the sentence; detailed independent outcomes remain in the inspector. A confirmed Locus save with failed local retention explicitly keeps both facts in the summary. Selected rows use both fill and stroke plus `aria-pressed`; hover uses muted blue. File containers use raised-blue fill and restrained outline. The inspector orders source/actions, heading, independent outcomes, persistent recovery, then Preview / Metadata / Activity. Technical diagnostics remain expandable.
 

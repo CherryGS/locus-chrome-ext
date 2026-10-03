@@ -70,7 +70,7 @@ function FilePreview({ blob, label }: { blob: Blob; label: string }) {
   if (blob.type.startsWith("image/"))
     return (
       <img
-        className="max-h-[28rem] w-full rounded-lg bg-muted object-contain"
+        className="capture-file-preview max-h-[28rem] w-full rounded-lg bg-muted object-contain"
         src={url}
         alt={label}
         loading="lazy"
@@ -80,7 +80,7 @@ function FilePreview({ blob, label }: { blob: Blob; label: string }) {
   if (blob.type === "video/mp4")
     return (
       <video
-        className="max-h-[28rem] w-full rounded-lg bg-muted"
+        className="capture-file-preview max-h-[28rem] w-full rounded-lg bg-muted"
         src={url}
         controls
         preload="metadata"
