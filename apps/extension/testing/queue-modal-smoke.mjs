@@ -1,6 +1,27 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
+async function pressQueueButton(page, button, activate = false) {
+  await button.scrollIntoViewIfNeeded();
+  const before = await button.boundingBox();
+  // Press near the right edge: inheriting the popup's -50% X translation
+  // moves the hit target away from the pointer and can lose the click.
+  const x = before.x + before.width - 4, y = before.y + before.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  try {
+    await page.waitForTimeout(200);
+    const pressed = await button.boundingBox();
+    assert(Math.abs(pressed.x - before.x) < 0.1, `Pressed button stays horizontally aligned: ${JSON.stringify({ before, pressed })}`);
+    assert(Math.abs(pressed.y - before.y) <= 1.1, 'Press feedback stays within one pixel');
+    assert.equal(pressed.width, before.width);
+    assert.equal(pressed.height, before.height);
+    if (!activate) await page.mouse.move(before.x + before.width / 2, before.y - 4);
+  } finally {
+    await page.mouse.up();
+  }
+}
+
 /** The real production shadow surface: pointer, keyboard and scroll assertions. */
 export async function verifyQueueModal({ page, until, work, label, update }) {
   const launcher = page.getByRole('button', { name: 'Expand capture queue', exact: true });
@@ -41,6 +62,13 @@ export async function verifyQueueModal({ page, until, work, label, update }) {
   for (let index = 0; index < 16; index++) { await page.keyboard.press(index % 3 === 0 ? 'Shift+Tab' : 'Tab'); await until(focusInside, Boolean, `Tab stays inside shadow modal ${index}: ${await page.evaluate(() => [document.activeElement?.outerHTML?.slice(0, 200), document.activeElement?.shadowRoot?.activeElement?.outerHTML?.slice(0, 500)])}`); }
   const popup = await dialog.boundingBox(); assert(popup.x >= 0 && popup.y >= 0);
   assert.equal(await dialog.evaluate(element => getComputedStyle(element).pointerEvents), 'auto');
+  await pressQueueButton(page, dialog.getByRole('button', { name: 'Minimize capture queue', exact: true }));
+  await pressQueueButton(page, dialog.getByRole('button', { name: 'Open in Inbox', exact: true }));
+  await pressQueueButton(page, dialog.getByRole('button', { name: 'Open result', exact: true }));
+  const refresh = dialog.getByRole('button', { name: 'Refresh status', exact: true });
+  await refresh.evaluate(button => { button.addEventListener('click', () => { button.dataset.pressClicks = String(Number(button.dataset.pressClicks ?? 0) + 1); }); });
+  await pressQueueButton(page, refresh, true);
+  assert.equal(await refresh.getAttribute('data-press-clicks'), '1', 'Press and release still activate the original button');
   const scrollBefore = await page.evaluate(() => scrollY);
   await page.mouse.move(4, 300); await page.mouse.wheel(0, 500); await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => scrollY), scrollBefore, 'Page scroll blocked while modal open');
@@ -66,6 +94,7 @@ export async function verifyQueueModal({ page, until, work, label, update }) {
   await launcher.click(); await dialog.waitFor();
   await settle();
   const narrow = await dialog.boundingBox(); assert(narrow.x >= 0 && narrow.y >= 0 && narrow.x + narrow.width <= 390 && narrow.y + narrow.height <= 620);
+  await pressQueueButton(page, dialog.getByRole('button', { name: 'Refresh status', exact: true }), true);
   if (update) {
     await page.getByRole('button', { name: 'Refresh status', exact: true }).focus();
     await update('failed');
@@ -76,6 +105,6 @@ export async function verifyQueueModal({ page, until, work, label, update }) {
     await page.getByRole('button', { name: 'Copy diagnostic', exact: true }).waitFor();
   }
   await page.screenshot({ path: path.join(work, `${label}-queue-narrow.png`), animations: 'disabled' });
-  await page.getByRole('button', { name: 'Keep browsing', exact: true }).click(); await dialog.waitFor({ state: 'hidden' });
+  await pressQueueButton(page, dialog.getByRole('button', { name: 'Keep browsing', exact: true }), true); await dialog.waitFor({ state: 'hidden' });
   await page.setViewportSize({ width: 1280, height: 900 });
 }
