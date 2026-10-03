@@ -15,6 +15,7 @@ import type { CaptureSite } from "@/host/chrome/sites";
 import { useSiteAccess } from "./useSiteAccess";
 import type { LocusTransfer } from "@/host/locus/model";
 import { createFeedbackObserver, type ResultFeedback } from "./feedback";
+import { createRefreshGate } from "./refresh-gate";
 
 export interface ClearTarget {
   id: string;
@@ -46,18 +47,14 @@ export function useResultsState(
   const [clearError, setClearError] = useState("");
   const lastRevision = useRef("");
   const readGeneration = useRef(0);
-  const refreshInFlight = useRef(false);
-  const queuedReadRetry = useRef(false);
+  const [refreshGate] = useState(createRefreshGate);
   const currentId = useRef(selected);
   currentId.current = selected;
   const refresh = useCallback(async function refreshNow(
     force = false,
   ): Promise<void> {
-    if (refreshInFlight.current) {
-      if (force) queuedReadRetry.current = true;
-      return;
-    }
-    refreshInFlight.current = true;
+    const ticket = refreshGate.start(currentId.current, force);
+    if (!ticket) return;
     const generation = ++readGeneration.current;
     try {
       const value = await ownerRequest<Collection>("list");
@@ -109,11 +106,7 @@ export function useResultsState(
       if (generation === readGeneration.current)
         setCollectionError(errorMessage(error));
     } finally {
-      refreshInFlight.current = false;
-      if (queuedReadRetry.current) {
-        queuedReadRetry.current = false;
-        void refreshNow(true);
-      }
+      if (refreshGate.finish(ticket)) void refreshNow(true);
     }
   }, []);
   useEffect(() => {
