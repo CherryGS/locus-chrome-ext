@@ -95,3 +95,6 @@ The user explicitly selected Signal shelf in chat. The local decision board
 recorded `assigned`, build path `code`, with no workflow flip. The next delivery
 is a reviewed interactive design sample and its extension-wide specification;
 production changes follow this design delivery.
+
+The user subsequently narrowed the selected system to dark mode only. The sample
+and normative design tokens use the mineral-blue dark palette with no theme switch.

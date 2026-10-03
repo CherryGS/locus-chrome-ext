@@ -21,9 +21,9 @@ of this design deliverable.
 THESIS: Make independent capture outcomes immediately readable beside the content,
 instead of asking the owner to infer safety from one generic status.
 
-OWN-WORLD: Mineral-blue navigation, pale blue-white working surfaces, yellow-green
-action ink, a fixed UI sans scale, compact flat rows and measured eight-pixel
-spacing. Dark mode keeps the blue material rather than becoming neutral black.
+OWN-WORLD: Dark-only mineral-blue navigation, layered blue working surfaces,
+yellow-green action ink, a fixed UI sans scale, compact flat rows and measured
+eight-pixel spacing. The user requested only dark mode; no theme switch is offered.
 
 STORY: Find a record, distinguish acquisition, local retention and Locus saving,
 read its content and choose the supported next action. Diagnostics remain secondary.
@@ -44,8 +44,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Review boundary
 
 Review the design sample rather than backend behavior. Required captures: wide
-light, wide dark, 390px list/detail, 320px detail, and component examples. Exercise
-theme switching, view/search selection, all sample outcomes, tabs, named clear
+dark, 390px list/detail, 320px detail, and component examples. Exercise
+dark initialization, view/search selection, all sample outcomes, tabs, named clear
 confirmation, settings, queue and narrow keyboard focus. The sample does not
 acquire media, contact Locus, grant Chrome permissions or handle real credentials.
 Use no new raster assets; ordinary Lucide icons are functional vector geometry.

@@ -2,27 +2,10 @@
 @source "../../components";
 @source "./";
 
-:root {
+:root, .dark {
+  color-scheme: dark;
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --radius: .625rem;
-  --background: #edf3f6; --foreground: #20384a;
-  --card: #ffffff; --card-foreground: #20384a;
-  --popover: #ffffff; --popover-foreground: #20384a;
-  --primary: #d9e785; --primary-foreground: #203139;
-  --secondary: #e5edf2; --secondary-foreground: #294455;
-  --muted: #e5edf2; --muted-foreground: #526b7c;
-  --accent: #dfeaf1; --accent-foreground: #20384a;
-  --destructive: #98243a; --destructive-foreground: #ffffff;
-  --success: #186346; --warning: #705008; --info: #245981;
-  --border: #c8d6e0; --input: #c8d6e0; --ring: #3a6380;
-  --sidebar: #142d45; --sidebar-foreground: #eef4f8;
-  --sidebar-accent: #284b65; --sidebar-muted: #b4c8d5;
-  --sample-reading: #f8fbfc; --sample-list: #f2f7fa;
-  --sample-selected: #dfeaf1; --sample-selected-ink: #20384a;
-  --sample-focus: #416e8d; --sample-caption: #526b7c;
-  --sample-motion: 160ms; --sample-ease: cubic-bezier(.22,1,.36,1);
-}
-.dark {
   --background: #102638; --foreground: #eaf2f7;
   --card: #173044; --card-foreground: #eaf2f7;
   --popover: #173044; --popover-foreground: #eaf2f7;
@@ -30,12 +13,15 @@
   --secondary: #2a475c; --secondary-foreground: #eaf2f7;
   --muted: #29465a; --muted-foreground: #b4c8d5;
   --accent: #2a475c; --accent-foreground: #eaf2f7;
-  --destructive: #ffb2bd; --success: #91d6b1;
-  --warning: #f0d48c; --info: #9cc8ed;
+  --destructive: #ffb2bd; --destructive-foreground: #ffffff;
+  --success: #91d6b1; --warning: #f0d48c; --info: #9cc8ed;
   --border: #35566c; --input: #35566c; --ring: #a0c5dc;
+  --sidebar: #142d45; --sidebar-foreground: #eef4f8;
+  --sidebar-accent: #284b65; --sidebar-muted: #b4c8d5;
   --sample-reading: #132b3e; --sample-list: #102638;
   --sample-selected: #28485e; --sample-selected-ink: #eaf2f7;
   --sample-focus: #a0c5dc; --sample-caption: #b4c8d5;
+  --sample-motion: 160ms; --sample-ease: cubic-bezier(.22,1,.36,1);
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-size: 14px; line-height: 1.5; }

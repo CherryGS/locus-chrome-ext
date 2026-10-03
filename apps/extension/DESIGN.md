@@ -1,66 +1,39 @@
 ---
 name: Locus capture — Signal shelf
-description: Selected extension-wide target system, realized first in the standalone Signal shelf sample.
+description: Dark-only extension-wide target system, realized first in the standalone Signal shelf sample.
 colors:
-  background: "#edf3f6"
-  foreground: "#20384a"
-  card: "#ffffff"
-  card-foreground: "#20384a"
-  popover: "#ffffff"
-  popover-foreground: "#20384a"
+  background: "#102638"
+  foreground: "#eaf2f7"
+  card: "#173044"
+  card-foreground: "#eaf2f7"
+  popover: "#173044"
+  popover-foreground: "#eaf2f7"
   primary: "#d9e785"
   primary-foreground: "#203139"
-  secondary: "#e5edf2"
-  secondary-foreground: "#294455"
-  muted: "#e5edf2"
-  muted-foreground: "#526b7c"
-  accent: "#dfeaf1"
-  accent-foreground: "#20384a"
-  destructive: "#98243a"
+  secondary: "#2a475c"
+  secondary-foreground: "#eaf2f7"
+  muted: "#29465a"
+  muted-foreground: "#b4c8d5"
+  accent: "#2a475c"
+  accent-foreground: "#eaf2f7"
+  destructive: "#ffb2bd"
   destructive-foreground: "#ffffff"
-  success: "#186346"
-  warning: "#705008"
-  info: "#245981"
-  border: "#c8d6e0"
-  input: "#c8d6e0"
-  ring: "#3a6380"
+  success: "#91d6b1"
+  warning: "#f0d48c"
+  info: "#9cc8ed"
+  border: "#35566c"
+  input: "#35566c"
+  ring: "#a0c5dc"
   sidebar: "#142d45"
   sidebar-foreground: "#eef4f8"
   sidebar-accent: "#284b65"
   sidebar-muted: "#b4c8d5"
-  sample-reading: "#f8fbfc"
-  sample-list: "#f2f7fa"
-  sample-selected: "#dfeaf1"
-  sample-selected-ink: "#20384a"
-  sample-focus: "#416e8d"
-  sample-caption: "#526b7c"
-  dark-background: "#102638"
-  dark-foreground: "#eaf2f7"
-  dark-card: "#173044"
-  dark-card-foreground: "#eaf2f7"
-  dark-popover: "#173044"
-  dark-popover-foreground: "#eaf2f7"
-  dark-primary: "#d9e785"
-  dark-primary-foreground: "#203139"
-  dark-secondary: "#2a475c"
-  dark-secondary-foreground: "#eaf2f7"
-  dark-muted: "#29465a"
-  dark-muted-foreground: "#b4c8d5"
-  dark-accent: "#2a475c"
-  dark-accent-foreground: "#eaf2f7"
-  dark-destructive: "#ffb2bd"
-  dark-success: "#91d6b1"
-  dark-warning: "#f0d48c"
-  dark-info: "#9cc8ed"
-  dark-border: "#35566c"
-  dark-input: "#35566c"
-  dark-ring: "#a0c5dc"
-  dark-sample-reading: "#132b3e"
-  dark-sample-list: "#102638"
-  dark-sample-selected: "#28485e"
-  dark-sample-selected-ink: "#eaf2f7"
-  dark-sample-focus: "#a0c5dc"
-  dark-sample-caption: "#b4c8d5"
+  sample-reading: "#132b3e"
+  sample-list: "#102638"
+  sample-selected: "#28485e"
+  sample-selected-ink: "#eaf2f7"
+  sample-focus: "#a0c5dc"
+  sample-caption: "#b4c8d5"
 typography:
   workspace-title:
     fontFamily: '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif'
@@ -125,7 +98,7 @@ components:
     height: "32px"
     padding: "0 10px"
   button-outline:
-    backgroundColor: "{colors.background}"
+    backgroundColor: "color-mix(in oklab, var(--input) 30%, transparent)"
     textColor: "{colors.foreground}"
     typography: "{typography.control}"
     rounded: "{rounded.large}"
@@ -146,14 +119,14 @@ components:
     height: "32px"
     padding: "0 10px"
   button-destructive:
-    backgroundColor: "color-mix(in oklab, var(--destructive) 10%, transparent)"
+    backgroundColor: "color-mix(in oklab, var(--destructive) 20%, transparent)"
     textColor: "{colors.destructive}"
     typography: "{typography.control}"
     rounded: "{rounded.large}"
     height: "32px"
     padding: "0 10px"
   search-input:
-    backgroundColor: "transparent"
+    backgroundColor: "color-mix(in oklab, var(--input) 30%, transparent)"
     textColor: "{colors.foreground}"
     rounded: "{rounded.large}"
     height: "32px"
@@ -196,15 +169,15 @@ components:
 
 **Creative North Star: "Signal shelf"**
 
-Signal shelf is the selected, normative target design for Locus capture across the extension. Its first realized evidence is the standalone React sample in `design/signal-shelf`, using the installed shadcn/Base UI primitives and Lucide vectors. The existing production stylesheet and production surfaces still carry the preceding theme; this document does not claim that they have migrated. Future production integration must preserve the existing business, state ownership and interaction contracts.
+Signal shelf is the selected, normative dark-only target design for Locus capture across the extension. Its first realized evidence is the standalone React sample in `design/signal-shelf`, using the installed shadcn/Base UI primitives and Lucide vectors. Existing production surfaces still carry the preceding theme; future integration must preserve the established business, state ownership and interaction contracts.
 
-The working environment combines mineral-blue navigation, pale blue-white list and reading surfaces, yellow-green priority actions, compact flat rows and a fixed UI sans hierarchy. Dark mode keeps the same blue material. The personal user can scan retained summaries, inspect content and read three independent outcome facts before choosing a supported next action. The signature is a parallel outcome strip, not a sequential progress display.
+The working environment combines mineral-blue navigation, layered dark-blue list and reading surfaces, yellow-green priority actions, compact flat rows and a fixed UI sans hierarchy. It initializes with dark native controls and offers no theme switch. The personal user can scan retained summaries, inspect content and read three independent outcome facts before choosing a supported next action. The signature is a parallel outcome strip, not a sequential progress display.
 
-This specification records the sample after review corrections. `finish-review.md` initially required two queue fixes; `verdict.md` resolves both and gives a ship disposition only for that fix scope. Its source-control addendum separately resolves the staging-icon correction against `components-source-controls.jpg`, again at that focused scope. The retained desktop, dark, narrow, components, settings and queue captures and `verification.md` establish the sample review boundary. The parent reports typecheck, lint and sample build passing again after the source-control correction; the earlier valid source-scope detector result was `[]`. Focused status specimens reached approximately 5.54:1 minimum contrast in light and 5.80:1 in dark; this is not full accessibility certification. No new shipping raster was created.
+Current dark-only evidence is retained in `.impeccable/review/signal-shelf-dark-only`: the five viewport/component captures and `verification.md` cover initialization, consolidated tokens, removed theme selection, narrow focus return and bounded sample behavior. Typecheck, lint and sample build pass. Earlier paired-theme contrast results are historical evidence, not a new accessibility certification; no shipping raster was added.
 
 **Key Characteristics:**
 
-- Mineral-blue working surfaces in both themes.
+- Dark-only mineral-blue working surfaces and native controls.
 - Fixed UI type roles and restrained, flat component geometry.
 - Parallel Capture, Local copy and Locus save facts.
 - Persistent reasons and supported next actions beside the content.
@@ -212,7 +185,7 @@ This specification records the sample after review corrections. `finish-review.m
 
 ## Colors
 
-The palette is a blue working environment with a yellow-green action accent and independent semantic status inks. The frontmatter is normative: unsuffixed names are light-mode sample custom properties, and `dark-` names are explicit dark-mode overrides. Dark mode inherits unchanged root properties, including the action and navigation colors.
+The palette is a dark-blue working environment with a yellow-green action accent and independent semantic status inks. The frontmatter is normative: each unsuffixed name maps directly to the sample custom property shared by `:root` and `.dark`. These are the only supported palette values. The action and navigation roles retain the selected Signal shelf colors.
 
 ### Primary
 
@@ -223,13 +196,13 @@ The palette is a blue working environment with a yellow-green action accent and 
 
 - **Blue action surface** (`secondary`, `secondary-foreground`): supporting actions. The navigation overrides this role locally with `sidebar-accent` and `sidebar-foreground`.
 - **Selected blue** (`accent`, `accent-foreground`, `sample-selected`, `sample-selected-ink`): modest selection and hover surfaces; selected capture rows have a contrasting boundary as well as a fill.
-- **Outcome inks** (`success`, `warning`, `info`, `destructive`): confirmed completion, incomplete/uncertain outcomes, acquisition/setup information and actual failure. Their dark counterparts brighten the ink while preserving meaning. Badge fill and stroke derive from these inks at low opacity rather than adding new colors.
+- **Outcome inks** (`success`, `warning`, `info`, `destructive`): confirmed completion, incomplete/uncertain outcomes, acquisition/setup information and actual failure. Bright status inks remain readable on dark working surfaces. Badge fill and stroke derive from these inks at low opacity rather than adding new colors.
 
 ### Neutral
 
 - **Mineral navigation** (`sidebar`, `sidebar-foreground`, `sidebar-accent`, `sidebar-muted`): persistent blue rail, readable labels, active background and secondary counts.
 - **Working ground** (`background`, `sample-list`, `sample-reading`): shell, summary list and content field. Dark reading remains a distinct blue layer.
-- **White-blue surface** (`card`, `card-foreground`, `popover`, `popover-foreground`): inspector header and overlays.
+- **Raised blue surface** (`card`, `card-foreground`, `popover`, `popover-foreground`): inspector header and overlays.
 - **Quiet blue support** (`muted`, `muted-foreground`, `sample-caption`): subordinate copy, subtle hover and progress track.
 - **Boundary and focus** (`border`, `input`, `ring`, `sample-focus`): divisions, input strokes and keyboard focus. Base UI focus rings coexist with the sample's explicit outline.
 
@@ -294,7 +267,7 @@ The notice uses (10px), progress uses (4px), and author initials use circular ge
 
 Compact and familiar, with one clear priority. Primary, outline, secondary, ghost and destructive variants are evidenced in the component sheet; the link variant exists in the imported primitive but is not promoted here as a sampled pattern.
 
-Default buttons are (32px) high with (10px) horizontal padding, (6px) gap and (10px) radius. Inline start/end icons reduce their corresponding edge to (8px), and ordinary button icons are (16px). Primary uses the action token; outline uses the working ground and border; secondary uses the support surface; ghost gains a muted hover surface. Secondary hover mixes in foreground at 5%. Destructive uses 10% error fill and error ink, increasing fill on hover; in dark mode its resting fill is 20%.
+Default buttons are (32px) high with (10px) horizontal padding, (6px) gap and (10px) radius. Inline start/end icons reduce their corresponding edge to (8px), and ordinary button icons are (16px). Primary uses the action token; outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover; secondary uses the support surface; ghost gains a muted 50% hover tint. Secondary hover mixes in foreground at 5%. Destructive uses 20% error fill and error ink, increasing fill to 30% on hover and using a 40% error focus ring.
 
 Imported focus is a (3px) ring at 50% ring opacity with a ring-colored border. The sample adds a (2px) explicit focus outline with (3px) offset to buttons, links and selects. Press moves buttons down (1px), except popup triggers excluded by the primitive. Disabled controls have 50% opacity and suppress pointer interaction. Preserve Base UI behavior during integration rather than recreating it from the sidecar's static specimens.
 
@@ -302,7 +275,7 @@ Small vector-only controls are actually present: source capture and manual clear
 
 ### Inputs / Fields
 
-Search is the installed InputGroup with leading Search vector, visible placeholder and a hidden semantic label: “Search capture label or source URL.” The group is (32px) high with an input boundary and (10px) radius. It is transparent in light mode, with input-colored 30% fill in dark. Focus-visible on the inner input moves the group border and adds the shared ring. The inner control removes its own border/ring; the group owns the visible boundary.
+Search is the installed InputGroup with leading Search vector, visible placeholder and a hidden semantic label: “Search capture label or source URL.” The group is (32px) high with an input boundary and (10px) radius. It uses input-colored 30% fill against the dark list surface. Focus-visible on the inner input moves the group border and adds the shared ring. The inner control removes its own border/ring; the group owns the visible boundary.
 
 Search matches only capture label and source URL in this sample. No-result copy states that scope and offers clear search; it makes no full-content, author or media search promise. Settings use existing Field/Input composition, read-only example values and disabled submission; they do not establish a new production settings flow.
 
@@ -336,7 +309,7 @@ The sample illustrates these contracts through synthetic/no-op controls; product
 
 ### Do:
 
-- **Do** preserve the blue material, action priority and semantic token roles across both themes.
+- **Do** preserve the dark-blue material, yellow-green action priority and semantic token roles on every target surface.
 - **Do** show status as a word, a functional vector icon and a semantic color; keep staging neutral.
 - **Do** keep the three independent outcomes readable together, including when local retention fails after Locus succeeds.
 - **Do** state the supported recovery and retention limits beside the affected capture, after transient feedback disappears.

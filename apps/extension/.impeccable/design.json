@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-03T11:13:50.011Z",
+  "generatedAt": "2026-10-03T11:36:54.703Z",
   "title": "Design System: Locus capture — Signal shelf",
   "extensions": {
     "colorMeta": {
@@ -8,103 +8,103 @@
         "role": "neutral",
         "displayName": "Working ground",
         "cssProperty": "--background",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.00758 228.85)",
-          "oklch(0.2643 0.00758 228.85)",
-          "oklch(0.3786 0.00758 228.85)",
-          "oklch(0.4929 0.00758 228.85)",
-          "oklch(0.6071 0.00758 228.85)",
-          "oklch(0.7214 0.00758 228.85)",
-          "oklch(0.8357 0.00758 228.85)",
-          "oklch(0.9500 0.00758 228.85)"
+          "oklch(0.1500 0.04410 245.34)",
+          "oklch(0.2643 0.04410 245.34)",
+          "oklch(0.3786 0.04410 245.34)",
+          "oklch(0.4929 0.04410 245.34)",
+          "oklch(0.6071 0.04410 245.34)",
+          "oklch(0.7214 0.04410 245.34)",
+          "oklch(0.8357 0.04410 245.34)",
+          "oklch(0.9500 0.04410 245.34)"
         ]
       },
       "foreground": {
         "role": "neutral",
         "displayName": "Working ink",
         "cssProperty": "--foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04391 242.19)",
-          "oklch(0.2643 0.04391 242.19)",
-          "oklch(0.3786 0.04391 242.19)",
-          "oklch(0.4929 0.04391 242.19)",
-          "oklch(0.6071 0.04391 242.19)",
-          "oklch(0.7214 0.04391 242.19)",
-          "oklch(0.8357 0.04391 242.19)",
-          "oklch(0.9500 0.04391 242.19)"
+          "oklch(0.1500 0.01088 234.82)",
+          "oklch(0.2643 0.01088 234.82)",
+          "oklch(0.3786 0.01088 234.82)",
+          "oklch(0.4929 0.01088 234.82)",
+          "oklch(0.6071 0.01088 234.82)",
+          "oklch(0.7214 0.01088 234.82)",
+          "oklch(0.8357 0.01088 234.82)",
+          "oklch(0.9500 0.01088 234.82)"
         ]
       },
       "card": {
         "role": "neutral",
         "displayName": "Header surface",
         "cssProperty": "--card",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.00000 0.00)",
-          "oklch(0.2643 0.00000 0.00)",
-          "oklch(0.3786 0.00000 0.00)",
-          "oklch(0.4929 0.00000 0.00)",
-          "oklch(0.6071 0.00000 0.00)",
-          "oklch(0.7214 0.00000 0.00)",
-          "oklch(0.8357 0.00000 0.00)",
-          "oklch(0.9500 0.00000 0.00)"
+          "oklch(0.1500 0.04796 244.53)",
+          "oklch(0.2643 0.04796 244.53)",
+          "oklch(0.3786 0.04796 244.53)",
+          "oklch(0.4929 0.04796 244.53)",
+          "oklch(0.6071 0.04796 244.53)",
+          "oklch(0.7214 0.04796 244.53)",
+          "oklch(0.8357 0.04796 244.53)",
+          "oklch(0.9500 0.04796 244.53)"
         ]
       },
       "card-foreground": {
         "role": "neutral",
         "displayName": "Header ink",
         "cssProperty": "--card-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04391 242.19)",
-          "oklch(0.2643 0.04391 242.19)",
-          "oklch(0.3786 0.04391 242.19)",
-          "oklch(0.4929 0.04391 242.19)",
-          "oklch(0.6071 0.04391 242.19)",
-          "oklch(0.7214 0.04391 242.19)",
-          "oklch(0.8357 0.04391 242.19)",
-          "oklch(0.9500 0.04391 242.19)"
+          "oklch(0.1500 0.01088 234.82)",
+          "oklch(0.2643 0.01088 234.82)",
+          "oklch(0.3786 0.01088 234.82)",
+          "oklch(0.4929 0.01088 234.82)",
+          "oklch(0.6071 0.01088 234.82)",
+          "oklch(0.7214 0.01088 234.82)",
+          "oklch(0.8357 0.01088 234.82)",
+          "oklch(0.9500 0.01088 234.82)"
         ]
       },
       "popover": {
         "role": "neutral",
         "displayName": "Overlay surface",
         "cssProperty": "--popover",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.00000 0.00)",
-          "oklch(0.2643 0.00000 0.00)",
-          "oklch(0.3786 0.00000 0.00)",
-          "oklch(0.4929 0.00000 0.00)",
-          "oklch(0.6071 0.00000 0.00)",
-          "oklch(0.7214 0.00000 0.00)",
-          "oklch(0.8357 0.00000 0.00)",
-          "oklch(0.9500 0.00000 0.00)"
+          "oklch(0.1500 0.04796 244.53)",
+          "oklch(0.2643 0.04796 244.53)",
+          "oklch(0.3786 0.04796 244.53)",
+          "oklch(0.4929 0.04796 244.53)",
+          "oklch(0.6071 0.04796 244.53)",
+          "oklch(0.7214 0.04796 244.53)",
+          "oklch(0.8357 0.04796 244.53)",
+          "oklch(0.9500 0.04796 244.53)"
         ]
       },
       "popover-foreground": {
         "role": "neutral",
         "displayName": "Overlay ink",
         "cssProperty": "--popover-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04391 242.19)",
-          "oklch(0.2643 0.04391 242.19)",
-          "oklch(0.3786 0.04391 242.19)",
-          "oklch(0.4929 0.04391 242.19)",
-          "oklch(0.6071 0.04391 242.19)",
-          "oklch(0.7214 0.04391 242.19)",
-          "oklch(0.8357 0.04391 242.19)",
-          "oklch(0.9500 0.04391 242.19)"
+          "oklch(0.1500 0.01088 234.82)",
+          "oklch(0.2643 0.01088 234.82)",
+          "oklch(0.3786 0.01088 234.82)",
+          "oklch(0.4929 0.01088 234.82)",
+          "oklch(0.6071 0.01088 234.82)",
+          "oklch(0.7214 0.01088 234.82)",
+          "oklch(0.8357 0.01088 234.82)",
+          "oklch(0.9500 0.01088 234.82)"
         ]
       },
       "primary": {
         "role": "primary",
         "displayName": "Signal yellow-green",
         "cssProperty": "--primary",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.12341 115.61)",
           "oklch(0.2643 0.12341 115.61)",
@@ -120,7 +120,7 @@
         "role": "neutral",
         "displayName": "Action ink",
         "cssProperty": "--primary-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.02662 228.85)",
           "oklch(0.2643 0.02662 228.85)",
@@ -136,119 +136,119 @@
         "role": "secondary",
         "displayName": "Supporting blue",
         "cssProperty": "--secondary",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.01092 234.82)",
-          "oklch(0.2643 0.01092 234.82)",
-          "oklch(0.3786 0.01092 234.82)",
-          "oklch(0.4929 0.01092 234.82)",
-          "oklch(0.6071 0.01092 234.82)",
-          "oklch(0.7214 0.01092 234.82)",
-          "oklch(0.8357 0.01092 234.82)",
-          "oklch(0.9500 0.01092 234.82)"
+          "oklch(0.1500 0.05012 241.22)",
+          "oklch(0.2643 0.05012 241.22)",
+          "oklch(0.3786 0.05012 241.22)",
+          "oklch(0.4929 0.05012 241.22)",
+          "oklch(0.6071 0.05012 241.22)",
+          "oklch(0.7214 0.05012 241.22)",
+          "oklch(0.8357 0.05012 241.22)",
+          "oklch(0.9500 0.05012 241.22)"
         ]
       },
       "secondary-foreground": {
         "role": "neutral",
         "displayName": "Supporting ink",
         "cssProperty": "--secondary-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04403 237.26)",
-          "oklch(0.2643 0.04403 237.26)",
-          "oklch(0.3786 0.04403 237.26)",
-          "oklch(0.4929 0.04403 237.26)",
-          "oklch(0.6071 0.04403 237.26)",
-          "oklch(0.7214 0.04403 237.26)",
-          "oklch(0.8357 0.04403 237.26)",
-          "oklch(0.9500 0.04403 237.26)"
+          "oklch(0.1500 0.01088 234.82)",
+          "oklch(0.2643 0.01088 234.82)",
+          "oklch(0.3786 0.01088 234.82)",
+          "oklch(0.4929 0.01088 234.82)",
+          "oklch(0.6071 0.01088 234.82)",
+          "oklch(0.7214 0.01088 234.82)",
+          "oklch(0.8357 0.01088 234.82)",
+          "oklch(0.9500 0.01088 234.82)"
         ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Quiet blue",
         "cssProperty": "--muted",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.01092 234.82)",
-          "oklch(0.2643 0.01092 234.82)",
-          "oklch(0.3786 0.01092 234.82)",
-          "oklch(0.4929 0.01092 234.82)",
-          "oklch(0.6071 0.01092 234.82)",
-          "oklch(0.7214 0.01092 234.82)",
-          "oklch(0.8357 0.01092 234.82)",
-          "oklch(0.9500 0.01092 234.82)"
+          "oklch(0.1500 0.04896 239.92)",
+          "oklch(0.2643 0.04896 239.92)",
+          "oklch(0.3786 0.04896 239.92)",
+          "oklch(0.4929 0.04896 239.92)",
+          "oklch(0.6071 0.04896 239.92)",
+          "oklch(0.7214 0.04896 239.92)",
+          "oklch(0.8357 0.04896 239.92)",
+          "oklch(0.9500 0.04896 239.92)"
         ]
       },
       "muted-foreground": {
         "role": "neutral",
         "displayName": "Quiet ink",
         "cssProperty": "--muted-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04004 238.29)",
-          "oklch(0.2643 0.04004 238.29)",
-          "oklch(0.3786 0.04004 238.29)",
-          "oklch(0.4929 0.04004 238.29)",
-          "oklch(0.6071 0.04004 238.29)",
-          "oklch(0.7214 0.04004 238.29)",
-          "oklch(0.8357 0.04004 238.29)",
-          "oklch(0.9500 0.04004 238.29)"
+          "oklch(0.1500 0.02846 236.26)",
+          "oklch(0.2643 0.02846 236.26)",
+          "oklch(0.3786 0.02846 236.26)",
+          "oklch(0.4929 0.02846 236.26)",
+          "oklch(0.6071 0.02846 236.26)",
+          "oklch(0.7214 0.02846 236.26)",
+          "oklch(0.8357 0.02846 236.26)",
+          "oklch(0.9500 0.02846 236.26)"
         ]
       },
       "accent": {
         "role": "neutral",
         "displayName": "Selection blue",
         "cssProperty": "--accent",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.01514 235.39)",
-          "oklch(0.2643 0.01514 235.39)",
-          "oklch(0.3786 0.01514 235.39)",
-          "oklch(0.4929 0.01514 235.39)",
-          "oklch(0.6071 0.01514 235.39)",
-          "oklch(0.7214 0.01514 235.39)",
-          "oklch(0.8357 0.01514 235.39)",
-          "oklch(0.9500 0.01514 235.39)"
+          "oklch(0.1500 0.05012 241.22)",
+          "oklch(0.2643 0.05012 241.22)",
+          "oklch(0.3786 0.05012 241.22)",
+          "oklch(0.4929 0.05012 241.22)",
+          "oklch(0.6071 0.05012 241.22)",
+          "oklch(0.7214 0.05012 241.22)",
+          "oklch(0.8357 0.05012 241.22)",
+          "oklch(0.9500 0.05012 241.22)"
         ]
       },
       "accent-foreground": {
         "role": "neutral",
         "displayName": "Selection ink",
         "cssProperty": "--accent-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.04391 242.19)",
-          "oklch(0.2643 0.04391 242.19)",
-          "oklch(0.3786 0.04391 242.19)",
-          "oklch(0.4929 0.04391 242.19)",
-          "oklch(0.6071 0.04391 242.19)",
-          "oklch(0.7214 0.04391 242.19)",
-          "oklch(0.8357 0.04391 242.19)",
-          "oklch(0.9500 0.04391 242.19)"
+          "oklch(0.1500 0.01088 234.82)",
+          "oklch(0.2643 0.01088 234.82)",
+          "oklch(0.3786 0.01088 234.82)",
+          "oklch(0.4929 0.01088 234.82)",
+          "oklch(0.6071 0.01088 234.82)",
+          "oklch(0.7214 0.01088 234.82)",
+          "oklch(0.8357 0.01088 234.82)",
+          "oklch(0.9500 0.01088 234.82)"
         ]
       },
       "destructive": {
         "role": "secondary",
         "displayName": "Failure ink",
         "cssProperty": "--destructive",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.15100 15.21)",
-          "oklch(0.2643 0.15100 15.21)",
-          "oklch(0.3786 0.15100 15.21)",
-          "oklch(0.4929 0.15100 15.21)",
-          "oklch(0.6071 0.15100 15.21)",
-          "oklch(0.7214 0.15100 15.21)",
-          "oklch(0.8357 0.15100 15.21)",
-          "oklch(0.9500 0.15100 15.21)"
+          "oklch(0.1500 0.09077 9.78)",
+          "oklch(0.2643 0.09077 9.78)",
+          "oklch(0.3786 0.09077 9.78)",
+          "oklch(0.4929 0.09077 9.78)",
+          "oklch(0.6071 0.09077 9.78)",
+          "oklch(0.7214 0.09077 9.78)",
+          "oklch(0.8357 0.09077 9.78)",
+          "oklch(0.9500 0.09077 9.78)"
         ]
       },
       "destructive-foreground": {
         "role": "neutral",
         "displayName": "Inherited failure contrast",
         "cssProperty": "--destructive-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.00000 0.00)",
           "oklch(0.2643 0.00000 0.00)",
@@ -264,103 +264,103 @@
         "role": "secondary",
         "displayName": "Confirmed outcome ink",
         "cssProperty": "--success",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.08654 162.69)",
-          "oklch(0.2643 0.08654 162.69)",
-          "oklch(0.3786 0.08654 162.69)",
-          "oklch(0.4929 0.08654 162.69)",
-          "oklch(0.6071 0.08654 162.69)",
-          "oklch(0.7214 0.08654 162.69)",
-          "oklch(0.8357 0.08654 162.69)",
-          "oklch(0.9500 0.08654 162.69)"
+          "oklch(0.1500 0.08730 160.24)",
+          "oklch(0.2643 0.08730 160.24)",
+          "oklch(0.3786 0.08730 160.24)",
+          "oklch(0.4929 0.08730 160.24)",
+          "oklch(0.6071 0.08730 160.24)",
+          "oklch(0.7214 0.08730 160.24)",
+          "oklch(0.8357 0.08730 160.24)",
+          "oklch(0.9500 0.08730 160.24)"
         ]
       },
       "warning": {
         "role": "secondary",
         "displayName": "Attention ink",
         "cssProperty": "--warning",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.09042 80.76)",
-          "oklch(0.2643 0.09042 80.76)",
-          "oklch(0.3786 0.09042 80.76)",
-          "oklch(0.4929 0.09042 80.76)",
-          "oklch(0.6071 0.09042 80.76)",
-          "oklch(0.7214 0.09042 80.76)",
-          "oklch(0.8357 0.09042 80.76)",
-          "oklch(0.9500 0.09042 80.76)"
+          "oklch(0.1500 0.09590 89.07)",
+          "oklch(0.2643 0.09590 89.07)",
+          "oklch(0.3786 0.09590 89.07)",
+          "oklch(0.4929 0.09590 89.07)",
+          "oklch(0.6071 0.09590 89.07)",
+          "oklch(0.7214 0.09590 89.07)",
+          "oklch(0.8357 0.09590 89.07)",
+          "oklch(0.9500 0.09590 89.07)"
         ]
       },
       "info": {
         "role": "secondary",
         "displayName": "Acquisition and setup ink",
         "cssProperty": "--info",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.08634 244.40)",
-          "oklch(0.2643 0.08634 244.40)",
-          "oklch(0.3786 0.08634 244.40)",
-          "oklch(0.4929 0.08634 244.40)",
-          "oklch(0.6071 0.08634 244.40)",
-          "oklch(0.7214 0.08634 244.40)",
-          "oklch(0.8357 0.08634 244.40)",
-          "oklch(0.9500 0.08634 244.40)"
+          "oklch(0.1500 0.07014 244.17)",
+          "oklch(0.2643 0.07014 244.17)",
+          "oklch(0.3786 0.07014 244.17)",
+          "oklch(0.4929 0.07014 244.17)",
+          "oklch(0.6071 0.07014 244.17)",
+          "oklch(0.7214 0.07014 244.17)",
+          "oklch(0.8357 0.07014 244.17)",
+          "oklch(0.9500 0.07014 244.17)"
         ]
       },
       "border": {
         "role": "neutral",
         "displayName": "Boundary blue",
         "cssProperty": "--border",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.02055 238.70)",
-          "oklch(0.2643 0.02055 238.70)",
-          "oklch(0.3786 0.02055 238.70)",
-          "oklch(0.4929 0.02055 238.70)",
-          "oklch(0.6071 0.02055 238.70)",
-          "oklch(0.7214 0.02055 238.70)",
-          "oklch(0.8357 0.02055 238.70)",
-          "oklch(0.9500 0.02055 238.70)"
+          "oklch(0.1500 0.05310 238.84)",
+          "oklch(0.2643 0.05310 238.84)",
+          "oklch(0.3786 0.05310 238.84)",
+          "oklch(0.4929 0.05310 238.84)",
+          "oklch(0.6071 0.05310 238.84)",
+          "oklch(0.7214 0.05310 238.84)",
+          "oklch(0.8357 0.05310 238.84)",
+          "oklch(0.9500 0.05310 238.84)"
         ]
       },
       "input": {
         "role": "neutral",
         "displayName": "Input boundary",
         "cssProperty": "--input",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.02055 238.70)",
-          "oklch(0.2643 0.02055 238.70)",
-          "oklch(0.3786 0.02055 238.70)",
-          "oklch(0.4929 0.02055 238.70)",
-          "oklch(0.6071 0.02055 238.70)",
-          "oklch(0.7214 0.02055 238.70)",
-          "oklch(0.8357 0.02055 238.70)",
-          "oklch(0.9500 0.02055 238.70)"
+          "oklch(0.1500 0.05310 238.84)",
+          "oklch(0.2643 0.05310 238.84)",
+          "oklch(0.3786 0.05310 238.84)",
+          "oklch(0.4929 0.05310 238.84)",
+          "oklch(0.6071 0.05310 238.84)",
+          "oklch(0.7214 0.05310 238.84)",
+          "oklch(0.8357 0.05310 238.84)",
+          "oklch(0.9500 0.05310 238.84)"
         ]
       },
       "ring": {
         "role": "neutral",
         "displayName": "Primitive focus",
         "cssProperty": "--ring",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
-          "oklch(0.1500 0.06580 240.80)",
-          "oklch(0.2643 0.06580 240.80)",
-          "oklch(0.3786 0.06580 240.80)",
-          "oklch(0.4929 0.06580 240.80)",
-          "oklch(0.6071 0.06580 240.80)",
-          "oklch(0.7214 0.06580 240.80)",
-          "oklch(0.8357 0.06580 240.80)",
-          "oklch(0.9500 0.06580 240.80)"
+          "oklch(0.1500 0.05126 235.56)",
+          "oklch(0.2643 0.05126 235.56)",
+          "oklch(0.3786 0.05126 235.56)",
+          "oklch(0.4929 0.05126 235.56)",
+          "oklch(0.6071 0.05126 235.56)",
+          "oklch(0.7214 0.05126 235.56)",
+          "oklch(0.8357 0.05126 235.56)",
+          "oklch(0.9500 0.05126 235.56)"
         ]
       },
       "sidebar": {
         "role": "neutral",
         "displayName": "Mineral navigation",
         "cssProperty": "--sidebar",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.05404 249.33)",
           "oklch(0.2643 0.05404 249.33)",
@@ -376,7 +376,7 @@
         "role": "neutral",
         "displayName": "Navigation ink",
         "cssProperty": "--sidebar-foreground",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.00836 236.56)",
           "oklch(0.2643 0.00836 236.56)",
@@ -392,7 +392,7 @@
         "role": "neutral",
         "displayName": "Navigation selection",
         "cssProperty": "--sidebar-accent",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.06004 242.46)",
           "oklch(0.2643 0.06004 242.46)",
@@ -408,7 +408,7 @@
         "role": "neutral",
         "displayName": "Navigation caption",
         "cssProperty": "--sidebar-muted",
-        "theme": "light",
+        "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.02846 236.26)",
           "oklch(0.2643 0.02846 236.26)",
@@ -424,438 +424,6 @@
         "role": "neutral",
         "displayName": "Reading field",
         "cssProperty": "--sample-reading",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.00346 219.53)",
-          "oklch(0.2643 0.00346 219.53)",
-          "oklch(0.3786 0.00346 219.53)",
-          "oklch(0.4929 0.00346 219.53)",
-          "oklch(0.6071 0.00346 219.53)",
-          "oklch(0.7214 0.00346 219.53)",
-          "oklch(0.8357 0.00346 219.53)",
-          "oklch(0.9500 0.00346 219.53)"
-        ]
-      },
-      "sample-list": {
-        "role": "neutral",
-        "displayName": "Summary field",
-        "cssProperty": "--sample-list",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.00668 233.64)",
-          "oklch(0.2643 0.00668 233.64)",
-          "oklch(0.3786 0.00668 233.64)",
-          "oklch(0.4929 0.00668 233.64)",
-          "oklch(0.6071 0.00668 233.64)",
-          "oklch(0.7214 0.00668 233.64)",
-          "oklch(0.8357 0.00668 233.64)",
-          "oklch(0.9500 0.00668 233.64)"
-        ]
-      },
-      "sample-selected": {
-        "role": "neutral",
-        "displayName": "Selected row",
-        "cssProperty": "--sample-selected",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.01514 235.39)",
-          "oklch(0.2643 0.01514 235.39)",
-          "oklch(0.3786 0.01514 235.39)",
-          "oklch(0.4929 0.01514 235.39)",
-          "oklch(0.6071 0.01514 235.39)",
-          "oklch(0.7214 0.01514 235.39)",
-          "oklch(0.8357 0.01514 235.39)",
-          "oklch(0.9500 0.01514 235.39)"
-        ]
-      },
-      "sample-selected-ink": {
-        "role": "neutral",
-        "displayName": "Selected row boundary",
-        "cssProperty": "--sample-selected-ink",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.04391 242.19)",
-          "oklch(0.2643 0.04391 242.19)",
-          "oklch(0.3786 0.04391 242.19)",
-          "oklch(0.4929 0.04391 242.19)",
-          "oklch(0.6071 0.04391 242.19)",
-          "oklch(0.7214 0.04391 242.19)",
-          "oklch(0.8357 0.04391 242.19)",
-          "oklch(0.9500 0.04391 242.19)"
-        ]
-      },
-      "sample-focus": {
-        "role": "neutral",
-        "displayName": "Explicit keyboard focus",
-        "cssProperty": "--sample-focus",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.06995 240.08)",
-          "oklch(0.2643 0.06995 240.08)",
-          "oklch(0.3786 0.06995 240.08)",
-          "oklch(0.4929 0.06995 240.08)",
-          "oklch(0.6071 0.06995 240.08)",
-          "oklch(0.7214 0.06995 240.08)",
-          "oklch(0.8357 0.06995 240.08)",
-          "oklch(0.9500 0.06995 240.08)"
-        ]
-      },
-      "sample-caption": {
-        "role": "neutral",
-        "displayName": "Sample caption",
-        "cssProperty": "--sample-caption",
-        "theme": "light",
-        "tonalRamp": [
-          "oklch(0.1500 0.04004 238.29)",
-          "oklch(0.2643 0.04004 238.29)",
-          "oklch(0.3786 0.04004 238.29)",
-          "oklch(0.4929 0.04004 238.29)",
-          "oklch(0.6071 0.04004 238.29)",
-          "oklch(0.7214 0.04004 238.29)",
-          "oklch(0.8357 0.04004 238.29)",
-          "oklch(0.9500 0.04004 238.29)"
-        ]
-      },
-      "dark-background": {
-        "role": "neutral",
-        "displayName": "Dark Working ground",
-        "cssProperty": "--background",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.04410 245.34)",
-          "oklch(0.2643 0.04410 245.34)",
-          "oklch(0.3786 0.04410 245.34)",
-          "oklch(0.4929 0.04410 245.34)",
-          "oklch(0.6071 0.04410 245.34)",
-          "oklch(0.7214 0.04410 245.34)",
-          "oklch(0.8357 0.04410 245.34)",
-          "oklch(0.9500 0.04410 245.34)"
-        ]
-      },
-      "dark-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Working ink",
-        "cssProperty": "--foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.01088 234.82)",
-          "oklch(0.2643 0.01088 234.82)",
-          "oklch(0.3786 0.01088 234.82)",
-          "oklch(0.4929 0.01088 234.82)",
-          "oklch(0.6071 0.01088 234.82)",
-          "oklch(0.7214 0.01088 234.82)",
-          "oklch(0.8357 0.01088 234.82)",
-          "oklch(0.9500 0.01088 234.82)"
-        ]
-      },
-      "dark-card": {
-        "role": "neutral",
-        "displayName": "Dark Header surface",
-        "cssProperty": "--card",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.04796 244.53)",
-          "oklch(0.2643 0.04796 244.53)",
-          "oklch(0.3786 0.04796 244.53)",
-          "oklch(0.4929 0.04796 244.53)",
-          "oklch(0.6071 0.04796 244.53)",
-          "oklch(0.7214 0.04796 244.53)",
-          "oklch(0.8357 0.04796 244.53)",
-          "oklch(0.9500 0.04796 244.53)"
-        ]
-      },
-      "dark-card-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Header ink",
-        "cssProperty": "--card-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.01088 234.82)",
-          "oklch(0.2643 0.01088 234.82)",
-          "oklch(0.3786 0.01088 234.82)",
-          "oklch(0.4929 0.01088 234.82)",
-          "oklch(0.6071 0.01088 234.82)",
-          "oklch(0.7214 0.01088 234.82)",
-          "oklch(0.8357 0.01088 234.82)",
-          "oklch(0.9500 0.01088 234.82)"
-        ]
-      },
-      "dark-popover": {
-        "role": "neutral",
-        "displayName": "Dark Overlay surface",
-        "cssProperty": "--popover",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.04796 244.53)",
-          "oklch(0.2643 0.04796 244.53)",
-          "oklch(0.3786 0.04796 244.53)",
-          "oklch(0.4929 0.04796 244.53)",
-          "oklch(0.6071 0.04796 244.53)",
-          "oklch(0.7214 0.04796 244.53)",
-          "oklch(0.8357 0.04796 244.53)",
-          "oklch(0.9500 0.04796 244.53)"
-        ]
-      },
-      "dark-popover-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Overlay ink",
-        "cssProperty": "--popover-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.01088 234.82)",
-          "oklch(0.2643 0.01088 234.82)",
-          "oklch(0.3786 0.01088 234.82)",
-          "oklch(0.4929 0.01088 234.82)",
-          "oklch(0.6071 0.01088 234.82)",
-          "oklch(0.7214 0.01088 234.82)",
-          "oklch(0.8357 0.01088 234.82)",
-          "oklch(0.9500 0.01088 234.82)"
-        ]
-      },
-      "dark-primary": {
-        "role": "primary",
-        "displayName": "Dark Signal yellow-green",
-        "cssProperty": "--primary",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.12341 115.61)",
-          "oklch(0.2643 0.12341 115.61)",
-          "oklch(0.3786 0.12341 115.61)",
-          "oklch(0.4929 0.12341 115.61)",
-          "oklch(0.6071 0.12341 115.61)",
-          "oklch(0.7214 0.12341 115.61)",
-          "oklch(0.8357 0.12341 115.61)",
-          "oklch(0.9500 0.12341 115.61)"
-        ]
-      },
-      "dark-primary-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Action ink",
-        "cssProperty": "--primary-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.02662 228.85)",
-          "oklch(0.2643 0.02662 228.85)",
-          "oklch(0.3786 0.02662 228.85)",
-          "oklch(0.4929 0.02662 228.85)",
-          "oklch(0.6071 0.02662 228.85)",
-          "oklch(0.7214 0.02662 228.85)",
-          "oklch(0.8357 0.02662 228.85)",
-          "oklch(0.9500 0.02662 228.85)"
-        ]
-      },
-      "dark-secondary": {
-        "role": "secondary",
-        "displayName": "Dark Supporting blue",
-        "cssProperty": "--secondary",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.05012 241.22)",
-          "oklch(0.2643 0.05012 241.22)",
-          "oklch(0.3786 0.05012 241.22)",
-          "oklch(0.4929 0.05012 241.22)",
-          "oklch(0.6071 0.05012 241.22)",
-          "oklch(0.7214 0.05012 241.22)",
-          "oklch(0.8357 0.05012 241.22)",
-          "oklch(0.9500 0.05012 241.22)"
-        ]
-      },
-      "dark-secondary-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Supporting ink",
-        "cssProperty": "--secondary-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.01088 234.82)",
-          "oklch(0.2643 0.01088 234.82)",
-          "oklch(0.3786 0.01088 234.82)",
-          "oklch(0.4929 0.01088 234.82)",
-          "oklch(0.6071 0.01088 234.82)",
-          "oklch(0.7214 0.01088 234.82)",
-          "oklch(0.8357 0.01088 234.82)",
-          "oklch(0.9500 0.01088 234.82)"
-        ]
-      },
-      "dark-muted": {
-        "role": "neutral",
-        "displayName": "Dark Quiet blue",
-        "cssProperty": "--muted",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.04896 239.92)",
-          "oklch(0.2643 0.04896 239.92)",
-          "oklch(0.3786 0.04896 239.92)",
-          "oklch(0.4929 0.04896 239.92)",
-          "oklch(0.6071 0.04896 239.92)",
-          "oklch(0.7214 0.04896 239.92)",
-          "oklch(0.8357 0.04896 239.92)",
-          "oklch(0.9500 0.04896 239.92)"
-        ]
-      },
-      "dark-muted-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Quiet ink",
-        "cssProperty": "--muted-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.02846 236.26)",
-          "oklch(0.2643 0.02846 236.26)",
-          "oklch(0.3786 0.02846 236.26)",
-          "oklch(0.4929 0.02846 236.26)",
-          "oklch(0.6071 0.02846 236.26)",
-          "oklch(0.7214 0.02846 236.26)",
-          "oklch(0.8357 0.02846 236.26)",
-          "oklch(0.9500 0.02846 236.26)"
-        ]
-      },
-      "dark-accent": {
-        "role": "neutral",
-        "displayName": "Dark Selection blue",
-        "cssProperty": "--accent",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.05012 241.22)",
-          "oklch(0.2643 0.05012 241.22)",
-          "oklch(0.3786 0.05012 241.22)",
-          "oklch(0.4929 0.05012 241.22)",
-          "oklch(0.6071 0.05012 241.22)",
-          "oklch(0.7214 0.05012 241.22)",
-          "oklch(0.8357 0.05012 241.22)",
-          "oklch(0.9500 0.05012 241.22)"
-        ]
-      },
-      "dark-accent-foreground": {
-        "role": "neutral",
-        "displayName": "Dark Selection ink",
-        "cssProperty": "--accent-foreground",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.01088 234.82)",
-          "oklch(0.2643 0.01088 234.82)",
-          "oklch(0.3786 0.01088 234.82)",
-          "oklch(0.4929 0.01088 234.82)",
-          "oklch(0.6071 0.01088 234.82)",
-          "oklch(0.7214 0.01088 234.82)",
-          "oklch(0.8357 0.01088 234.82)",
-          "oklch(0.9500 0.01088 234.82)"
-        ]
-      },
-      "dark-destructive": {
-        "role": "secondary",
-        "displayName": "Dark Failure ink",
-        "cssProperty": "--destructive",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.09077 9.78)",
-          "oklch(0.2643 0.09077 9.78)",
-          "oklch(0.3786 0.09077 9.78)",
-          "oklch(0.4929 0.09077 9.78)",
-          "oklch(0.6071 0.09077 9.78)",
-          "oklch(0.7214 0.09077 9.78)",
-          "oklch(0.8357 0.09077 9.78)",
-          "oklch(0.9500 0.09077 9.78)"
-        ]
-      },
-      "dark-success": {
-        "role": "secondary",
-        "displayName": "Dark Confirmed outcome ink",
-        "cssProperty": "--success",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.08730 160.24)",
-          "oklch(0.2643 0.08730 160.24)",
-          "oklch(0.3786 0.08730 160.24)",
-          "oklch(0.4929 0.08730 160.24)",
-          "oklch(0.6071 0.08730 160.24)",
-          "oklch(0.7214 0.08730 160.24)",
-          "oklch(0.8357 0.08730 160.24)",
-          "oklch(0.9500 0.08730 160.24)"
-        ]
-      },
-      "dark-warning": {
-        "role": "secondary",
-        "displayName": "Dark Attention ink",
-        "cssProperty": "--warning",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.09590 89.07)",
-          "oklch(0.2643 0.09590 89.07)",
-          "oklch(0.3786 0.09590 89.07)",
-          "oklch(0.4929 0.09590 89.07)",
-          "oklch(0.6071 0.09590 89.07)",
-          "oklch(0.7214 0.09590 89.07)",
-          "oklch(0.8357 0.09590 89.07)",
-          "oklch(0.9500 0.09590 89.07)"
-        ]
-      },
-      "dark-info": {
-        "role": "secondary",
-        "displayName": "Dark Acquisition and setup ink",
-        "cssProperty": "--info",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.07014 244.17)",
-          "oklch(0.2643 0.07014 244.17)",
-          "oklch(0.3786 0.07014 244.17)",
-          "oklch(0.4929 0.07014 244.17)",
-          "oklch(0.6071 0.07014 244.17)",
-          "oklch(0.7214 0.07014 244.17)",
-          "oklch(0.8357 0.07014 244.17)",
-          "oklch(0.9500 0.07014 244.17)"
-        ]
-      },
-      "dark-border": {
-        "role": "neutral",
-        "displayName": "Dark Boundary blue",
-        "cssProperty": "--border",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.05310 238.84)",
-          "oklch(0.2643 0.05310 238.84)",
-          "oklch(0.3786 0.05310 238.84)",
-          "oklch(0.4929 0.05310 238.84)",
-          "oklch(0.6071 0.05310 238.84)",
-          "oklch(0.7214 0.05310 238.84)",
-          "oklch(0.8357 0.05310 238.84)",
-          "oklch(0.9500 0.05310 238.84)"
-        ]
-      },
-      "dark-input": {
-        "role": "neutral",
-        "displayName": "Dark Input boundary",
-        "cssProperty": "--input",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.05310 238.84)",
-          "oklch(0.2643 0.05310 238.84)",
-          "oklch(0.3786 0.05310 238.84)",
-          "oklch(0.4929 0.05310 238.84)",
-          "oklch(0.6071 0.05310 238.84)",
-          "oklch(0.7214 0.05310 238.84)",
-          "oklch(0.8357 0.05310 238.84)",
-          "oklch(0.9500 0.05310 238.84)"
-        ]
-      },
-      "dark-ring": {
-        "role": "neutral",
-        "displayName": "Dark Primitive focus",
-        "cssProperty": "--ring",
-        "theme": "dark",
-        "tonalRamp": [
-          "oklch(0.1500 0.05126 235.56)",
-          "oklch(0.2643 0.05126 235.56)",
-          "oklch(0.3786 0.05126 235.56)",
-          "oklch(0.4929 0.05126 235.56)",
-          "oklch(0.6071 0.05126 235.56)",
-          "oklch(0.7214 0.05126 235.56)",
-          "oklch(0.8357 0.05126 235.56)",
-          "oklch(0.9500 0.05126 235.56)"
-        ]
-      },
-      "dark-sample-reading": {
-        "role": "neutral",
-        "displayName": "Dark Reading field",
-        "cssProperty": "--sample-reading",
         "theme": "dark",
         "tonalRamp": [
           "oklch(0.1500 0.04635 244.46)",
@@ -868,9 +436,9 @@
           "oklch(0.9500 0.04635 244.46)"
         ]
       },
-      "dark-sample-list": {
+      "sample-list": {
         "role": "neutral",
-        "displayName": "Dark Summary field",
+        "displayName": "Summary field",
         "cssProperty": "--sample-list",
         "theme": "dark",
         "tonalRamp": [
@@ -884,9 +452,9 @@
           "oklch(0.9500 0.04410 245.34)"
         ]
       },
-      "dark-sample-selected": {
+      "sample-selected": {
         "role": "neutral",
-        "displayName": "Dark Selected row",
+        "displayName": "Selected row",
         "cssProperty": "--sample-selected",
         "theme": "dark",
         "tonalRamp": [
@@ -900,9 +468,9 @@
           "oklch(0.9500 0.05334 240.13)"
         ]
       },
-      "dark-sample-selected-ink": {
+      "sample-selected-ink": {
         "role": "neutral",
-        "displayName": "Dark Selected row boundary",
+        "displayName": "Selected row boundary",
         "cssProperty": "--sample-selected-ink",
         "theme": "dark",
         "tonalRamp": [
@@ -916,9 +484,9 @@
           "oklch(0.9500 0.01088 234.82)"
         ]
       },
-      "dark-sample-focus": {
+      "sample-focus": {
         "role": "neutral",
-        "displayName": "Dark Explicit keyboard focus",
+        "displayName": "Explicit keyboard focus",
         "cssProperty": "--sample-focus",
         "theme": "dark",
         "tonalRamp": [
@@ -932,9 +500,9 @@
           "oklch(0.9500 0.05126 235.56)"
         ]
       },
-      "dark-sample-caption": {
+      "sample-caption": {
         "role": "neutral",
-        "displayName": "Dark Sample caption",
+        "displayName": "Sample caption",
         "cssProperty": "--sample-caption",
         "theme": "dark",
         "tonalRamp": [
@@ -1034,18 +602,19 @@
       }
     ],
     "scope": {
-      "normative": "Selected extension-wide target design",
+      "normative": "Selected dark-only extension-wide target design",
       "evidence": "design/signal-shelf",
       "production": "Existing production stylesheet retains the preceding theme; integration preserves existing business and interaction contracts.",
-      "review": "Initial disposition fix; both queue fixes resolved, ship verdict limited to scored fix scope. A focused addendum separately resolves the corrected source-page staging icon.",
-      "validation": "Parent reports passing typecheck, lint and sample build after the source-control correction. Earlier valid source-scope detector []; focused status contrast minima approximately 5.54:1 light and 5.80:1 dark.",
+      "review": "Current dark-only sample review covers initialization, palette consolidation and removal of theme selection; final documentation verdict is scoped to this refinement.",
+      "validation": "Typecheck, lint and sample build pass. Current detector advisories are unchanged contextual sizes 20px, 13px and 11px. Earlier paired-theme contrast measurements are historical evidence only.",
       "limits": "No whole-application accessibility certification, real acquisition, delivery, credentials, permissions, persistence or restart-recovery verification.",
-      "raster": "No new shipping raster. Lucide functional vectors and nonshipping review JPEGs only.",
+      "raster": "No new shipping raster. Lucide functional vectors and nonshipping dark-only review PNGs only.",
       "tonalRamps": "Eight-step OKLCH tonal ramps are synthesized preview metadata from each observed color's hue/chroma and lightness 15%–95%; they are not normative palette tokens or production CSS."
     },
     "sources": [
       "design/signal-shelf/styles.css",
       "design/signal-shelf/App.tsx",
+      "design/signal-shelf/index.html",
       "design/signal-shelf/README.md",
       "assets/tailwind.css",
       "components/ui/button.tsx",
@@ -1056,21 +625,15 @@
       "components/ui/dialog.tsx"
     ],
     "evidence": [
-      ".impeccable/review/signal-shelf/desktop-light.jpg",
-      ".impeccable/review/signal-shelf/desktop-dark.jpg",
-      ".impeccable/review/signal-shelf/narrow-list.jpg",
-      ".impeccable/review/signal-shelf/narrow-detail.jpg",
-      ".impeccable/review/signal-shelf/narrow-320.jpg",
-      ".impeccable/review/signal-shelf/components.jpg",
-      ".impeccable/review/signal-shelf/settings.jpg",
-      ".impeccable/review/signal-shelf/queue.jpg",
-      ".impeccable/review/signal-shelf/verification.md",
-      ".impeccable/review/signal-shelf/contrast.json",
-      ".impeccable/review/signal-shelf/finish-review.md",
-      ".impeccable/review/signal-shelf/verdict.md",
-      ".impeccable/review/signal-shelf/components-source-controls.jpg"
+      ".impeccable/review/signal-shelf-dark-only/user-842.png",
+      ".impeccable/review/signal-shelf-dark-only/desktop.png",
+      ".impeccable/review/signal-shelf-dark-only/components.png",
+      ".impeccable/review/signal-shelf-dark-only/mobile-list.png",
+      ".impeccable/review/signal-shelf-dark-only/mobile-detail.png",
+      ".impeccable/review/signal-shelf-dark-only/verification.md",
+      ".impeccable/review/signal-shelf-dark-only/finish-review.md"
     ],
-    "notCanonized": "No remaining sample defect from the scored fix scopes. The older production theme is intentional pending integration, not recorded as the target system; small named vector controls and inherited primitive behavior remain bounded observations."
+    "notCanonized": "Unchanged contextual 20px, 13px and 11px type sizes remain bounded observations, not added type-ramp steps. The older production theme remains pending integration; historical contrast checks are not renewed accessibility claims."
   },
   "components": [
     {
@@ -1078,87 +641,87 @@
       "kind": "button",
       "refersTo": "button-primary",
       "description": "Yellow-green priority action, rendered with actual primitive focus, press and disabled states.",
-      "html": "<button type=\"button\" class=\"ds-btn\">Connection settings</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{background:var(--primary,#d9e785);color:var(--primary-foreground,#203139)}.ds-btn:hover{background:color-mix(in oklab,var(--primary,#d9e785) 80%,transparent)}"
+      "html": "<div class=\"ds-preview\"><button type=\"button\" class=\"ds-btn\">Connection settings</button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{background:var(--primary,#d9e785);color:var(--primary-foreground,#203139)}.ds-btn:hover{background:color-mix(in oklab,var(--primary,#d9e785) 80%,transparent)}"
     },
     {
       "name": "Outline Button",
       "kind": "button",
       "refersTo": "button-outline",
       "description": "Supporting export action with a functional Lucide vector; dark input fill follows the imported primitive.",
-      "html": "<button type=\"button\" class=\"ds-btn\" data-icon-start><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M12 15V3\"/></svg>Export ZIP</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{border-color:var(--border,#c8d6e0);background:var(--background,#edf3f6)}.ds-btn:hover,.ds-btn[aria-expanded=true]{background:var(--muted,#e5edf2);color:var(--foreground,#20384a)}:host-context(.dark) .ds-btn{border-color:var(--input,#c8d6e0);background:color-mix(in oklab,var(--input,#c8d6e0) 30%,transparent)}:host-context(.dark) .ds-btn:hover{background:color-mix(in oklab,var(--input,#c8d6e0) 50%,transparent)}"
+      "html": "<div class=\"ds-preview\"><button type=\"button\" class=\"ds-btn\" data-icon-start><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M12 15V3\"/></svg>Export ZIP</button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn:hover,.ds-btn[aria-expanded=true]{background:var(--muted,#29465a);color:var(--foreground,#eaf2f7)}.ds-btn{border-color:var(--input,#35566c);background:color-mix(in oklab,var(--input,#35566c) 30%,transparent)}.ds-btn:hover{background:color-mix(in oklab,var(--input,#35566c) 50%,transparent)}"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
       "description": "A blue supporting action rather than a second yellow-green priority.",
-      "html": "<button type=\"button\" class=\"ds-btn\">Task queue</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{background:var(--secondary,#e5edf2);color:var(--secondary-foreground,#294455)}.ds-btn:hover{background:color-mix(in oklch,var(--secondary,#e5edf2),var(--foreground,#20384a) 5%)}.ds-btn[aria-expanded=true]{background:var(--secondary,#e5edf2);color:var(--secondary-foreground,#294455)}"
+      "html": "<div class=\"ds-preview\"><button type=\"button\" class=\"ds-btn\">Task queue</button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{background:var(--secondary,#2a475c);color:var(--secondary-foreground,#eaf2f7)}.ds-btn:hover{background:color-mix(in oklch,var(--secondary,#2a475c),var(--foreground,#eaf2f7) 5%)}.ds-btn[aria-expanded=true]{background:var(--secondary,#2a475c);color:var(--secondary-foreground,#eaf2f7)}"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
       "description": "Quiet contextual action whose boundary appears through hover/focus.",
-      "html": "<button type=\"button\" class=\"ds-btn\">View details</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn:hover,.ds-btn[aria-expanded=true]{background:var(--muted,#e5edf2);color:var(--foreground,#20384a)}:host-context(.dark) .ds-btn:hover{background:color-mix(in oklab,var(--muted,#e5edf2) 50%,transparent)}"
+      "html": "<div class=\"ds-preview\"><button type=\"button\" class=\"ds-btn\">View details</button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn:hover,.ds-btn[aria-expanded=true]{background:var(--muted,#29465a);color:var(--foreground,#eaf2f7)}.ds-btn:hover{background:color-mix(in oklab,var(--muted,#29465a) 50%,transparent)}"
     },
     {
       "name": "Destructive Button",
       "kind": "button",
       "refersTo": "button-destructive",
       "description": "Error ink and a restrained tinted fill; named-clear confirmation supplies the real interaction contract.",
-      "html": "<button type=\"button\" class=\"ds-btn\">Clear result</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{background:color-mix(in oklab,var(--destructive,#98243a) 10%,transparent);color:var(--destructive,#98243a)}.ds-btn:hover{background:color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}.ds-btn:focus-visible{border-color:color-mix(in oklab,var(--destructive,#98243a) 40%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}:host-context(.dark) .ds-btn{background:color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}:host-context(.dark) .ds-btn:hover{background:color-mix(in oklab,var(--destructive,#98243a) 30%,transparent)}:host-context(.dark) .ds-btn:focus-visible{box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 40%,transparent)}"
+      "html": "<div class=\"ds-preview\"><button type=\"button\" class=\"ds-btn\">Clear result</button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-btn{color:var(--destructive,#ffb2bd)}.ds-btn:focus-visible{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}.ds-btn{background:color-mix(in oklab,var(--destructive,#ffb2bd) 20%,transparent)}.ds-btn:hover{background:color-mix(in oklab,var(--destructive,#ffb2bd) 30%,transparent)}.ds-btn:focus-visible{box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}"
     },
     {
       "name": "Summary Search",
       "kind": "input",
       "refersTo": "search-input",
       "description": "Self-contained visual translation of InputGroup; the sample matches only label and source URL. Static clear button does not implement React state.",
-      "html": "<div class=\"ds-search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21 21-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/></svg><input class=\"ds-search-control\" type=\"search\" aria-label=\"Search capture label or source URL\" placeholder=\"Search label or source URL\"/><button class=\"ds-clear\" type=\"button\" aria-label=\"Clear search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div>",
-      "css": ".ds-search{display:flex;align-items:center;width:100%;min-width:0;height:32px;border:1px solid var(--input,#c8d6e0);border-radius:var(--radius-lg,var(--radius,.625rem));background:transparent;transition:color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);color:var(--muted-foreground,#526b7c)}.ds-search>svg{width:16px;height:16px;margin-left:8px;flex-shrink:0}.ds-search-control{min-width:0;flex:1;width:100%;height:32px;padding:4px 6px;border:0;border-radius:0;background:transparent;color:var(--foreground,#20384a);caret-color:var(--foreground,#20384a);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:16px;line-height:24px;outline:none}.ds-search-control::placeholder{color:var(--muted-foreground,#526b7c)}.ds-search:has(.ds-search-control:focus-visible){border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-clear{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;padding:0;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));color:var(--foreground,#20384a);background:transparent;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-clear svg{width:16px;height:16px}.ds-clear:hover{background:var(--muted,#e5edf2)}.ds-clear:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-clear:active{translate:0 1px}:host-context(.dark) .ds-search{background:color-mix(in oklab,var(--input,#c8d6e0) 30%,transparent)}@media(min-width:768px){.ds-search-control{font-size:14px;line-height:20px}}@media(prefers-reduced-motion:reduce){.ds-search,.ds-clear{transition-duration:.01ms}}"
+      "html": "<div class=\"ds-preview\"><div class=\"ds-search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21 21-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/></svg><input class=\"ds-search-control\" type=\"search\" aria-label=\"Search capture label or source URL\" placeholder=\"Search label or source URL\"/><button class=\"ds-clear\" type=\"button\" aria-label=\"Clear search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-search{display:flex;align-items:center;width:100%;min-width:0;height:32px;border:1px solid var(--input,#35566c);border-radius:var(--radius-lg,var(--radius,.625rem));background:transparent;transition:color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);color:var(--muted-foreground,#b4c8d5)}.ds-search>svg{width:16px;height:16px;margin-left:8px;flex-shrink:0}.ds-search-control{min-width:0;flex:1;width:100%;height:32px;padding:4px 6px;border:0;border-radius:0;background:transparent;color:var(--foreground,#eaf2f7);caret-color:var(--foreground,#eaf2f7);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:16px;line-height:24px;outline:none}.ds-search-control::placeholder{color:var(--muted-foreground,#b4c8d5)}.ds-search:has(.ds-search-control:focus-visible){border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-clear{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;padding:0;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));color:var(--foreground,#eaf2f7);background:transparent;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-clear svg{width:16px;height:16px}.ds-clear:hover{background:color-mix(in oklab,var(--muted,#29465a) 50%,transparent)}.ds-clear:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-clear:active{translate:0 1px}.ds-search{background:color-mix(in oklab,var(--input,#35566c) 30%,transparent)}@media(min-width:768px){.ds-search-control{font-size:14px;line-height:20px}}@media(prefers-reduced-motion:reduce){.ds-search,.ds-clear{transition-duration:.01ms}}"
     },
     {
       "name": "Library Navigation",
       "kind": "nav",
       "refersTo": "navigation",
       "description": "The selected blue rail, current-page state and secondary counts; Base UI runtime provides production navigation behavior.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Library navigation\"><button class=\"ds-btn\" type=\"button\" aria-current=\"page\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Inbox<span class=\"ds-count\">6</span></button><button class=\"ds-btn\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>In progress<span class=\"ds-count\">1</span></button><button class=\"ds-btn\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved<span class=\"ds-count\">1</span></button></nav>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#20384a);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px;border-color:var(--ring,#3a6380);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#3a6380) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:var(--destructive,#98243a);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-nav{display:flex;flex-direction:column;gap:6px;padding:24px 16px 16px;background:var(--sidebar,#142d45);color:var(--sidebar-foreground,#eef4f8);--foreground:var(--sidebar-foreground,#eef4f8);--muted:var(--sidebar-accent,#284b65);--secondary:var(--sidebar-accent,#284b65);--secondary-foreground:var(--sidebar-foreground,#eef4f8);--ring:#d9e785}.ds-nav .ds-btn{width:100%;justify-content:flex-start;height:38px;gap:10px;color:var(--sidebar-foreground,#eef4f8);padding-left:8px}.ds-nav .ds-btn svg{width:16px;height:16px}.ds-nav .ds-btn:hover{background:var(--muted)}.ds-nav .ds-btn[aria-current=page]{background:var(--secondary);color:var(--secondary-foreground)}.ds-count{margin-left:auto;color:var(--sidebar-muted,#b4c8d5);font-size:12px;font-weight:400;font-variant-numeric:tabular-nums}"
+      "html": "<div class=\"ds-preview\"><nav class=\"ds-nav\" aria-label=\"Library navigation\"><button class=\"ds-btn\" type=\"button\" aria-current=\"page\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Inbox<span class=\"ds-count\">6</span></button><button class=\"ds-btn\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>In progress<span class=\"ds-count\">1</span></button><button class=\"ds-btn\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved<span class=\"ds-count\">1</span></button></nav></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;flex-shrink:0;height:32px;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-lg,var(--radius,.625rem));font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px;color:var(--foreground,#eaf2f7);background:transparent;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer}.ds-btn:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px;border-color:var(--ring,#a0c5dc);box-shadow:0 0 0 3px color-mix(in oklab,var(--ring,#a0c5dc) 50%,transparent)}.ds-btn:active:not([aria-haspopup]){translate:0 1px}.ds-btn:disabled{opacity:.5;pointer-events:none}.ds-btn svg{width:16px;height:16px;flex-shrink:0;pointer-events:none}.ds-btn[data-icon-start]{padding-left:8px}.ds-btn[data-icon-end]{padding-right:8px}.ds-btn[aria-invalid=true]{border-color:color-mix(in oklab,var(--destructive,#ffb2bd) 50%,transparent);box-shadow:0 0 0 3px color-mix(in oklab,var(--destructive,#ffb2bd) 40%,transparent)}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}.ds-nav{display:flex;flex-direction:column;gap:6px;padding:24px 16px 16px;background:var(--sidebar,#142d45);color:var(--sidebar-foreground,#eef4f8);--foreground:var(--sidebar-foreground,#eef4f8);--muted:var(--sidebar-accent,#284b65);--secondary:var(--sidebar-accent,#284b65);--secondary-foreground:var(--sidebar-foreground,#eef4f8);--ring:#d9e785}.ds-nav .ds-btn{width:100%;justify-content:flex-start;height:38px;gap:10px;color:var(--sidebar-foreground,#eef4f8);padding-left:8px}.ds-nav .ds-btn svg{width:16px;height:16px}.ds-nav .ds-btn:hover{background:color-mix(in oklab,var(--muted,#284b65) 50%,transparent)}.ds-nav .ds-btn[aria-current=page]{background:var(--secondary,#284b65);color:var(--secondary-foreground,#eef4f8)}.ds-count{margin-left:auto;color:var(--sidebar-muted,#b4c8d5);font-size:12px;font-weight:400;font-variant-numeric:tabular-nums}"
     },
     {
       "name": "Capture Summary Row",
       "kind": "card",
       "refersTo": "capture-row",
       "description": "A flat, summary-only selectable row; selection has a boundary and fill, and static text carries a supported next-action hint.",
-      "html": "<button class=\"ds-row\" type=\"button\" aria-pressed=\"true\" aria-label=\"Open capture @fieldnotes · 1979876543210987654\"><span class=\"ds-row-top\"><span>Twitter / X</span><span>2m ago</span></span><span class=\"ds-row-label\">@fieldnotes · 1979876543210987654</span><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Setup required</span><span class=\"ds-row-top\">Staged locally · configure Locus</span></button>",
-      "css": ".ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#20384a);border-color:var(--border,#c8d6e0);background:transparent}.ds-success{color:var(--success,#186346);border-color:color-mix(in oklab,var(--success,#186346) 20%,transparent);background:color-mix(in oklab,var(--success,#186346) 10%,transparent)}.ds-warning{color:var(--warning,#705008);border-color:color-mix(in oklab,var(--warning,#705008) 20%,transparent);background:color-mix(in oklab,var(--warning,#705008) 10%,transparent)}.ds-info{color:var(--info,#245981);border-color:color-mix(in oklab,var(--info,#245981) 20%,transparent);background:color-mix(in oklab,var(--info,#245981) 10%,transparent)}.ds-destructive{color:var(--destructive,#98243a);background:color-mix(in oklab,var(--destructive,#98243a) 10%,transparent)}:host-context(.dark) .ds-destructive{background:color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-row{display:flex;flex-direction:column;align-items:flex-start;gap:10px;width:100%;padding:16px 12px;text-align:left;border:1px solid transparent;border-bottom-color:var(--border,#c8d6e0);border-radius:8px;background:transparent;color:var(--foreground,#20384a);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5;cursor:pointer;transition:background var(--sample-motion,160ms) var(--sample-ease,cubic-bezier(.22,1,.36,1))}.ds-row:hover{background:var(--muted,#e5edf2)}.ds-row[aria-pressed=true]{background:var(--sample-selected,#dfeaf1);border-color:var(--sample-selected-ink,#20384a)}.ds-row:focus-visible{outline:2px solid var(--sample-focus,#416e8d);outline-offset:3px}.ds-row-top{display:flex;justify-content:space-between;gap:8px;width:100%;color:var(--muted-foreground,#526b7c);font-size:12px}.ds-row-label{font-weight:650;line-height:1.45;overflow-wrap:anywhere}@media(prefers-reduced-motion:reduce){.ds-row{transition-duration:.01ms}}"
+      "html": "<div class=\"ds-preview\"><button class=\"ds-row\" type=\"button\" aria-pressed=\"true\" aria-label=\"Open capture @fieldnotes · 1979876543210987654\"><span class=\"ds-row-top\"><span>Twitter / X</span><span>2m ago</span></span><span class=\"ds-row-label\">@fieldnotes · 1979876543210987654</span><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Setup required</span><span class=\"ds-row-top\">Staged locally · configure Locus</span></button></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#eaf2f7);border-color:var(--border,#35566c);background:transparent}.ds-success{color:var(--success,#91d6b1);border-color:color-mix(in oklab,var(--success,#91d6b1) 20%,transparent);background:color-mix(in oklab,var(--success,#91d6b1) 10%,transparent)}.ds-warning{color:var(--warning,#f0d48c);border-color:color-mix(in oklab,var(--warning,#f0d48c) 20%,transparent);background:color-mix(in oklab,var(--warning,#f0d48c) 10%,transparent)}.ds-info{color:var(--info,#9cc8ed);border-color:color-mix(in oklab,var(--info,#9cc8ed) 20%,transparent);background:color-mix(in oklab,var(--info,#9cc8ed) 10%,transparent)}.ds-destructive{color:var(--destructive,#ffb2bd)}.ds-destructive{background:color-mix(in oklab,var(--destructive,#ffb2bd) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-row{display:flex;flex-direction:column;align-items:flex-start;gap:10px;width:100%;padding:16px 12px;text-align:left;border:1px solid transparent;border-bottom-color:var(--border,#35566c);border-radius:8px;background:transparent;color:var(--foreground,#eaf2f7);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5;cursor:pointer;transition:background var(--sample-motion,160ms) var(--sample-ease,cubic-bezier(.22,1,.36,1))}.ds-row:hover{background:var(--muted,#29465a)}.ds-row[aria-pressed=true]{background:var(--sample-selected,#28485e);border-color:var(--sample-selected-ink,#eaf2f7)}.ds-row:focus-visible{outline:2px solid var(--sample-focus,#a0c5dc);outline-offset:3px}.ds-row-top{display:flex;justify-content:space-between;gap:8px;width:100%;color:var(--muted-foreground,#b4c8d5);font-size:12px}.ds-row-label{font-weight:650;line-height:1.45;overflow-wrap:anywhere}@media(prefers-reduced-motion:reduce){.ds-row{transition-duration:.01ms}}"
     },
     {
       "name": "Parallel Outcomes and Status Vocabulary",
       "kind": "custom",
       "refersTo": "outcome-strip",
       "description": "Actual ComponentSheet state vocabulary and the retention-failure signature: acquisition completion, local loss and confirmed Locus saving coexist.",
-      "html": "<div class=\"ds-outcomes-specimen\"><div class=\"ds-status-line\"><span class=\"ds-status ds-outline\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Staged locally</span><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved to Locus</span><span class=\"ds-status ds-destructive\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Save failed</span><span class=\"ds-status ds-warning\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/></svg>Partial capture</span><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Acquiring</span></div><dl class=\"ds-outcomes\" aria-label=\"Independent capture outcomes\"><div><dt>Capture</dt><dd><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Complete</span></dd></div><div><dt>Local copy</dt><dd><span class=\"ds-status ds-destructive\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Not retained</span></dd></div><div><dt>Locus save</dt><dd><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved</span></dd></div></dl></div>",
-      "css": ".ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#20384a);border-color:var(--border,#c8d6e0);background:transparent}.ds-success{color:var(--success,#186346);border-color:color-mix(in oklab,var(--success,#186346) 20%,transparent);background:color-mix(in oklab,var(--success,#186346) 10%,transparent)}.ds-warning{color:var(--warning,#705008);border-color:color-mix(in oklab,var(--warning,#705008) 20%,transparent);background:color-mix(in oklab,var(--warning,#705008) 10%,transparent)}.ds-info{color:var(--info,#245981);border-color:color-mix(in oklab,var(--info,#245981) 20%,transparent);background:color-mix(in oklab,var(--info,#245981) 10%,transparent)}.ds-destructive{color:var(--destructive,#98243a);background:color-mix(in oklab,var(--destructive,#98243a) 10%,transparent)}:host-context(.dark) .ds-destructive{background:color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-outcomes-specimen{color:var(--foreground,#20384a);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5}.ds-status-line{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.ds-outcomes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--border,#c8d6e0)}.ds-outcomes dt{margin-bottom:6px;color:var(--muted-foreground,#526b7c);font-size:12px}.ds-outcomes dd{margin:0}.ds-outcomes .ds-status{height:auto;min-height:24px;white-space:normal;text-align:left}@media(max-width:767px){.ds-outcomes{gap:8px}.ds-outcomes dt{font-size:11px}.ds-outcomes .ds-status{font-size:11px;padding-inline:5px}}"
+      "html": "<div class=\"ds-preview\"><div class=\"ds-outcomes-specimen\"><div class=\"ds-status-line\"><span class=\"ds-status ds-outline\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Staged locally</span><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved to Locus</span><span class=\"ds-status ds-destructive\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Save failed</span><span class=\"ds-status ds-warning\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/></svg>Partial capture</span><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Acquiring</span></div><dl class=\"ds-outcomes\" aria-label=\"Independent capture outcomes\"><div><dt>Capture</dt><dd><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Complete</span></dd></div><div><dt>Local copy</dt><dd><span class=\"ds-status ds-destructive\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Not retained</span></dd></div><div><dt>Locus save</dt><dd><span class=\"ds-status ds-success\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m20 6-11 11-5-5\"/></svg>Saved</span></dd></div></dl></div></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#eaf2f7);border-color:var(--border,#35566c);background:transparent}.ds-success{color:var(--success,#91d6b1);border-color:color-mix(in oklab,var(--success,#91d6b1) 20%,transparent);background:color-mix(in oklab,var(--success,#91d6b1) 10%,transparent)}.ds-warning{color:var(--warning,#f0d48c);border-color:color-mix(in oklab,var(--warning,#f0d48c) 20%,transparent);background:color-mix(in oklab,var(--warning,#f0d48c) 10%,transparent)}.ds-info{color:var(--info,#9cc8ed);border-color:color-mix(in oklab,var(--info,#9cc8ed) 20%,transparent);background:color-mix(in oklab,var(--info,#9cc8ed) 10%,transparent)}.ds-destructive{color:var(--destructive,#ffb2bd)}.ds-destructive{background:color-mix(in oklab,var(--destructive,#ffb2bd) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-outcomes-specimen{color:var(--foreground,#eaf2f7);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5}.ds-status-line{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.ds-outcomes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--border,#35566c)}.ds-outcomes dt{margin-bottom:6px;color:var(--muted-foreground,#b4c8d5);font-size:12px}.ds-outcomes dd{margin:0}.ds-outcomes .ds-status{height:auto;min-height:24px;white-space:normal;text-align:left}@media(max-width:767px){.ds-outcomes{gap:8px}.ds-outcomes dt{font-size:11px}.ds-outcomes .ds-status{font-size:11px;padding-inline:5px}}"
     },
     {
       "name": "Queue Status and Progress",
       "kind": "custom",
       "refersTo": "queue-progress",
-      "description": "Corrected shared queue statuses with explicit themed native progress fill/track; 64% remains a labeled static sample.",
-      "html": "<div class=\"ds-queue\"><div class=\"ds-queue-row\"><div class=\"ds-queue-heading\"><strong>Quiet workshop · P2</strong><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Acquiring</span></div><progress class=\"ds-progress\" max=\"100\" value=\"64\" aria-label=\"Synthetic acquisition progress\"></progress><span class=\"ds-queue-copy\">64% in this static example · producer-reported progress</span></div><div class=\"ds-queue-row\"><strong>Morning walk notes</strong><span class=\"ds-status ds-outline\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Staged locally</span><span class=\"ds-queue-copy\">Configure Locus, then explicitly continue the original save.</span></div><p class=\"ds-queue-copy\">Closing the queue does not cancel accepted captures.</p></div>",
-      "css": ".ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#20384a);border-color:var(--border,#c8d6e0);background:transparent}.ds-success{color:var(--success,#186346);border-color:color-mix(in oklab,var(--success,#186346) 20%,transparent);background:color-mix(in oklab,var(--success,#186346) 10%,transparent)}.ds-warning{color:var(--warning,#705008);border-color:color-mix(in oklab,var(--warning,#705008) 20%,transparent);background:color-mix(in oklab,var(--warning,#705008) 10%,transparent)}.ds-info{color:var(--info,#245981);border-color:color-mix(in oklab,var(--info,#245981) 20%,transparent);background:color-mix(in oklab,var(--info,#245981) 10%,transparent)}.ds-destructive{color:var(--destructive,#98243a);background:color-mix(in oklab,var(--destructive,#98243a) 10%,transparent)}:host-context(.dark) .ds-destructive{background:color-mix(in oklab,var(--destructive,#98243a) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-queue{font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground,#20384a)}.ds-queue-row{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px 0;border-bottom:1px solid var(--border,#c8d6e0)}.ds-queue-row strong{font-size:14px}.ds-queue-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}.ds-queue-copy{font-size:13px;color:var(--muted-foreground,#526b7c)}.ds-progress{width:100%;height:5px;appearance:none;border:0;border-radius:4px;color:var(--info,#245981);background:var(--muted,#e5edf2)}.ds-progress::-webkit-progress-bar{background:var(--muted,#e5edf2);border-radius:4px}.ds-progress::-webkit-progress-value{background:var(--info,#245981);border-radius:4px}.ds-progress::-moz-progress-bar{background:var(--info,#245981);border-radius:4px}"
+      "description": "Corrected shared queue statuses with explicit dark native progress fill/track; 64% remains a labeled static sample.",
+      "html": "<div class=\"ds-preview\"><div class=\"ds-queue\"><div class=\"ds-queue-row\"><div class=\"ds-queue-heading\"><strong>Quiet workshop · P2</strong><span class=\"ds-status ds-info\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Acquiring</span></div><progress class=\"ds-progress\" max=\"100\" value=\"64\" aria-label=\"Synthetic acquisition progress\"></progress><span class=\"ds-queue-copy\">64% in this static example · producer-reported progress</span></div><div class=\"ds-queue-row\"><strong>Morning walk notes</strong><span class=\"ds-status ds-outline\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M22 12h-6l-2 3h-4l-2-3H2\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z\"/></svg>Staged locally</span><span class=\"ds-queue-copy\">Configure Locus, then explicitly continue the original save.</span></div><p class=\"ds-queue-copy\">Closing the queue does not cancel accepted captures.</p></div></div>",
+      "css": ".ds-preview{padding:16px;background:var(--sample-reading,#132b3e);color:var(--foreground,#eaf2f7);color-scheme:dark}.ds-status{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:20px;width:fit-content;flex-shrink:0;padding:2px 8px;border:1px solid transparent;border-radius:calc(var(--radius,.625rem)*2.6);font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;overflow:hidden;transition:all 150ms cubic-bezier(.4,0,.2,1)}.ds-status:has(svg){padding-left:6px}.ds-status svg{width:12px;height:12px;flex-shrink:0;pointer-events:none}.ds-outline{color:var(--foreground,#eaf2f7);border-color:var(--border,#35566c);background:transparent}.ds-success{color:var(--success,#91d6b1);border-color:color-mix(in oklab,var(--success,#91d6b1) 20%,transparent);background:color-mix(in oklab,var(--success,#91d6b1) 10%,transparent)}.ds-warning{color:var(--warning,#f0d48c);border-color:color-mix(in oklab,var(--warning,#f0d48c) 20%,transparent);background:color-mix(in oklab,var(--warning,#f0d48c) 10%,transparent)}.ds-info{color:var(--info,#9cc8ed);border-color:color-mix(in oklab,var(--info,#9cc8ed) 20%,transparent);background:color-mix(in oklab,var(--info,#9cc8ed) 10%,transparent)}.ds-destructive{color:var(--destructive,#ffb2bd)}.ds-destructive{background:color-mix(in oklab,var(--destructive,#ffb2bd) 20%,transparent)}@media(prefers-reduced-motion:reduce){.ds-status{transition-duration:.01ms}}.ds-queue{font-family:\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground,#eaf2f7)}.ds-queue-row{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px 0;border-bottom:1px solid var(--border,#35566c)}.ds-queue-row strong{font-size:14px}.ds-queue-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}.ds-queue-copy{font-size:13px;color:var(--muted-foreground,#b4c8d5)}.ds-progress{width:100%;height:5px;appearance:none;border:0;border-radius:4px;color:var(--info,#9cc8ed);background:var(--muted,#29465a)}.ds-progress::-webkit-progress-bar{background:var(--muted,#29465a);border-radius:4px}.ds-progress::-webkit-progress-value{background:var(--info,#9cc8ed);border-radius:4px}.ds-progress::-moz-progress-bar{background:var(--info,#9cc8ed);border-radius:4px}"
     }
   ],
   "narrative": {
     "northStar": "Signal shelf",
-    "overview": "Signal shelf is the selected, normative target design for Locus capture across the extension. Its first realized evidence is the standalone React sample in `design/signal-shelf`, using the installed shadcn/Base UI primitives and Lucide vectors. The existing production stylesheet and production surfaces still carry the preceding theme; this document does not claim that they have migrated. Future production integration must preserve the existing business, state ownership and interaction contracts.\n\nThe working environment combines mineral-blue navigation, pale blue-white list and reading surfaces, yellow-green priority actions, compact flat rows and a fixed UI sans hierarchy. Dark mode keeps the same blue material. The personal user can scan retained summaries, inspect content and read three independent outcome facts before choosing a supported next action. The signature is a parallel outcome strip, not a sequential progress display.\n\nThis specification records the sample after review corrections. `finish-review.md` initially required two queue fixes; `verdict.md` resolves both and gives a ship disposition only for that fix scope. Its source-control addendum separately resolves the staging-icon correction against `components-source-controls.jpg`, again at that focused scope. The retained desktop, dark, narrow, components, settings and queue captures and `verification.md` establish the sample review boundary. The parent reports typecheck, lint and sample build passing again after the source-control correction; the earlier valid source-scope detector result was `[]`. Focused status specimens reached approximately 5.54:1 minimum contrast in light and 5.80:1 in dark; this is not full accessibility certification. No new shipping raster was created.",
+    "overview": "Signal shelf is the selected, normative dark-only target design for Locus capture across the extension. Its first realized evidence is the standalone React sample in `design/signal-shelf`, using the installed shadcn/Base UI primitives and Lucide vectors. Existing production surfaces still carry the preceding theme; future integration must preserve the established business, state ownership and interaction contracts.\n\nThe working environment combines mineral-blue navigation, layered dark-blue list and reading surfaces, yellow-green priority actions, compact flat rows and a fixed UI sans hierarchy. It initializes with dark native controls and offers no theme switch. The personal user can scan retained summaries, inspect content and read three independent outcome facts before choosing a supported next action. The signature is a parallel outcome strip, not a sequential progress display.\n\nCurrent dark-only evidence is retained in `.impeccable/review/signal-shelf-dark-only`: the five viewport/component captures and `verification.md` cover initialization, consolidated tokens, removed theme selection, narrow focus return and bounded sample behavior. Typecheck, lint and sample build pass. Earlier paired-theme contrast results are historical evidence, not a new accessibility certification; no shipping raster was added.",
     "keyCharacteristics": [
-      "Mineral-blue working surfaces in both themes.",
+      "Dark-only mineral-blue working surfaces and native controls.",
       "Fixed UI type roles and restrained, flat component geometry.",
       "Parallel Capture, Local copy and Locus save facts.",
       "Persistent reasons and supported next actions beside the content.",
@@ -1187,7 +750,7 @@
       }
     ],
     "dos": [
-      "Do preserve the blue material, action priority and semantic token roles across both themes.",
+      "Do preserve the dark-blue material, yellow-green action priority and semantic token roles on every target surface.",
       "Do show status as a word, a functional vector icon and a semantic color; keep staging neutral.",
       "Do keep the three independent outcomes readable together, including when local retention fails after Locus succeeds.",
       "Do state the supported recovery and retention limits beside the affected capture, after transient feedback disappears.",

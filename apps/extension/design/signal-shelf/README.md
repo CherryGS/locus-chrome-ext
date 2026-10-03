@@ -20,7 +20,7 @@ Git files. The HTML entry and its styles contain no direction contract.
 ## Review
 
 - Use Inbox sample and Component sheet to compare full-context and reusable
-  examples. Toggle Light/Dark for the paired palette.
+  examples. The sample uses the selected dark-only palette with no theme switch.
 - Use Example to inspect normal, empty and loading collection states.
 - Choose a capture to see independent Capture, Local copy and Locus save facts.
   Preview keeps the content readable; Metadata and Activity expose detail.
