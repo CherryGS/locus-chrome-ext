@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from "react";
-import { Globe2Icon, MoonIcon, ShieldCheckIcon, SunIcon } from "lucide-react";
+import { Globe2Icon, ShieldCheckIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +34,6 @@ export function WorkspaceSettings({
   access,
   busy,
   onEnable,
-  dark,
-  onTheme,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,8 +42,6 @@ export function WorkspaceSettings({
   access: SiteAccess;
   busy: string;
   onEnable: (site: CaptureSite) => void;
-  dark: boolean;
-  onTheme: () => void;
 }) {
   const [tab, setTab] = useState("connection");
   const [connecting, setConnecting] = useState(false);
@@ -72,7 +68,7 @@ export function WorkspaceSettings({
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Manage your Locus connection, website access and appearance.
+            Manage your Locus connection and website access.
           </DialogDescription>
         </DialogHeader>
         <Tabs
@@ -152,31 +148,6 @@ export function WorkspaceSettings({
                     );
                   })}
                 </FieldGroup>
-              </FieldSet>
-              <FieldSet>
-                <FieldLegend>Appearance</FieldLegend>
-                <Field orientation="horizontal">
-                  <div className="min-w-0 flex-1">
-                    <FieldLabel htmlFor="workspace-theme">Theme</FieldLabel>
-                    <FieldDescription>
-                      {dark ? "Dark" : "Light"}
-                    </FieldDescription>
-                  </div>
-                  <Button
-                    id="workspace-theme"
-                    size="sm"
-                    variant="outline"
-                    aria-label={dark ? "Use light theme" : "Use dark theme"}
-                    onClick={onTheme}
-                  >
-                    {dark ? (
-                      <SunIcon data-icon="inline-start" />
-                    ) : (
-                      <MoonIcon data-icon="inline-start" />
-                    )}
-                    {dark ? "Use light theme" : "Use dark theme"}
-                  </Button>
-                </Field>
               </FieldSet>
             </FieldGroup>
           </TabsContent>

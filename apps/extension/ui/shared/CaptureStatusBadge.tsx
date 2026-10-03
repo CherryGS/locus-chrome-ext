@@ -1,12 +1,12 @@
 import {
-  CheckCircle2Icon,
+  CheckIcon,
+  CircleAlertIcon,
   CircleHelpIcon,
   Clock3Icon,
   DownloadIcon,
   InboxIcon,
   LoaderCircleIcon,
   TriangleAlertIcon,
-  XCircleIcon,
 } from "lucide-react";
 import type { CaptureResult } from "@locus/capture-core/model";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { captureStates, type CaptureState } from "./capture-status";
 
 const icons = {
-  "locus-saved": CheckCircle2Icon,
+  "locus-saved": CheckIcon,
   uncaptured: DownloadIcon,
   checking: LoaderCircleIcon,
   importing: LoaderCircleIcon,
@@ -22,7 +22,7 @@ const icons = {
   saving: LoaderCircleIcon,
   saved: InboxIcon,
   partial: TriangleAlertIcon,
-  failed: XCircleIcon,
+  failed: CircleAlertIcon,
   unknown: CircleHelpIcon,
 };
 
@@ -108,6 +108,7 @@ export function CaptureOutcomeBadges({
                   : "outline"
             }
           >
+            {retention.state === "failed" ? <CircleAlertIcon aria-hidden="true" data-icon="inline-start" /> : retention.state === "pending" ? <Clock3Icon aria-hidden="true" data-icon="inline-start" /> : <TriangleAlertIcon aria-hidden="true" data-icon="inline-start" />}
             {retention.state === "retained"
               ? `Saved revision ${retention.revision}`
               : retention.state === "pending"

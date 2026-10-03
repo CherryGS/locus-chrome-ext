@@ -75,13 +75,13 @@ export function CaptureList({
   return (
     <section
       aria-label="Capture list"
-      className="flex h-full min-h-0 min-w-0 flex-col border-r bg-background"
+      className="capture-list flex h-full min-h-0 min-w-0 flex-col border-r"
     >
       <header className="flex shrink-0 flex-col gap-4 border-b px-4 pb-4 pt-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <SidebarTrigger />
-            <h2 className="truncate text-sm font-semibold">
+            <h2 className="capture-list-title truncate">
               {viewLabels[view]}
             </h2>
           </div>
@@ -130,12 +130,12 @@ export function CaptureList({
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="capture-search" className="sr-only">
-              Search captures by label, uploader, author, source ID or URL
+              Search captures by label or source URL
             </FieldLabel>
             <InputGroup>
               <InputGroupInput
                 id="capture-search"
-                placeholder="Search author, ID or URL"
+                placeholder="Search label or source URL"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -278,7 +278,7 @@ export function CaptureList({
                   {allCount === 0
                     ? "Enable a source in Settings → General, then use its capture action."
                     : query
-                      ? "Try another search or workspace view."
+                      ? "Search matches capture labels and source URLs. Try another search or workspace view."
                       : view === "inbox"
                         ? "Captures needing attention and locally staged content appear here. Your confirmed saves remain in Saved."
                         : "Use another view to find your retained captures."}

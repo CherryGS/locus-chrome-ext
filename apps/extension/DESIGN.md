@@ -1,6 +1,6 @@
 ---
 name: Locus capture — Signal shelf
-description: Dark-only extension-wide target system, realized first in the standalone Signal shelf sample.
+description: Dark-only production design for the Locus capture workspace and shared capture controls.
 colors:
   background: "#102638"
   foreground: "#eaf2f7"
@@ -28,12 +28,12 @@ colors:
   sidebar-foreground: "#eef4f8"
   sidebar-accent: "#284b65"
   sidebar-muted: "#b4c8d5"
-  sample-reading: "#132b3e"
-  sample-list: "#102638"
-  sample-selected: "#28485e"
-  sample-selected-ink: "#eaf2f7"
-  sample-focus: "#a0c5dc"
-  sample-caption: "#b4c8d5"
+  workspace-reading: "#132b3e"
+  workspace-list: "#102638"
+  workspace-selected: "#28485e"
+  workspace-selected-ink: "#eaf2f7"
+  workspace-focus: "#a0c5dc"
+  workspace-caption: "#b4c8d5"
 typography:
   workspace-title:
     fontFamily: '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif'
@@ -68,7 +68,6 @@ typography:
     fontWeight: 500
     lineHeight: "20px"
 rounded:
-  progress: "4px"
   row: "8px"
   medium: "8px"
   large: "10px"
@@ -85,10 +84,7 @@ spacing:
   inset: "18px"
   pane: "20px"
   section: "24px"
-  navigation: "28px"
   reading: "32px"
-  specimen: "36px"
-  canvas: "40px"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -103,6 +99,12 @@ components:
     typography: "{typography.control}"
     rounded: "{rounded.large}"
     height: "32px"
+    padding: "0 10px"
+  button-outline-small:
+    backgroundColor: "color-mix(in oklab, var(--input) 30%, transparent)"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.medium}"
+    height: "28px"
     padding: "0 10px"
   button-secondary:
     backgroundColor: "{colors.secondary}"
@@ -134,7 +136,6 @@ components:
   navigation:
     backgroundColor: "{colors.sidebar}"
     textColor: "{colors.sidebar-foreground}"
-    padding: "24px 16px 16px"
   capture-row:
     backgroundColor: "transparent"
     textColor: "{colors.foreground}"
@@ -155,12 +156,10 @@ components:
     padding: "2px 8px"
   outcome-strip:
     padding: "18px 0 0"
-  queue-progress:
-    backgroundColor: "{colors.muted}"
-    textColor: "{colors.info}"
-    rounded: "{rounded.progress}"
-    height: "5px"
-    width: "100%"
+  queue-row:
+    textColor: "{colors.foreground}"
+    typography: "{typography.body}"
+    padding: "16px 0"
 ---
 
 # Design System: Locus capture — Signal shelf
@@ -169,11 +168,11 @@ components:
 
 **Creative North Star: "Signal shelf"**
 
-Signal shelf is the selected, normative dark-only target design for Locus capture across the extension. Its first realized evidence is the standalone React sample in `design/signal-shelf`, using the installed shadcn/Base UI primitives and Lucide vectors. Existing production surfaces still carry the preceding theme; future integration must preserve the established business, state ownership and interaction contracts.
+Signal shelf is the accepted dark-only visual world implemented in the production Locus capture workspace and shared capture controls. Mineral-blue navigation, distinct list and reading layers, yellow-green priority actions and compact flat rows support personal capture work. The accepted FORM is grounded candidate 7, inherited seed `0e7c3974`; the production surface contract preserves this provenance.
 
-The working environment combines mineral-blue navigation, layered dark-blue list and reading surfaces, yellow-green priority actions, compact flat rows and a fixed UI sans hierarchy. It initializes with dark native controls and offers no theme switch. The personal user can scan retained summaries, inspect content and read three independent outcome facts before choosing a supported next action. The signature is a parallel outcome strip, not a sequential progress display.
+This Operate environment uses a fixed UI sans hierarchy and functional Lucide vectors. Capture, Local copy and Locus save appear as independent facts above content, with persistent explanations and supported recovery before secondary diagnostics. Dark native controls initialize without a theme switch. Existing host operations, ownership and capabilities remain the behavioral authority.
 
-Current dark-only evidence is retained in `.impeccable/review/signal-shelf-dark-only`: the five viewport/component captures and `verification.md` cover initialization, consolidated tokens, removed theme selection, narrow focus return and bounded sample behavior. Typecheck, lint and sample build pass. Earlier paired-theme contrast results are historical evidence, not a new accessibility certification; no shipping raster was added.
+Implementation evidence is `assets/tailwind.css`, the results components, `CaptureQueuePanel` and shared status controls. The production review folder records viewport and fixture checks, including the corrected in-place Retry reads action. Typecheck, lint and MV3 build passed after the correction; 394 unit tests passed earlier. HTTP localhost previews loaded real production components with disposable in-memory host fixtures. The browser URL policy blocked installed-extension inspection: native Chrome/source mounting, downloads, grants and live Locus delivery remain unverified, and updated browser assertions were not executed. These checks establish scoped UI evidence, not a whole-product certification. Review PNGs are nonshipping; no new shipping raster was added.
 
 **Key Characteristics:**
 
@@ -185,26 +184,25 @@ Current dark-only evidence is retained in `.impeccable/review/signal-shelf-dark-
 
 ## Colors
 
-The palette is a dark-blue working environment with a yellow-green action accent and independent semantic status inks. The frontmatter is normative: each unsuffixed name maps directly to the sample custom property shared by `:root` and `.dark`. These are the only supported palette values. The action and navigation roles retain the selected Signal shelf colors.
+The palette combines dark-blue working layers, yellow-green action priority and separate semantic outcome inks. Frontmatter values are normative and map directly to production custom properties in the shared `:root, .dark` block. The six `workspace-*` names replace the sample's names. Chart and additional sidebar roles alias these primitives; aliases do not establish extra colors. Sidecar tonal ramps are preview metadata, not production palette additions.
 
 ### Primary
 
-- **Signal yellow-green** (`primary`, `primary-foreground`): priority action fill with dark action text; also used for selection text and the small navigation brand vector.
-- Hover lowers primary fill to 80% opacity. It does not change the action's semantic role.
+- **Signal yellow-green** (`primary`, `primary-foreground`): priority action fill with dark text, text selection and the small navigation brand vector. Primary hover uses 80% fill opacity.
 
 ### Secondary
 
-- **Blue action surface** (`secondary`, `secondary-foreground`): supporting actions. The navigation overrides this role locally with `sidebar-accent` and `sidebar-foreground`.
-- **Selected blue** (`accent`, `accent-foreground`, `sample-selected`, `sample-selected-ink`): modest selection and hover surfaces; selected capture rows have a contrasting boundary as well as a fill.
-- **Outcome inks** (`success`, `warning`, `info`, `destructive`): confirmed completion, incomplete/uncertain outcomes, acquisition/setup information and actual failure. Bright status inks remain readable on dark working surfaces. Badge fill and stroke derive from these inks at low opacity rather than adding new colors.
+- **Supporting blue** (`secondary`, `secondary-foreground`): supporting actions; the sidebar has its own active-navigation blue.
+- **Selection blue** (`accent`, `accent-foreground`, `workspace-selected`, `workspace-selected-ink`): restrained active and hover surfaces. Selected capture rows have a visible boundary as well as a fill.
+- **Outcome inks** (`success`, `warning`, `info`, `destructive`): confirmed completion, incomplete or uncertain outcomes, acquisition or setup, and actual failure. Badge fills and strokes derive from these inks at low opacity.
 
 ### Neutral
 
-- **Mineral navigation** (`sidebar`, `sidebar-foreground`, `sidebar-accent`, `sidebar-muted`): persistent blue rail, readable labels, active background and secondary counts.
-- **Working ground** (`background`, `sample-list`, `sample-reading`): shell, summary list and content field. Dark reading remains a distinct blue layer.
-- **Raised blue surface** (`card`, `card-foreground`, `popover`, `popover-foreground`): inspector header and overlays.
-- **Quiet blue support** (`muted`, `muted-foreground`, `sample-caption`): subordinate copy, subtle hover and progress track.
-- **Boundary and focus** (`border`, `input`, `ring`, `sample-focus`): divisions, input strokes and keyboard focus. Base UI focus rings coexist with the sample's explicit outline.
+- **Mineral navigation** (`sidebar`, `sidebar-foreground`, `sidebar-accent`, `sidebar-muted`): persistent rail, active view and subordinate counts.
+- **Working ground** (`background`, `workspace-list`, `workspace-reading`): shell, summary list and distinct content field.
+- **Raised blue** (`card`, `card-foreground`, `popover`, `popover-foreground`): inspector header, recovery area, file containers and overlays.
+- **Quiet support** (`muted`, `muted-foreground`, `workspace-caption`): subordinate copy and restrained interaction feedback.
+- **Boundary and focus** (`border`, `input`, `ring`, `workspace-focus`): dividers, fields and keyboard indication. Primitive rings coexist with the explicit workspace outline.
 
 **The Parallel Facts Rule.** Keep Capture, Local copy and Locus save independently labeled. Do not connect them with arrows, numbers or one aggregate success claim.
 
@@ -212,117 +210,111 @@ The palette is a dark-blue working environment with a yellow-green action accent
 
 ## Typography
 
-**UI and Reading Font:** Segoe UI Variable, Segoe UI, system-ui, sans-serif. This is an Operate surface: the system font is used for task UI, with no separate display role.
+**UI and Reading Font:** Segoe UI Variable, Segoe UI, system-ui, sans-serif. This task surface has no separate decorative display role.
 
-The main ramp is fixed at (12 / 14 / 16 / 18 / 24px). The hierarchy relies on size, weight and spacing; headings do not scale fluidly with the viewport.
+The fixed ramp is (12 / 14 / 16 / 18 / 24px). Size, weight and spacing establish hierarchy; headings do not grow fluidly with viewport width.
 
 ### Hierarchy
 
-- **Workspace title:** `workspace-title`; used for the list heading. The specimen title uses the same size and weight without the list's tracking.
-- **Record title:** `record-title`; wraps long identifiers. Specimen section headings use the same size/weight but retain normal tracking; the component sheet also demonstrates an inherited semibold (600) specimen heading.
-- **Reading:** `reading`; captured prose has a maximum measure of (68ch), preserved line breaks and anywhere wrapping.
-- **Body:** `body`; task copy and record rows. Record labels use weight (650) and line height (1.45).
-- **Label:** `label`; metadata, source context, counts and explanatory captions. Counts use tabular numerals.
-- **Control:** `control`; inherited primitive labels. Badges use (12px / 500 / 16px line height); inputs inherit (16px / 24px) below 768px and (14px / 20px) at 768px and above.
+- **Workspace title:** `workspace-title`; list heading with restrained tracking.
+- **Record title:** `record-title`; inspected capture heading with anywhere wrapping. Captured record titles use the same size with medium weight (500).
+- **Reading:** `reading`; captured prose uses (68ch) maximum measure, preserved line breaks and anywhere wrapping.
+- **Body:** `body`; task copy and summary rows. Summary titles use weight (650) and line height (1.45).
+- **Label:** `label`; source context, timestamps, counts and captions. Navigation counts use tabular numerals.
+- **Control:** `control`; default primitive labels. Small buttons use (12.8px), extra-small buttons and badges use (12px); badges have weight (500) and (16px) line height. Inputs use (16px) below 768px and (14px) at and above it.
 
-Observed exceptions are contextual, not new ramp steps: the brand word is (20px), connection/helper text uses (13px), and narrow outcome captions/badges use (11px). Do not reuse these exceptions as display styles.
+The (20px) brand word and (11px) narrow outcome captions/badges are bounded contextual exceptions, not additional reusable heading roles. Do not promote source-host inherited typography into the workspace ramp.
 
 **The UI Voice Rule.** Use the fixed UI sans hierarchy for work surfaces. Reading content gains line height and measure rather than a decorative display face.
 
 ## Layout
 
-The sample's wide first expression is navigation, summary list and flexible inspector: columns (192px / 352px / minmax(0, 1fr)). At widths below (1200px), the rail/list become (160px / 304px). Below (960px), the rail hides and explicit navigation opens a dialog; the list remains (304px). Below (768px), list and detail occupy separate full-width views. Preserve this structural behavior when adapting the world to other surfaces; it is not a requirement to give source-page controls a three-column shell.
+The production workspace fills (100svh) with a minimum-zero flex region and internal list/inspector scrolling. Wide navigation and list measure (192px / 352px), followed by a flexible inspector. Below (1200px) they become (160px / 304px). Below (960px) navigation initializes collapsed and remains explicitly accessible through its trigger. Between 768px and 959px the desktop rail uses offcanvas behavior; below (768px) it uses the primitive's mobile sheet. List and detail occupy separate full-width views below 768px.
 
-The root fills (100svh), with a fixed sample toolbar and a minimum-zero flex/grid working region. The list and inspector scroll within that region. Avoid a second document scrollbar. Inspector insets step from (32px) to (24px) to (20px); list insets use (20px). Rows use (16px 12px). Repeated rhythm centers on the eight-pixel unit, with the frontmatter recording actual intermediate insets and the inherited control's (6px) gap.
+List-header insets are (24px 20px 16px); rows are (16px 12px) with (10px) internal gaps. The inspector header is (26px 32px 20px) and recovery is (20px 32px). Horizontal inspector insets become (24px) below 1200px and both regions use (20px) padding below 768px. Captured preview content uses (20px / 24px) horizontal/vertical padding, increasing to (32px) at 640px, within a (896px) maximum container. Rhythm centers on the eight-pixel unit with actual intermediate control gaps and insets retained.
 
-Captured prose is bounded at (68ch); inspector identifiers and metadata wrap. The three outcome facts stay side by side at (320px), with reduced gaps and badge padding rather than changing to a connected sequence. Metadata columns change from (120px) to (88px) at narrow widths.
+The inspector toolbar stacks below 768px, keeping heading and actions readable. The three outcome facts remain side by side at (320px), with reduced gaps and wrapping badges. Captured prose remains bounded at (68ch). Queue dialogs keep headers/actions outside an internally scrolling task list; queue rows stack below 640px.
 
-The component sheet is a sample-only canvas: maximum width (1240px), padding (36px 40px), falling to (24px 20px) below 768px. Its swatches change from six to three columns. The sample toolbar and scenario selectors are review infrastructure, not a production composition rule.
-
-Narrow selection focuses Back; Back returns focus to the originating row, with search as the fallback. Rows support ArrowUp, ArrowDown, Home, End and Enter activation. These behaviors were checked in the sample. Background production updates must preserve established browsing and focus contracts.
+Explicit narrow selection focuses Back; Back returns to the originating row, with search as fallback. ArrowUp, ArrowDown, Home and End move row focus; native button activation selects. Background updates do not set explicit selection focus intent. The local production fixture checked narrow focus return and viewport bounds at 390px and 320px, plus the current 842px width. These results do not establish native source-page integration coverage.
 
 ## Elevation & Depth
 
-The shell is flat: tonal layers and single-pixel divisions separate work areas. There is no resting row or pane shadow. Imported primitives retain modest depth for segmented tabs and overlays; the detail tabs use the line variant without a shadow.
+The working shell is flat: blue tonal layers and single-pixel divisions separate areas without resting row or pane shadows. Existing primitives retain modest lift for transient feedback, the floating queue launcher and selected segmented tabs. Detail tabs use the line variant without a resting shadow.
 
 ### Shadow Vocabulary
 
-- **Transient notice:** `box-shadow: 0 8px 32px #142d4520`; the sample toast only.
-- **Active segmented tab:** inherited Tailwind `shadow-sm`: `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)`.
-- **Dialog boundary:** (1px) foreground ring at 10% opacity; backdrop black at 10% with the imported (4px) blur where supported. This inherited overlay behavior does not establish a glass material for the working shell.
+- **Floating feedback / launcher:** Tailwind `shadow-lg`: `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)`.
+- **Active segmented tab:** Tailwind `shadow-sm`: `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)`.
+- **Dialog boundary:** foreground ring at 10% opacity with (1px) width; black backdrop at 10% and supported (4px) blur. This overlay treatment does not establish glass as a working material.
 
-Rows transition background using `sample-motion` (160ms) and `sample-ease` (`cubic-bezier(.22,1,.36,1)`). Imported controls use the installed Tailwind default (150ms, `cubic-bezier(0.4,0,0.2,1)`); dialogs use a (100ms) fade/scale. Reduced motion forces animation and transitions to (.01ms), a single animation iteration, and automatic scroll behavior. Do not add entrance choreography.
+Rows use `workspace-motion` (160ms) and `workspace-ease` (`cubic-bezier(.22,1,.36,1)`). Primitive transitions use the installed (150ms) default; dialogs fade/scale over (100ms). Sidebar movement uses (200ms) linear transitions. Existing toast stacking uses (500ms) transform/opacity, (150ms) height and (250ms) content opacity. Reduced motion forces duration to (.01ms), one animation iteration and automatic scrolling; native Bilibili cover controls disable their own transition. No entrance choreography defines the workspace.
 
 **The Flat Working Surface Rule.** Use tonal separation and restrained strokes for the working shell. Reserve the observed lift for overlays and transient feedback.
 
 ## Shapes
 
-Custom capture rows and small code/swatch surfaces have gentle corners (`rounded.row`). The shadcn radius base is (10px); the imported mapping produces medium (8px), large (10px), overlay (14px) and badge (26px) corners. Thus buttons and search groups have (10px) corners, line-tab triggers retain (8px) geometry, and dialogs have (14px) corners. Badge rounding is a fixed primitive radius, not a newly invented infinite pill token.
+Summary rows have gentle (8px) corners. The shared radius base is (10px): default buttons/fields use (10px), small controls and line-tab triggers use (8px), dialogs use (14px), toasts use (18px) and badges use (26px). Badge rounding is a fixed primitive radius; author initials and the (48px) queue launcher use circular geometry. Boundaries are predominantly (1px), with a contrasting selected-row stroke.
 
-The notice uses (10px), progress uses (4px), and author initials use circular geometry. Boundaries are predominantly (1px); selection makes its boundary explicit. Use functional Lucide vector shapes rather than text glyphs or decorative image marks.
+Native Bilibili toolbar and cover controls retain (6px) corners as a bounded host-context exception; the cover control measures (28px) square and toolbar height follows the observed host variable with a (24px) fallback. This exception is not the general workspace corner rule. Functional SVG vectors communicate actions/status; decorative raster or text-glyph icons do not define this world.
 
 ## Components
 
 ### Buttons
 
-Compact and familiar, with one clear priority. Primary, outline, secondary, ghost and destructive variants are evidenced in the component sheet; the link variant exists in the imported primitive but is not promoted here as a sampled pattern.
+Compact primitives establish one clear priority: yellow-green primary, blue secondary, quiet ghost, boundary-led outline and tinted destructive. The link variant supports contextual actions.
 
-Default buttons are (32px) high with (10px) horizontal padding, (6px) gap and (10px) radius. Inline start/end icons reduce their corresponding edge to (8px), and ordinary button icons are (16px). Primary uses the action token; outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover; secondary uses the support surface; ghost gains a muted 50% hover tint. Secondary hover mixes in foreground at 5%. Destructive uses 20% error fill and error ink, increasing fill to 30% on hover and using a 40% error focus ring.
+Default buttons are (32px) high, with (10px) horizontal padding, (6px) gap and (10px) radius. Small buttons are (28px), use (4px) gap and (8px) radius; extra-small buttons are (24px). Default, small and extra-small vector sizes are (16 / 14 / 12px). Default inline icons reduce their adjacent edge to (8px); small inline icons use (6px). Inspector export and in-place Retry reads use the small outline variant.
 
-Imported focus is a (3px) ring at 50% ring opacity with a ring-colored border. The sample adds a (2px) explicit focus outline with (3px) offset to buttons, links and selects. Press moves buttons down (1px), except popup triggers excluded by the primitive. Disabled controls have 50% opacity and suppress pointer interaction. Preserve Base UI behavior during integration rather than recreating it from the sidecar's static specimens.
+Dark outline uses input-colored 30% fill and an input boundary, increasing fill to 50% on hover. Secondary hover mixes foreground at 5%; ghost gains muted 50% tint. Destructive uses 20% failure fill, increasing to 30%, with a 40% failure focus ring. Primitive focus adds a (3px) ring at 50% ring opacity and a ring-colored border; workspace button/link focus also has a (2px) outline and (3px) offset. Press translates down (1px), except popup triggers. Disabled controls have 50% opacity and suppress pointer interaction.
 
-Small vector-only controls are actually present: source capture and manual clear use (36px) squares with (16px) icons; dismiss notice uses (32px); search clear uses (32px) through InputGroupButton; dialog close uses (28px). Each carries an accessible name. These observed sizes are not a blanket guarantee of touch-target suitability in every host context.
+Inspector source/clear, Back and dialog close are (28px) icon controls; search clear is (24px). Their accessible names remain essential. These observed sizes do not assert blanket touch-target suitability in every host context. Preserve Base UI semantics; sidecar snippets illustrate appearance without reproducing application operations.
 
 ### Inputs / Fields
 
-Search is the installed InputGroup with leading Search vector, visible placeholder and a hidden semantic label: “Search capture label or source URL.” The group is (32px) high with an input boundary and (10px) radius. It uses input-colored 30% fill against the dark list surface. Focus-visible on the inner input moves the group border and adds the shared ring. The inner control removes its own border/ring; the group owns the visible boundary.
+Search uses InputGroup, a leading Search vector, a semantic label and visible placeholder. The group owns its input boundary, dark 30% fill, (32px) height and (10px) radius; inner-input focus moves the group border and adds the shared ring. The inner input removes duplicate boundaries. Search matches capture labels and source URLs; no-results guidance states that scope and offers clear search.
 
-Search matches only capture label and source URL in this sample. No-result copy states that scope and offers clear search; it makes no full-content, author or media search promise. Settings use existing Field/Input composition, read-only example values and disabled submission; they do not establish a new production settings flow.
+Settings is the real connection/access dialog, opening Connection by default and retaining General for explicit website grants. It contains no theme selector. Connection-busy protection, focus restoration and existing host operations remain authoritative; preview fixtures do not prove native grants or live connection success.
 
 ### Navigation
 
-A mineral-blue rail with left-aligned (38px) high buttons, (10px) icon gaps, restrained (12px) counts and a connection summary. Current view uses secondary treatment and `aria-current="page"`; other views use ghost treatment. Below 960px the same navigation content appears in an explicitly opened, titled dialog. Connection and task controls do not invent automatic queue opening.
+A mineral-blue rail provides Inbox, In progress, Saved and All captures, counts and Settings. Buttons measure (38px) high with (10px) gaps and (12px) counts. Active navigation uses sidebar-accent and `aria-current="page"`; hover uses the same local sidebar material. Responsive collapse and the mobile sheet preserve explicit access. The production rail does not inherit the sample's extra connection summary or synthetic toolbar.
 
 ### Capture Rows / Containers
 
-Summary-first flat rows with (8px) corners, (16px 12px) insets and (10px) internal gaps. A muted hover tint supports scanning; selected rows use selected fill and selected-ink border with `aria-pressed`. Their hierarchy is source/time, label, outcome, then a short reason. The inspector presents source/action, heading, independent outcomes, persistent explanation/next action, then Preview / Metadata / Activity. Diagnostics stay in an expandable secondary disclosure.
+Flat summaries present source/time, label, relevant outcomes and a short reason. Selected rows use both fill and stroke plus `aria-pressed`; hover uses muted blue. File containers use raised-blue fill and restrained outline. The inspector orders source/actions, heading, independent outcomes, persistent recovery, then Preview / Metadata / Activity. Technical diagnostics remain expandable.
 
 ### Status and Parallel Outcomes
 
-Status combines a word, a (12px) Lucide vector and a semantic tone. Success maps to Check, warning to TriangleAlert, failure to CircleAlert, information/acquisition to Clock, and neutral staging to Inbox. The neutral outline uses foreground and border rather than error ink. The corrected source-page specimen uses this same shared neutral staging treatment.
+Shared status uses text, a (12px) functional vector and tone: Inbox for staging, Check for confirmed Locus save, TriangleAlert for partial, CircleAlert for failure and CircleHelp for unresolved state. Active acquisition/saving uses motion-safe LoaderCircle; queued uses Clock3. The inspector fact strip uses Clock for informational facts and follows its independent fact vocabulary.
 
-The signature definition list has three equal columns, a top boundary, (18px) top inset, (16px) desktop gap and (22px) top margin. Outcome badges become at least (24px) high, wrap words, and retain labels. Below 768px the gap is (8px), captions and badges use (11px), and badge horizontal padding becomes (5px). It is possible and necessary to show Complete / Not retained / Saved together.
+The signature definition list has three equal columns, a top boundary, (18px) top inset, (16px) wide gap and (22px) top margin. Badges are at least (24px) high, wrap words and retain labels. Below 768px gaps become (8px), captions/badges (11px), and badge horizontal padding (5px). Complete / Not retained / Saved is a valid combination.
 
-### Queue Progress
+Persistent recovery sits beside content before tabs. When read failure leaves an older snapshot visible, its warning includes an actionable Retry reads button wired to the existing read operation. Retention explanations identify the committed revision recoverable after restart; available content can still be exported. Original-save continuation and connection setup follow existing capability guards.
 
-Queue rows use (16px) vertical insets and (10px) gaps, plus the same Status component as the inspector. Acquisition is info/Clock; staging is neutral/Inbox. The corrected native progress surface has a (5px) height, (4px) radius, info fill and muted track, explicitly styled for WebKit and Mozilla. Its visible “64% in this static example” is demonstration data, not a duration estimate or a new progress capability. Closing the queue does not cancel accepted captures.
+### Capture Queue / Source Controls
 
-### Feedback, Recovery and Clear
+The source-page queue opens through explicit launcher activation; closing it keeps accepted tasks running. Its (48px) circular launcher uses secondary fill and the existing floating shadow. The queue dialog uses (16px) padding, flat rows with (16px) vertical insets, shared outcome badges, reasons and secondary diagnostics. Task actions include supported retry preparation, opening the result and Refresh status. This production queue does not render the sample's static percentage/progress example.
 
-Recovery remains discoverable beside the affected record: setup requires configuration followed by explicit original-save continuation; failed or uncertain saves direct the user to inspect the original attempt; confirmed uploads are not repeated. Incomplete capture offers inspection/export of available portions and is not sent. Older captures without a save attempt offer inspection/export without implying retroactive send.
-
-Retention failure states that only a committed local revision is recoverable after restart and offers export of currently available content. A confirmed Locus save remains a separate fact. Clear names the target, initially focuses Cancel and describes removal of the extension's local copy while exports and accepted Locus content remain. Empty/loading states use installed Empty/Skeleton primitives, meaningful guidance and an accessible loading status.
-
-The sample illustrates these contracts through synthetic/no-op controls; production integration must consume existing owners and protocols. No permissions, persistence, credentials, acquisition, delivery or search capabilities are added by this document.
+Source controls share functional capture/status vectors and semantic tones. Native Bilibili controls remain scoped to host slots with existing host geometry and literal dark cover fallbacks. Fixture glyph captures exercise the real vector component; native Twitter/Bilibili DOM mounting remains unverified.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** preserve the dark-blue material, yellow-green action priority and semantic token roles on every target surface.
+- **Do** preserve the dark-blue material, yellow-green action priority and semantic token roles on target surfaces.
 - **Do** show status as a word, a functional vector icon and a semantic color; keep staging neutral.
 - **Do** keep the three independent outcomes readable together, including when local retention fails after Locus succeeds.
-- **Do** state the supported recovery and retention limits beside the affected capture, after transient feedback disappears.
-- **Do** preserve narrow Back/focus return, named-clear confirmation, keyboard activation and reduced-motion handling.
-- **Do** keep summary search honest: it matches capture labels and source URLs in this sample.
-- **Do** use existing shadcn/Base UI variants and preserve their interaction semantics when integrating the target system.
+- **Do** place persistent reasons and supported recovery beside affected content, including Retry reads beside an older preview.
+- **Do** preserve explicit narrow Back/focus return, named-clear confirmation, keyboard activation and reduced-motion handling.
+- **Do** keep summary search honest: it matches capture labels and source URLs.
+- **Do** preserve existing shadcn/Base UI interaction semantics and bounded source-host geometry.
 
 ### Don't:
 
-- **Don't** imply that preview, a local copy or configuration proves a confirmed Locus save.
-- **Don't** imply that connection setup replays older captures, partial content is sent, or legacy results gain a new send capability.
-- **Don't** turn the parallel outcome strip into a wizard, a connected progress path or one generic success badge.
-- **Don't** use the synthetic toolbar, records, static progress or no-op controls as production behavior.
-- **Don't** promise restart recovery for uncommitted local content, automatic restart download continuation or cancellation by closing an inspection view.
-- **Don't** turn component inheritance or a focused contrast check into a claim of complete accessibility coverage.
+- **Don't** imply that a preview, local copy or connection configuration proves a confirmed Locus save.
+- **Don't** imply that setup replays older captures, partial content is sent, or legacy captures gain a new send capability.
+- **Don't** turn the parallel facts into a wizard, connected progress path or aggregate success badge.
+- **Don't** carry synthetic lab controls or static percentage progress into production behavior.
+- **Don't** promise restart recovery for uncommitted content, automatic download continuation or cancellation by closing inspection.
+- **Don't** turn component inheritance or fixture checks into whole-product accessibility or native Chrome/Locus verification claims.
 - **Don't** add decorative raster imagery, display typography or broadcast ornament to task controls.

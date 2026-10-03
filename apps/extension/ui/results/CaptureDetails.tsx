@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Snapshot, Delivery } from "@locus/capture-core/model";
 import { CapturePreview } from "./CapturePreview";
 import { CaptureActivity } from "./CaptureActivity";
@@ -25,9 +24,9 @@ export function CaptureDetails({
     <Tabs
       value={tab}
       onValueChange={(value) => onTab(String(value))}
-      className="min-h-0 flex-1 gap-0"
+      className="capture-details gap-0"
     >
-      <div className="shrink-0 border-b bg-card px-5 sm:px-8">
+      <div className="capture-detail-tabs px-5 sm:px-8">
         <TabsList variant="line" aria-label="Capture details">
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -39,22 +38,16 @@ export function CaptureDetails({
           </TabsTrigger>
         </TabsList>
       </div>
-      <TabsContent value="preview" className="min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
+      <TabsContent value="preview" className="min-w-0">
           <CapturePreview snapshot={snapshot} />
-        </ScrollArea>
       </TabsContent>
-      <TabsContent value="metadata" className="min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
+      <TabsContent value="metadata" className="min-w-0">
           <CaptureMetadata snapshot={snapshot} onNotice={onNotice} />
-        </ScrollArea>
       </TabsContent>
-      <TabsContent value="activity" className="min-h-0 overflow-hidden">
-        <ScrollArea className="h-full">
+      <TabsContent value="activity" className="min-w-0">
           <CaptureActivity snapshot={snapshot} deliveries={deliveries}>
             {activityContext}
           </CaptureActivity>
-        </ScrollArea>
       </TabsContent>
     </Tabs>
   );

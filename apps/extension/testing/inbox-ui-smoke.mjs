@@ -65,14 +65,14 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   assert.equal(await page.evaluate(() => __inbox.calls.filter(call => call.operation === 'read').length), 0, 'List must not read blobs');
 
   await inspect('failed');
-  await page.getByRole('button', { name: 'Locus save needs attention', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Check and continue save', exact: true }).waitFor();
   await page.screenshot({ path: path.join(work, 'inbox-staging-and-error.png') });
-  assert(await page.getByRole('region', { name: 'Capture inspection', exact: true }).locator(':scope > header').evaluate(header => header.getBoundingClientRect().height) <= 130, 'Ordinary capture feedback keeps a compact toolbar');
+  assert.equal(await page.locator('.capture-outcome-strip dt').allTextContents().then(labels => labels.join('|')), 'Capture|Local copy|Locus save');
+  assert.equal(await page.getByRole('button', { name: 'Check and continue save', exact: true }).isVisible(), true, 'Recovery remains visible before opening Activity');
   assert.equal(await page.locator('[data-slot="sidebar-inset"] > header').count(), 0, 'The library and inspector use the full viewport height');
   assert.equal(await page.getByRole('region', { name: 'Capture inspection', exact: true }).locator('header').getByRole('button', { name: /Connection settings|Check.*save|Status details/ }).count(), 0, 'Secondary save controls live with their explanation');
   const settingsButton = page.getByRole('button', { name: 'Settings', exact: true });
   assert(await settingsButton.evaluate(button => button.closest('[data-slot="sidebar-footer"]') && button.getBoundingClientRect().top > innerHeight / 2), 'Settings is pinned to the sidebar bottom');
-  await page.getByRole('button', { name: 'Locus save needs attention', exact: true }).click();
   assert.equal(await page.locator('[data-capture-diagnostic] pre').isVisible(), false);
   await page.getByText('Technical details', { exact: true }).click();
   await page.getByRole('button', { name: 'Copy diagnostic', exact: true }).click();
@@ -91,12 +91,12 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   await dialog.waitFor({ state: 'hidden' });
   await page.getByText('Locus connection verified', { exact: true }).waitFor();
   await closeToasts();
-  assert.equal(await page.getByRole('button', { name: 'Connection settings', exact: true }).evaluate(button => button === document.activeElement), true, 'Connection setup returns to its initiating Activity action');
+  assert.equal(await page.getByRole('button', { name: 'Connection settings', exact: true }).evaluate(button => button === document.activeElement), true, 'Connection setup returns to its initiating recovery action');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   assert.equal(await dialog.getByLabel('Token', { exact: true }).inputValue(), '');
   await dialog.getByRole('tab', { name: 'General', exact: true }).click();
   await dialog.getByText('Website access', { exact: true }).waitFor();
-  await dialog.getByText('Appearance', { exact: true }).waitFor();
+  assert.equal(await dialog.getByRole('button', {name:/Use (light|dark) theme/}).count(), 0, 'The selected design is dark only');
   await dialog.getByRole('button', { name: 'Enable Twitter', exact: true }).click();
   await dialog.getByRole('button', { name: 'Twitter enabled', exact: true }).waitFor();
   await dialog.getByRole('button', { name: 'Enable Bilibili', exact: true }).click();
@@ -120,7 +120,6 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   await page.getByRole('tab', { name: /^Activity/ }).click();
   assert.equal(await page.getByRole('button', { name: /Check.*save/ }).count(), 0);
   await inspect('unverified');
-  await page.getByRole('button', { name: 'Locus save not verified', exact: true }).click();
   await page.getByRole('button', { name: 'Check original save', exact: true }).click();
   await page.getByText('Save check requested', { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => __inbox.calls.filter(call => call.operation === 'locus-continue').length), 1);
@@ -182,6 +181,10 @@ export async function verifyInboxUi({ context, extensionId, work }) {
   await page.screenshot({ path: path.join(work, 'inbox-partial-mobile.png') });
   await page.getByRole('button', { name: 'Back to captures', exact: true }).click();
   await search.waitFor();
+  assert.equal(await row('partial').evaluate(button => button === document.activeElement), true, 'Narrow Back returns focus to the row explicitly opened by the user');
+  await row('partial').press('Enter');
+  assert.equal(await page.getByRole('button', { name: 'Back to captures', exact: true }).evaluate(button => button === document.activeElement), true, 'Explicit narrow selection focuses Back');
+  await page.getByRole('button', { name: 'Back to captures', exact: true }).click();
   await page.screenshot({ path: path.join(work, 'inbox-list-mobile.png') });
   await page.getByRole('button', { name: 'Toggle Sidebar', exact: true }).click();
   await settingsButton.click();

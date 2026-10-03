@@ -87,9 +87,9 @@ function QueueTasks({
         <Item
           key={draft.sourceId}
           role="listitem"
-          variant="outline"
+          variant="default"
           size="sm"
-          className="flex-col items-stretch sm:flex-row sm:items-start"
+          className="capture-queue-row flex-col items-stretch sm:flex-row sm:items-start"
           data-preparation-source={draft.sourceId}
         >
           <ItemContent className="min-w-0">
@@ -144,9 +144,9 @@ function QueueTasks({
         <Item
           key={task.summary.id}
           role="listitem"
-          variant="outline"
+          variant="default"
           size="sm"
-          className="flex-col items-stretch sm:flex-row sm:items-start"
+          className="capture-queue-row flex-col items-stretch sm:flex-row sm:items-start"
           data-task-id={task.summary.id}
         >
           <ItemContent className="min-w-0">
@@ -364,7 +364,7 @@ export function CaptureQueuePanel({
         <DialogContent
           id={dialogId}
           portalContainer={portalContainer}
-          className="pointer-events-auto flex max-h-[min(85dvh,44rem)] flex-col sm:max-w-xl"
+          className="capture-queue-dialog pointer-events-auto flex max-h-[min(85dvh,44rem)] flex-col sm:max-w-xl"
           showCloseButton={false}
         >
           <DialogHeader className="shrink-0">

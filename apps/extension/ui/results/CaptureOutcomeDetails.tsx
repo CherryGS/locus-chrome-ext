@@ -1,11 +1,12 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import type { CaptureResult, Delivery } from "@locus/capture-core/model";
 import type { LocusTransfer } from "@/host/locus/model";
 import { LocusSaveDetails } from "./LocusSaveStatus";
 import { Failure, Pending } from "./ResultNotice";
 import { deliveryLabels } from "./presentation";
 
-/** Full explanations live with operation history, leaving the content toolbar compact. */
+/** Recovery stays beside the affected capture while diagnostics remain expandable. */
 export function CaptureOutcomeDetails({
   result,
   locus,
@@ -16,6 +17,7 @@ export function CaptureOutcomeDetails({
   canContinue,
   onContinue,
   onSettings,
+  onRetry,
 }: {
   result: CaptureResult;
   locus?: LocusTransfer;
@@ -26,6 +28,7 @@ export function CaptureOutcomeDetails({
   canContinue: boolean;
   onContinue: () => void;
   onSettings: () => void;
+  onRetry: () => void;
 }) {
   const deliveryConcern =
     latest &&
@@ -33,7 +36,7 @@ export function CaptureOutcomeDetails({
       !!latest.reason);
   return (
     <section aria-label="Operation details" className="flex flex-col gap-3">
-      <h3 className="font-medium">Locus & operation details</h3>
+      <h3 className="sr-only">Locus & operation details</h3>
       <LocusSaveDetails
         transfer={locus}
         busy={busy}
@@ -48,10 +51,13 @@ export function CaptureOutcomeDetails({
         </p>
       )}
       {readError && (
-        <Failure
-          title="Result read failed"
-          message={`${readError}. Existing preview content may be older. Retry reads to try again.`}
-        />
+        <div className="flex flex-col items-start gap-2">
+          <Failure
+            title="Result read failed"
+            message={`${readError}. Existing preview content may be older. Retry reads to try again.`}
+          />
+          <Button variant="outline" size="sm" disabled={busy} onClick={onRetry}>Retry reads</Button>
+        </div>
       )}
       {actionError && (
         <Failure title="Action could not finish" message={actionError} />

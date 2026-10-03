@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@source "../ui";
+@source "../components";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,83 +51,31 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  color-scheme: light;
-  --radius: 0.625rem;
-  --background: oklch(0.978 0.006 240);
-  --foreground: oklch(0.25 0.025 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.43 0.085 190);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.952 0.008 240);
-  --secondary-foreground: oklch(0.3 0.025 240);
-  --muted: oklch(0.948 0.009 240);
-  --muted-foreground: oklch(0.49 0.025 240);
-  --accent: oklch(0.94 0.015 190);
-  --accent-foreground: oklch(0.3 0.05 190);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.48 0.13 155);
-  --warning: oklch(0.5 0.12 75);
-  --info: oklch(0.5 0.15 250);
-  --border: oklch(0.905 0.013 240);
-  --input: oklch(0.905 0.013 240);
-  --ring: oklch(0.56 0.075 190);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.963 0.01 240);
-  --sidebar-foreground: oklch(0.25 0.025 240);
-  --sidebar-primary: oklch(0.43 0.085 190);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.92 0.022 190);
-  --sidebar-accent-foreground: oklch(0.3 0.05 190);
-  --sidebar-border: oklch(0.905 0.013 240);
-  --sidebar-ring: oklch(0.56 0.075 190);
-}
-
-.dark {
+:root, .dark {
   color-scheme: dark;
-  --background: oklch(0.185 0.013 240);
-  --foreground: oklch(0.955 0.006 240);
-  --card: oklch(0.224 0.015 240);
-  --card-foreground: oklch(0.955 0.006 240);
-  --popover: oklch(0.245 0.016 240);
-  --popover-foreground: oklch(0.955 0.006 240);
-  --primary: oklch(0.8 0.1 185);
-  --primary-foreground: oklch(0.22 0.035 190);
-  --secondary: oklch(0.29 0.018 240);
-  --secondary-foreground: oklch(0.955 0.006 240);
-  --muted: oklch(0.29 0.018 240);
-  --muted-foreground: oklch(0.74 0.018 240);
-  --accent: oklch(0.32 0.03 190);
-  --accent-foreground: oklch(0.955 0.006 240);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.78 0.14 155);
-  --warning: oklch(0.82 0.14 80);
-  --info: oklch(0.78 0.12 250);
-  --border: oklch(0.36 0.018 240);
-  --input: oklch(0.38 0.02 240);
-  --ring: oklch(0.7 0.08 185);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.212 0.015 240);
-  --sidebar-foreground: oklch(0.955 0.006 240);
-  --sidebar-primary: oklch(0.8 0.1 185);
-  --sidebar-primary-foreground: oklch(0.22 0.035 190);
-  --sidebar-accent: oklch(0.3 0.04 190);
-  --sidebar-accent-foreground: oklch(0.955 0.006 240);
-  --sidebar-border: oklch(0.36 0.018 240);
-  --sidebar-ring: oklch(0.7 0.08 185);
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --radius: .625rem;
+  --background: #102638; --foreground: #eaf2f7;
+  --card: #173044; --card-foreground: #eaf2f7;
+  --popover: #173044; --popover-foreground: #eaf2f7;
+  --primary: #d9e785; --primary-foreground: #203139;
+  --secondary: #2a475c; --secondary-foreground: #eaf2f7;
+  --muted: #29465a; --muted-foreground: #b4c8d5;
+  --accent: #2a475c; --accent-foreground: #eaf2f7;
+  --destructive: #ffb2bd; --destructive-foreground: #ffffff;
+  --success: #91d6b1; --warning: #f0d48c; --info: #9cc8ed;
+  --border: #35566c; --input: #35566c; --ring: #a0c5dc;
+  --sidebar: #142d45; --sidebar-foreground: #eef4f8;
+  --sidebar-accent: #284b65; --sidebar-muted: #b4c8d5;
+  --workspace-reading: #132b3e; --workspace-list: #102638;
+  --workspace-selected: #28485e; --workspace-selected-ink: #eaf2f7;
+  --workspace-focus: #a0c5dc; --workspace-caption: #b4c8d5;
+  --workspace-motion: 160ms; --workspace-ease: cubic-bezier(.22,1,.36,1);
+  --chart-1: var(--info); --chart-2: var(--success); --chart-3: var(--primary);
+  --chart-4: var(--warning); --chart-5: var(--destructive);
+  --sidebar-primary: var(--primary); --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent-foreground: var(--sidebar-foreground);
+  --sidebar-border: var(--border); --sidebar-ring: var(--ring);
 }
 
 @layer base {
@@ -145,8 +95,8 @@
   background: var(--muted);
 }
 .capture-list-item[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--accent);
+  border-color: var(--workspace-selected-ink);
+  background: var(--workspace-selected);
 }
 .capture-inspector > header {
   background: var(--card);
@@ -154,3 +104,48 @@
 .capture-inspector [data-slot="item"][data-variant="outline"] {
   background: var(--card);
 }
+
+/* Signal shelf work surfaces share tokens with source-page shadow roots. */
+html, body { font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; line-height: 1.5; }
+html { font-size: 16px; }
+body { font-size: 14px; }
+a { text-underline-offset: 3px; }
+::selection { background: var(--primary); color: var(--primary-foreground); }
+input, textarea { caret-color: var(--foreground); }
+* { scrollbar-color: var(--border) transparent; scrollbar-width: thin; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--workspace-focus); outline-offset: 3px; }
+.results-workspace { --workspace-sidebar-width: 192px; }
+.library-navigation { --muted-foreground: var(--sidebar-muted); --ring: var(--primary); }
+.library-navigation [data-slot=sidebar-menu-button] { height: 38px; gap: 10px; }
+.library-navigation [data-slot=sidebar-menu-badge] { color: var(--sidebar-muted); font-variant-numeric: tabular-nums; }
+.library-navigation h1 { font-size:20px; font-weight:650; letter-spacing:-.025em; }
+.capture-list-pane { width: 352px; }
+.capture-list { background: var(--workspace-list); }
+.capture-list > header { padding: 24px 20px 16px; border-bottom: 0; }
+.capture-list-title { font-size: 24px; font-weight: 650; letter-spacing: -.025em; }
+.capture-list-item { border: 1px solid transparent; border-bottom-color: var(--border); border-radius: 8px; padding: 16px 12px; transition: background var(--workspace-motion) var(--workspace-ease); }
+.capture-list-item [data-slot=item-content] { gap: 10px; }
+.capture-list-item [data-slot=item-title] { font-weight: 650; line-height: 1.45; overflow-wrap: anywhere; }
+.capture-inspector { background: var(--workspace-reading); }
+.capture-inspector > header { padding: 26px 32px 20px; }
+.capture-record-heading { font-size: 18px; font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.capture-outcome-strip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; padding-top: 18px; margin-top: 22px; border-top: 1px solid var(--border); }
+.capture-outcome-strip dt { font-size: 12px; color: var(--muted-foreground); margin-bottom: 6px; }
+.capture-outcome-strip dd { margin: 0; }
+.capture-outcome-strip [data-slot=badge] { min-height: 24px; height: auto; white-space: normal; text-align: left; }
+.capture-recovery { padding: 20px 32px; border-bottom: 1px solid var(--border); background: var(--card); }
+.capture-recovery [data-slot=alert] { border:0; padding:0; background:transparent; }
+.capture-detail-tabs { padding-top: 18px; }
+.capture-queue-row { border-bottom: 1px solid var(--border); border-radius: 0; padding: 16px 0; }
+@media (max-width:1199px) { .results-workspace { --workspace-sidebar-width:160px; } .capture-list-pane { width:304px; } .capture-inspector > header, .capture-recovery { padding-inline:24px; } }
+@media (max-width:767px) {
+  .capture-list-pane { width:100%; }
+  .capture-inspector > header, .capture-recovery { padding:20px; }
+  .capture-inspector-toolbar { flex-direction:column; align-items:stretch; }
+  .capture-inspector-toolbar > div:first-child { flex-basis:auto; }
+  .capture-inspector-toolbar > div:last-child { margin-left:0; }
+  .capture-outcome-strip { gap:8px; }
+  .capture-outcome-strip dt, .capture-outcome-strip [data-slot=badge] { font-size:11px; }
+  .capture-outcome-strip [data-slot=badge] { padding-inline:5px; }
+}
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }

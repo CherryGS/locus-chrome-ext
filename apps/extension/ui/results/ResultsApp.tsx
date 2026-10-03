@@ -56,24 +56,38 @@ export function ResultsApp() {
   );
   reveal.current = navigation.revealCapture;
   const [sidebarOpen, setSidebarOpen] = useState(
-    () => matchMedia("(min-width: 1200px)").matches,
-  );
-  const [dark, setDark] = useState(
-    () => localStorage.getItem("locus-theme") !== "light",
+    () => matchMedia("(min-width: 960px)").matches,
   );
 
   useEffect(() => {
-    const media = matchMedia("(min-width: 1200px)");
+    const media = matchMedia("(min-width: 960px)");
     const changed = () => setSidebarOpen(media.matches);
     media.addEventListener("change", changed);
     return () => media.removeEventListener("change", changed);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("locus-theme", dark ? "dark" : "light");
-  }, [dark]);
 
+  const focusIntent = useRef<"detail" | "list" | null>(null);
+  const originRow = useRef("");
+  useEffect(() => {
+    if (focusIntent.current === "detail") {
+      document.querySelector<HTMLButtonElement>('[aria-label="Back to captures"]')?.focus();
+    } else if (focusIntent.current === "list") {
+      const rows = Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-capture-id]"));
+      (rows.find(row => row.dataset.captureId === originRow.current) ??
+        document.querySelector<HTMLInputElement>("#capture-search"))?.focus();
+    }
+    focusIntent.current = null;
+  }, [state.selected]);
+  function selectCapture(id: string) {
+    originRow.current = id;
+    if (matchMedia("(max-width: 767px)").matches) focusIntent.current = "detail";
+    navigation.selectCapture(id);
+  }
+  function backToCaptures() {
+    focusIntent.current = "list";
+    location.hash = "";
+  }
   const retry = () => {
     void state.refresh(true);
   };
@@ -83,8 +97,8 @@ export function ResultsApp() {
         <SidebarProvider
           open={sidebarOpen}
           onOpenChange={setSidebarOpen}
-          style={{ "--sidebar-width": "13.5rem" } as CSSProperties}
-          className="h-svh min-h-0 overflow-hidden"
+          style={{ "--sidebar-width": "var(--workspace-sidebar-width)" } as CSSProperties}
+          className="results-workspace h-svh min-h-0 overflow-hidden"
         >
           <LibrarySidebar
             view={navigation.view}
@@ -105,7 +119,7 @@ export function ResultsApp() {
             <div className="flex min-h-0 min-w-0 flex-1">
               <div
                 className={cn(
-                  "h-full w-full shrink-0 md:w-[20rem] xl:w-[22rem]",
+                  "capture-list-pane h-full w-full shrink-0",
                   state.selected ? "hidden md:block" : "block",
                 )}
               >
@@ -119,7 +133,7 @@ export function ResultsApp() {
                   oldest={navigation.oldest}
                   setOldest={navigation.setOldest}
                   failed={!!state.collectionError}
-                  onSelect={navigation.selectCapture}
+                  onSelect={selectCapture}
                   onRetry={retry}
                 />
               </div>
@@ -146,6 +160,7 @@ export function ResultsApp() {
                 )}
                 <div className="min-h-0 flex-1">
                   <CaptureInspector
+                    onBack={backToCaptures}
                     queuePosition={navigation.selectedRow?.queuePosition}
                     unresolvedReason={navigation.selectedRow?.unresolvedReason}
                     selected={state.selected}
@@ -181,8 +196,6 @@ export function ResultsApp() {
             onEnable={(site) => {
               void state.enable(site);
             }}
-            dark={dark}
-            onTheme={() => setDark((value) => !value)}
           />
           <ClearCaptureDialog
             target={state.clearTarget}

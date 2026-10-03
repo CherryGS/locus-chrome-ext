@@ -13,7 +13,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
@@ -48,7 +47,7 @@ export function LibrarySidebar({
   for (const item of items ?? []) ++counts[resultView(item)];
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="offcanvas" className="library-navigation">
       <SidebarHeader className="px-3 py-5">
         <div className="flex items-center gap-3 px-1">
           <ScanLineIcon
@@ -63,7 +62,6 @@ export function LibrarySidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Library</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {views.map(({ id, icon: Icon }) => (
@@ -71,6 +69,7 @@ export function LibrarySidebar({
                   <SidebarMenuButton
                     tooltip={viewLabels[id]}
                     isActive={view === id}
+                    aria-current={view === id ? "page" : undefined}
                     onClick={() => {
                       onView(id);
                       setOpenMobile(false);

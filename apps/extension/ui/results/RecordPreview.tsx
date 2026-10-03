@@ -46,14 +46,14 @@ export function RecordPreview({
       )}
       <div
         data-slot="capture-record-body"
-        className="whitespace-pre-wrap break-words text-base leading-7"
+        className="max-w-[68ch] whitespace-pre-wrap [overflow-wrap:anywhere] text-base leading-7"
       >
         {body || <span className="text-muted-foreground">{emptyBody}</span>}
       </div>
       {context.length > 0 && (
         <dl
           data-slot="capture-record-context"
-          className="flex min-w-0 flex-col gap-3 border-l-2 pl-4"
+          className="flex min-w-0 flex-col gap-3 border-t pt-4"
         >
           {context.map(({ label, value }) => (
             <div key={label} className="min-w-0">

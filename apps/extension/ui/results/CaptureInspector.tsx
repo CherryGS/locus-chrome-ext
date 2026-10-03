@@ -21,11 +21,10 @@ import {
   type Snapshot,
   type Delivery,
 } from "@locus/capture-core/model";
-import { CaptureOutcomeBadges } from "@/ui/shared/CaptureStatusBadge";
+import { CaptureOutcomeStrip } from "./CaptureOutcomeStrip";
 import { getResultCaptureStatus } from "@/ui/shared/capture-status";
 import type { LocusTransfer } from "@/host/locus/model";
 import { CaptureOutcomeDetails } from "./CaptureOutcomeDetails";
-import { LocusSaveStatus } from "./LocusSaveStatus";
 import { CaptureDetails } from "./CaptureDetails";
 import { CaptureSourceSummary } from "./CaptureSourceSummary";
 import { Failure } from "./ResultNotice";
@@ -33,6 +32,7 @@ import { deliveryLabels, safeSource } from "./presentation";
 
 export function CaptureInspector({
   selected,
+  onBack,
   snapshot,
   queuePosition,
   unresolvedReason,
@@ -50,6 +50,7 @@ export function CaptureInspector({
   onNotice,
 }: {
   selected: string;
+  onBack: () => void;
   snapshot?: Snapshot | null;
   queuePosition?: number;
   unresolvedReason?: string;
@@ -84,19 +85,17 @@ export function CaptureInspector({
   return (
     <section
       aria-label="Capture inspection"
-      className="capture-inspector flex h-full min-h-0 min-w-0 flex-col bg-background"
+      className="capture-inspector h-full min-h-0 min-w-0 overflow-y-auto"
     >
       <header className="flex shrink-0 flex-col gap-2 border-b px-4 py-3 sm:px-5">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="capture-inspector-toolbar flex min-w-0 flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 basis-40 items-center gap-2">
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Back to captures"
               className="md:hidden"
-              onClick={() => {
-                location.hash = "";
-              }}
+              onClick={onBack}
             >
               <ArrowLeftIcon />
             </Button>
@@ -106,7 +105,7 @@ export function CaptureInspector({
               ) : (
                 <p className="text-xs text-muted-foreground">Your library</p>
               )}
-              <h2 className="line-clamp-2 break-words text-sm font-semibold">
+              <h2 className="capture-record-heading break-words">
                 {result?.label ??
                   (selected ? "Selected capture" : "Capture preview")}
               </h2>
@@ -116,6 +115,7 @@ export function CaptureInspector({
             <div className="ml-auto flex shrink-0 items-center gap-1">
               <Button
                 size="sm"
+                variant="outline"
                 disabled={!!busy || !state?.acquired}
                 onClick={onExport}
               >
@@ -154,44 +154,7 @@ export function CaptureInspector({
             </div>
           )}
         </div>
-        {result &&
-          captureStatus &&
-          (captureStatus !== "saved" ||
-            (currentLocus && currentLocus.state !== "complete")) && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <CaptureOutcomeBadges
-                state={captureStatus}
-                result={result}
-                showStaging={false}
-              />
-              <LocusSaveStatus
-                transfer={currentLocus}
-                onDetails={() => setTab("activity")}
-              />
-            </div>
-          )}
-        {result &&
-          (readError || actionError || result.retention.state === "failed") && (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span>
-                {readError
-                  ? "Result read failed"
-                  : actionError
-                    ? "Action could not finish"
-                    : "Current content is not saved"}
-              </span>
-              {readError && (
-                <span className="text-muted-foreground">
-                  Preview may be older.
-                </span>
-              )}
-              {readError && (
-                <Button variant="outline" size="xs" onClick={onRetry}>
-                  Retry reads
-                </Button>
-              )}
-            </div>
-          )}
+        {result && <CaptureOutcomeStrip result={result} locus={currentLocus} queued={queuePosition !== undefined} />}
         {latest && (
           <div>
             <Button
@@ -205,20 +168,7 @@ export function CaptureInspector({
           </div>
         )}
       </header>
-      {!result && readError && (
-        <div className="shrink-0 p-4">
-          <Failure title="Result read failed" message={readError} />
-          <Button variant="link" size="sm" onClick={onRetry}>
-            Retry reads
-          </Button>
-        </div>
-      )}
-      {snapshot && (
-        <CaptureDetails
-          key={snapshot.result.id}
-          snapshot={snapshot}
-          activityContext={
-            <CaptureOutcomeDetails
+      {snapshot && <div className="capture-recovery"><CaptureOutcomeDetails
               result={snapshot.result}
               locus={currentLocus}
               readError={readError}
@@ -232,8 +182,20 @@ export function CaptureInspector({
               }
               onContinue={onContinueLocus}
               onSettings={onSettings}
-            />
-          }
+              onRetry={onRetry}
+            /></div>}
+      {!result && readError && (
+        <div className="shrink-0 p-4">
+          <Failure title="Result read failed" message={readError} />
+          <Button variant="link" size="sm" onClick={onRetry}>
+            Retry reads
+          </Button>
+        </div>
+      )}
+      {snapshot && (
+        <CaptureDetails
+          key={snapshot.result.id}
+          snapshot={snapshot}
           deliveries={deliveries}
           onNotice={onNotice}
           tab={tab}
