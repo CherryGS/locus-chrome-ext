@@ -5,6 +5,9 @@
 /.codegraph
 /.codex/hooks.json
 
+# Local Impeccable decision-page runtime state.
+**/.impeccable/questions/
+
 node_modules
 dist
 coverage
